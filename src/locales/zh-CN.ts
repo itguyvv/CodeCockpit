@@ -167,6 +167,7 @@ const zhCN: Translation = {
   'confirm.exitMessage': '还有 {n} 个会话正在运行，退出后将停止。',
   'confirm.exitDetail': '终端历史已保存在磁盘上，之后可以重新连接会话。',
   'confirm.exitOk': '退出',
+  'confirm.exitPlain': '确定要退出 CodeCockpit 吗？',
   'confirm.exitDontAsk': '不再提示（运行中的会话仍会正常停止）',
   'settings.engineKeepOne': '至少需要保留一个已启用的引擎',
   'settings.sectionProviders': 'API 服务商',

@@ -170,6 +170,7 @@ const ko: Translation = {
   'confirm.exitMessage': '실행 중인 세션이 {n}개 있습니다 — 종료하면 중지됩니다.',
   'confirm.exitDetail': '터미널 기록은 디스크에 저장되며 나중에 세션을 다시 연결할 수 있습니다.',
   'confirm.exitOk': '종료',
+  'confirm.exitPlain': 'CodeCockpit을 종료하시겠습니까?',
   'confirm.exitDontAsk': '다시 묻지 않기(실행 중인 세션은 정상적으로 중지됨)',
   'settings.engineKeepOne': '최소 하나의 엔진은 활성화 상태를 유지해야 합니다',
   'settings.sectionProviders': 'API 공급자',

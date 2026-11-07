@@ -177,6 +177,7 @@ const ru: Translation = {
   'confirm.exitMessage': 'Ещё выполняется сеансов: {n} — они будут остановлены.',
   'confirm.exitDetail': 'История терминала сохраняется на диске; сеансы можно будет возобновить позже.',
   'confirm.exitOk': 'Выйти',
+  'confirm.exitPlain': 'Вы действительно хотите выйти из CodeCockpit?',
   'confirm.exitDontAsk': 'Больше не спрашивать (запущенные сеансы всё равно будут корректно остановлены)',
   'settings.engineKeepOne': 'Как минимум один движок должен оставаться включённым',
   'settings.sectionProviders': 'API-провайдеры',

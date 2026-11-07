@@ -178,6 +178,7 @@ const ptBR: Translation = {
   'confirm.exitMessage': '{n} sessão(ões) em execução — elas serão interrompidas.',
   'confirm.exitDetail': 'O histórico do terminal é mantido em disco; você poderá retomar as sessões depois.',
   'confirm.exitOk': 'Sair',
+  'confirm.exitPlain': 'Tem certeza de que deseja sair do CodeCockpit?',
   'confirm.exitDontAsk': 'Não perguntar novamente (as sessões em execução ainda serão paradas normalmente)',
   'settings.engineKeepOne': 'Ao menos um motor deve permanecer ativado',
   'settings.sectionProviders': 'Provedores de API',

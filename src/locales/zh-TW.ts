@@ -167,6 +167,7 @@ const zhTW: Translation = {
   'confirm.exitMessage': '還有 {n} 個會話正在執行，結束後將停止。',
   'confirm.exitDetail': '終端歷史已儲存在磁碟上，之後可以重新連線會話。',
   'confirm.exitOk': '結束',
+  'confirm.exitPlain': '確定要結束 CodeCockpit 嗎？',
   'confirm.exitDontAsk': '不再提示（執行中的會話仍會正常停止）',
   'settings.engineKeepOne': '至少需保留一個已啟用的引擎',
   'settings.sectionProviders': 'API 供應商',

@@ -381,17 +381,17 @@ function createWindow(): void {
     win = null
   })
 
-  // Confirm before exiting while sessions are still running (skip once armed or opted out)
+  // Confirm before exiting (skip once armed or opted out); message adapts to running sessions
   win.on('close', (e) => {
     if (closeArmed || readSettings().confirmExit === false) return
     const running = runningSessionCount()
-    if (running === 0) return
     e.preventDefault()
     void dialog
       .showMessageBox(win!, {
         type: 'warning',
         title: t('confirm.exitTitle'),
-        message: t('confirm.exitMessage', { n: running }),
+        message:
+          running > 0 ? t('confirm.exitMessage', { n: running }) : t('confirm.exitPlain'),
         detail: t('confirm.exitDetail'),
         buttons: [t('confirm.exitOk'), t('common.cancel')],
         defaultId: 1,

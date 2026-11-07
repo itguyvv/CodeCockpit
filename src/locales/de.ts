@@ -177,6 +177,7 @@ const de: Translation = {
   'confirm.exitMessage': '{n} Sitzung(en) laufen noch — sie werden gestoppt.',
   'confirm.exitDetail': 'Der Terminal-Verlauf bleibt auf der Festplatte erhalten; Sitzungen lassen sich später fortsetzen.',
   'confirm.exitOk': 'Beenden',
+  'confirm.exitPlain': 'Möchten Sie CodeCockpit wirklich beenden?',
   'confirm.exitDontAsk': 'Nicht mehr fragen (laufende Sitzungen werden dennoch sauber gestoppt)',
   'settings.engineKeepOne': 'Mindestens eine Engine muss aktiviert bleiben',
   'settings.sectionProviders': 'API-Anbieter',

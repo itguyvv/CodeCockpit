@@ -179,6 +179,7 @@ const fr: Translation = {
   'confirm.exitMessage': '{n} session(s) encore en cours — elles seront arrêtées.',
   "confirm.exitDetail": "L'historique du terminal est conservé sur disque ; les sessions pourront être reprises plus tard.",
   'confirm.exitOk': 'Quitter',
+  'confirm.exitPlain': 'Voulez-vous vraiment quitter CodeCockpit ?',
   'confirm.exitDontAsk': 'Ne plus demander (les sessions en cours restent arrêtées proprement)',
   'settings.engineKeepOne': 'Au moins un moteur doit rester activé',
   'settings.sectionProviders': 'Fournisseurs API',

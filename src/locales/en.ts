@@ -173,6 +173,7 @@ const en = {
   'confirm.exitMessage': '{n} session(s) still running — they will be stopped.',
   'confirm.exitDetail': 'Terminal history is kept on disk; you can resume the sessions later.',
   'confirm.exitOk': 'Exit',
+  'confirm.exitPlain': 'Are you sure you want to exit CodeCockpit?',
   "confirm.exitDontAsk": "Don't ask again (running sessions are still stopped cleanly)",
   'settings.engineKeepOne': 'At least one engine must stay enabled',
   'settings.sectionProviders': 'API providers',

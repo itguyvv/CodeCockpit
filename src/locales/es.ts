@@ -178,6 +178,7 @@ const es: Translation = {
   'confirm.exitMessage': '{n} sesión(es) en ejecución: se detendrán.',
   'confirm.exitDetail': 'El historial del terminal se guarda en disco; podrás reanudar las sesiones después.',
   'confirm.exitOk': 'Salir',
+  'confirm.exitPlain': '¿Seguro que quieres salir de CodeCockpit?',
   'confirm.exitDontAsk': 'No volver a preguntar (las sesiones en curso se detienen limpiamente)',
   'settings.engineKeepOne': 'Debe permanecer activado al menos un motor',
   'settings.sectionProviders': 'Proveedores de API',

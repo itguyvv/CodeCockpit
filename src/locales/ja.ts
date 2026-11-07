@@ -172,6 +172,7 @@ const ja: Translation = {
   'confirm.exitMessage': '実行中のセッションが {n} 件あります。終了すると停止します。',
   'confirm.exitDetail': 'ターミナル履歴はディスクに保存されており、後で再接続できます。',
   'confirm.exitOk': '終了',
+  'confirm.exitPlain': 'CodeCockpit を終了しますか？',
   'confirm.exitDontAsk': '次から確認しない（実行中のセッションは正常に停止します）',
   'settings.engineKeepOne': '少なくとも 1 つのエンジンを有効にしておく必要があります',
   'settings.sectionProviders': 'API プロバイダー',
