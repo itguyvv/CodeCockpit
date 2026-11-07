@@ -29,7 +29,7 @@ npm run typecheck   # must pass — this also proves all 10 locales are key-comp
 
 ## Build notes
 
-- Use the portable Node 22 at `D:\DevHome\eclipse-jee-2025\.node\node-v22.13.1-win-x64` — the system Node 16 breaks rolldown and tsc.
-  `PATH="/d/DevHome/eclipse-jee-2025/.node/node-v22.13.1-win-x64:$PATH" npm run dist`
+- A portable Node 22 is required — an old system Node (e.g. 16) breaks rolldown and tsc. Put the portable Node's bin directory first on `PATH` for all npm commands:
+  `PATH="/path/to/node-v22-win-x64:$PATH" npm run dist`
 - Close any running packaged exe before building (EBUSY).
 - `npm run dist` produces `dist/CodeCockpit/` (fixed folder name for overwrite upgrades) and `dist/CodeCockpit-<version>-win-x64.zip`.
