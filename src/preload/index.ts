@@ -133,7 +133,17 @@ const api = {
     providerId?: string
     modelId?: string
     npmPackage?: string
+    modelMap?: { main?: string; haiku?: string; sonnet?: string; opus?: string }
   }): Promise<unknown> => ipcRenderer.invoke('providers:save', profile),
+  providersTest: (profile: {
+    engine: string
+    baseUrl: string
+    apiKey: string
+    providerId?: string
+    modelId?: string
+    npmPackage?: string
+    modelMap?: { main?: string; haiku?: string; sonnet?: string; opus?: string }
+  }): Promise<{ ok: boolean; ms: number; error: string }> => ipcRenderer.invoke('providers:test', profile),
   providersDelete: (id: string): Promise<unknown> => ipcRenderer.invoke('providers:delete', id),
   providersSetActive: (engine: string, id: string): Promise<unknown> =>
     ipcRenderer.invoke('providers:setActive', { engine, id }),

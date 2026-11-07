@@ -198,7 +198,23 @@ const ptBR: Translation = {
   'provider.applying': 'Gravando a configuração global…',
   'provider.confirmDelete': 'Excluir o provedor “{name}”? As sessões em execução mantêm o ambiente delas.',
   'provider.confirmApplyGlobal': 'Isso reescreve {file} para que TODOS os processos do {engine} (incluindo os iniciados fora do CodeCockpit) usem “{name}”. Os outros valores do arquivo são preservados. Continuar?',
-  'provider.nameRequired': 'Nome e URL base da API são obrigatórios'
+  'provider.nameRequired': 'Nome e URL base da API são obrigatórios',
+  'settings.tabGeneral': 'Geral',
+  'settings.tabEngines': 'Motores',
+  'settings.tabProviders': 'Provedores de API',
+  'settings.tabClaude': 'Claude',
+  'provider.test': 'Testar',
+  'provider.testing': 'Testando…',
+  'provider.testOk': 'Conexão OK · {ms} ms',
+  'provider.testFail': 'Falha no teste: {err}',
+  'provider.modelMap': 'Mapeamento de modelos',
+  'provider.modelMapHint': 'Opcional. Mapeia os níveis de modelo solicitados pelo Claude para os nomes reais do relay: coloque o mesmo modelo nos quatro campos para mapear tudo para um único modelo. Vazio = mantém o nome solicitado.',
+  'provider.modelMain': 'Modelo principal',
+  'provider.modelHaiku': 'Slot Haiku',
+  'provider.modelSonnet': 'Slot Sonnet',
+  'provider.modelOpus': 'Slot Opus',
+  'provider.modelMapSame': 'igual ao principal',
+  'provider.listEmpty': 'Ainda não há provedores para este motor — adicione um abaixo.',
 }
 
 export default ptBR

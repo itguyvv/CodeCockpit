@@ -1197,3 +1197,83 @@ input:focus {
   border-radius: 8px;
   padding: 10px;
 }
+
+/* ── Settings tabs ── */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.settings-tabs.sub {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 6px;
+}
+
+.settings-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(223, 225, 232, 0.6);
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.settings-tab:hover {
+  color: #dfe1e8;
+  background: var(--bg3);
+}
+
+.settings-tab.on {
+  background: var(--bg3);
+  border-color: var(--border);
+  color: #dfe1e8;
+  font-weight: 600;
+}
+
+/* ── Provider model mapping ── */
+.model-map-grid {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.model-map-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.model-map-field span {
+  font-size: 11px;
+  color: rgba(223, 225, 232, 0.55);
+}
+
+.model-map-field input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: #dfe1e8;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.provider-test-result {
+  margin: 6px 0 0;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.provider-test-result.ok {
+  color: #4cc38a;
+}
+
+.provider-test-result.fail {
+  color: #e5484d;
+}
+

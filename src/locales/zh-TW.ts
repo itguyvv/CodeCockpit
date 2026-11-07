@@ -187,7 +187,23 @@ const zhTW: Translation = {
   'provider.applying': '正在寫入全域設定…',
   'provider.confirmDelete': '刪除供應商「{name}」？執行中的工作階段不受影響。',
   'provider.confirmApplyGlobal': '此操作將改寫 {file}，讓所有 {engine} 程序使用「{name}」——包括在 CodeCockpit 之外啟動的程序。檔案中的其他設定保持不變。繼續？',
-  'provider.nameRequired': '請填寫名稱與 API 位址'
+  'provider.nameRequired': '請填寫名稱與 API 位址',
+  'settings.tabGeneral': '一般',
+  'settings.tabEngines': '引擎',
+  'settings.tabProviders': 'API 供應商',
+  'settings.tabClaude': 'Claude',
+  'provider.test': '測試連線',
+  'provider.testing': '測試中…',
+  'provider.testOk': '連線成功 · {ms} ms',
+  'provider.testFail': '測試失敗：{err}',
+  'provider.modelMap': '模型對映',
+  'provider.modelMapHint': '可選。將 Claude 請求的模型檔位對映為中轉的實際模型名 —— 四個欄位填同一個模型即可全部對映到一個模型。留空 = 保留原模型名。',
+  'provider.modelMain': '主模型',
+  'provider.modelHaiku': 'Haiku 檔位',
+  'provider.modelSonnet': 'Sonnet 檔位',
+  'provider.modelOpus': 'Opus 檔位',
+  'provider.modelMapSame': '同主模型',
+  'provider.listEmpty': '此引擎尚無供應商，請在下方新增。',
 }
 
 export default zhTW

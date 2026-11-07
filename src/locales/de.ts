@@ -197,7 +197,23 @@ const de: Translation = {
   'provider.applying': 'Globale Konfiguration wird geschrieben…',
   'provider.confirmDelete': 'Anbieter „{name}“ löschen? Laufende Sitzungen behalten ihre Umgebung.',
   'provider.confirmApplyGlobal': 'Damit wird {file} umgeschrieben, sodass ALLE {engine}-Prozesse „{name}“ verwenden — auch solche außerhalb von CodeCockpit. Andere Werte in der Datei bleiben erhalten. Fortfahren?',
-  'provider.nameRequired': 'Name und API-Basis-URL sind erforderlich'
+  'provider.nameRequired': 'Name und API-Basis-URL sind erforderlich',
+  'settings.tabGeneral': 'Allgemein',
+  'settings.tabEngines': 'Engines',
+  'settings.tabProviders': 'API-Anbieter',
+  'settings.tabClaude': 'Claude',
+  'provider.test': 'Verbindung testen',
+  'provider.testing': 'Teste…',
+  'provider.testOk': 'Verbindung OK · {ms} ms',
+  'provider.testFail': 'Test fehlgeschlagen: {err}',
+  'provider.modelMap': 'Modell-Mapping',
+  'provider.modelMapHint': 'Optional. Ordnet die von Claude angeforderten Modellstufen den echten Modellnamen des Relays zu — trage in alle vier Felder dasselbe Modell ein, um alles auf ein Modell zu mappen. Leer = angeforderter Name bleibt.',
+  'provider.modelMain': 'Hauptmodell',
+  'provider.modelHaiku': 'Haiku-Slot',
+  'provider.modelSonnet': 'Sonnet-Slot',
+  'provider.modelOpus': 'Opus-Slot',
+  'provider.modelMapSame': 'wie Hauptmodell',
+  'provider.listEmpty': 'Noch kein Anbieter für diese Engine — unten hinzufügen.',
 }
 
 export default de

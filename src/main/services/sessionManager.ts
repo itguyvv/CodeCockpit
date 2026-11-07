@@ -177,11 +177,14 @@ async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, stri
 }
 
 async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
-  const p = pty.spawn(bin, buildEngineArgs(record.engine, {
+  const args = buildEngineArgs(record.engine, {
     resumeId: record.claudeSessionId ?? undefined,
     model: record.model,
     mode: record.permissionMode
-  }), {
+  })
+  // CreateProcess cannot execute .cmd shims directly — route them through cmd.exe
+  const isCmd = bin.toLowerCase().endsWith('.cmd')
+  const p = pty.spawn(isCmd ? 'cmd.exe' : bin, isCmd ? ['/d', '/s', '/c', bin, ...args] : args, {
     name: 'xterm-256color',
     cols: record.cols ?? 110,
     rows: record.rows ?? 30,

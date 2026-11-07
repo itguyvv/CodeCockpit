@@ -195,7 +195,23 @@ const en = {
   'provider.confirmDelete': 'Delete provider "{name}"? Running sessions keep their environment.',
   'provider.confirmApplyGlobal':
     'This rewrites {file} so ALL {engine} processes use "{name}" — including ones started outside CodeCockpit. Other values in the file are preserved. Continue?',
-  'provider.nameRequired': 'Name and API base URL are required'
+  'provider.nameRequired': 'Name and API base URL are required',
+  'settings.tabGeneral': 'General',
+  'settings.tabEngines': 'Engines',
+  'settings.tabProviders': 'API Providers',
+  'settings.tabClaude': 'Claude',
+  'provider.test': 'Test',
+  'provider.testing': 'Testing…',
+  'provider.testOk': 'Connectivity OK · {ms} ms',
+  'provider.testFail': 'Test failed: {err}',
+  'provider.modelMap': 'Model mapping',
+  'provider.modelMapHint': 'Optional. Maps the model tiers Claude requests to real model names of this relay — set all four to the same model to map everything onto one model. Empty = keep the requested name.',
+  'provider.modelMain': 'Main model',
+  'provider.modelHaiku': 'Haiku slot',
+  'provider.modelSonnet': 'Sonnet slot',
+  'provider.modelOpus': 'Opus slot',
+  'provider.modelMapSame': 'same as main',
+  'provider.listEmpty': 'No providers yet for this engine — add one below.',
 }
 
 export type TranslationKey = keyof typeof en

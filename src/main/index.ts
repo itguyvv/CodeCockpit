@@ -14,6 +14,7 @@ import {
   setActiveProfile,
   applyGlobalProfile,
   globalConfigFile,
+  testProvider,
   type ProviderProfile
 } from './services/providers'
 import {
@@ -151,6 +152,7 @@ function registerIpc(): void {
     }
   }))
   ipcMain.handle('providers:save', (_e, profile: ProviderProfile) => saveProfile(profile))
+  ipcMain.handle('providers:test', (_e, profile: ProviderProfile) => testProvider(profile))
   ipcMain.handle('providers:delete', (_e, id: string) => deleteProfile(id))
   ipcMain.handle('providers:setActive', (_e, p: { engine: EngineId; id: string }) =>
     setActiveProfile(isEngineId(p.engine) ? p.engine : 'claude', p.id)

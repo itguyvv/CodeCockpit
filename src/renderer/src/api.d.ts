@@ -77,7 +77,15 @@ export interface ProviderProfile {
   modelId?: string
   /** openCode only: AI SDK package implementing the provider protocol */
   npmPackage?: string
+  /** claude only: model name mapping (all four may point at the same model) */
+  modelMap?: { main?: string; haiku?: string; sonnet?: string; opus?: string }
   builtin?: boolean
+}
+
+export interface ProviderTestResult {
+  ok: boolean
+  ms: number
+  error: string
 }
 
 export interface ProviderListResult {
@@ -133,6 +141,7 @@ export interface WorkbenchApi {
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }) => Promise<boolean>
   providersList: () => Promise<ProviderListResult>
   providersSave: (profile: ProviderProfile) => Promise<ProviderListResult>
+  providersTest: (profile: Partial<ProviderProfile> & Pick<ProviderProfile, 'engine' | 'baseUrl' | 'apiKey'>) => Promise<ProviderTestResult>
   providersDelete: (id: string) => Promise<ProviderListResult>
   providersSetActive: (engine: EngineId, id: string) => Promise<ProviderListResult>
   providersApplyGlobal: (engine: EngineId, id: string) => Promise<string>

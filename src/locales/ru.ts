@@ -197,7 +197,23 @@ const ru: Translation = {
   'provider.applying': 'Запись глобальной конфигурации…',
   'provider.confirmDelete': 'Удалить провайдера «{name}»? Запущенные сессии сохранят своё окружение.',
   'provider.confirmApplyGlobal': 'Файл {file} будет переписан так, что ВСЕ процессы {engine} (включая запущенные вне CodeCockpit) будут использовать «{name}». Остальные значения файла сохраняются. Продолжить?',
-  'provider.nameRequired': 'Название и базовый URL API обязательны'
+  'provider.nameRequired': 'Название и базовый URL API обязательны',
+  'settings.tabGeneral': 'Общие',
+  'settings.tabEngines': 'Движки',
+  'settings.tabProviders': 'API-провайдеры',
+  'settings.tabClaude': 'Claude',
+  'provider.test': 'Проверить',
+  'provider.testing': 'Проверка…',
+  'provider.testOk': 'Соединение OK · {ms} ms',
+  'provider.testFail': 'Ошибка проверки: {err}',
+  'provider.modelMap': 'Сопоставление моделей',
+  'provider.modelMapHint': 'Необязательно. Сопоставляет уровни моделей, запрашиваемые Claude, с реальными именами моделей релея — укажите одну и ту же модель во всех четырёх полях, чтобы свести всё к одной модели. Пусто = оставить запрошенное имя.',
+  'provider.modelMain': 'Основная модель',
+  'provider.modelHaiku': 'Слот Haiku',
+  'provider.modelSonnet': 'Слот Sonnet',
+  'provider.modelOpus': 'Слот Opus',
+  'provider.modelMapSame': 'как основная',
+  'provider.listEmpty': 'Для этого движка пока нет провайдеров — добавьте ниже.',
 }
 
 export default ru

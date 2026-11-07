@@ -198,7 +198,23 @@ const es: Translation = {
   'provider.applying': 'Escribiendo la configuración global…',
   'provider.confirmDelete': '¿Eliminar el proveedor «{name}»? Las sesiones en curso conservan su entorno.',
   'provider.confirmApplyGlobal': 'Esto reescribe {file} para que TODOS los procesos de {engine} (incluidos los iniciados fuera de CodeCockpit) usen «{name}». Los demás valores del archivo se conservan. ¿Continuar?',
-  'provider.nameRequired': 'El nombre y la URL base de la API son obligatorios'
+  'provider.nameRequired': 'El nombre y la URL base de la API son obligatorios',
+  'settings.tabGeneral': 'General',
+  'settings.tabEngines': 'Motores',
+  'settings.tabProviders': 'Proveedores de API',
+  'settings.tabClaude': 'Claude',
+  'provider.test': 'Probar',
+  'provider.testing': 'Probando…',
+  'provider.testOk': 'Conexión OK · {ms} ms',
+  'provider.testFail': 'Prueba fallida: {err}',
+  'provider.modelMap': 'Mapeo de modelos',
+  'provider.modelMapHint': 'Opcional. Asigna los niveles de modelo que Claude solicita a los nombres reales del relé: pon el mismo modelo en los cuatro campos para mapear todo a un solo modelo. Vacío = se conserva el nombre solicitado.',
+  'provider.modelMain': 'Modelo principal',
+  'provider.modelHaiku': 'Ranura Haiku',
+  'provider.modelSonnet': 'Ranura Sonnet',
+  'provider.modelOpus': 'Ranura Opus',
+  'provider.modelMapSame': 'igual que el principal',
+  'provider.listEmpty': 'Aún no hay proveedores para este motor: añade uno abajo.',
 }
 
 export default es

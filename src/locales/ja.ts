@@ -192,7 +192,23 @@ const ja: Translation = {
   'provider.applying': 'グローバル設定に書き込み中…',
   'provider.confirmDelete': 'プロバイダー「{name}」を削除しますか？実行中のセッションには影響しません。',
   'provider.confirmApplyGlobal': '{file} を書き換え、すべての {engine} プロセス（CodeCockpit 以外で起動したものを含む）が「{name}」を使用するようにします。ファイル内の他の値は保持されます。続行しますか？',
-  'provider.nameRequired': '名前と API ベース URL は必須です'
+  'provider.nameRequired': '名前と API ベース URL は必須です',
+  'settings.tabGeneral': '一般',
+  'settings.tabEngines': 'エンジン',
+  'settings.tabProviders': 'API プロバイダー',
+  'settings.tabClaude': 'Claude',
+  'provider.test': '接続テスト',
+  'provider.testing': 'テスト中…',
+  'provider.testOk': '接続 OK · {ms} ms',
+  'provider.testFail': 'テスト失敗: {err}',
+  'provider.modelMap': 'モデルマッピング',
+  'provider.modelMapHint': '任意。Claude が要求するモデル階層を中継の実際のモデル名へマッピングします。4 つすべてに同じモデルを入れると 1 モデルへ統一できます。空欄 = 要求名のまま。',
+  'provider.modelMain': 'メインモデル',
+  'provider.modelHaiku': 'Haiku スロット',
+  'provider.modelSonnet': 'Sonnet スロット',
+  'provider.modelOpus': 'Opus スロット',
+  'provider.modelMapSame': 'メインと同じ',
+  'provider.listEmpty': 'このエンジンのプロバイダーはまだありません。下で追加してください。',
 }
 
 export default ja

@@ -25,6 +25,8 @@ export interface ProviderProfile {
   modelId?: string
   /** openCode only: AI SDK package implementing the provider protocol */
   npmPackage?: string
+  /** claude only: model name mapping (all four may point at the same model) */
+  modelMap?: { main?: string; haiku?: string; sonnet?: string; opus?: string }
   builtin?: boolean
 }
 
@@ -151,6 +153,11 @@ export function providerEnv(profile: ProviderProfile): Record<string, string> {
   }
   const env: Record<string, string> = { ANTHROPIC_BASE_URL: profile.baseUrl }
   if (profile.apiKey) env.ANTHROPIC_AUTH_TOKEN = profile.apiKey
+  const m = profile.modelMap ?? {}
+  if (m.main) env.ANTHROPIC_MODEL = m.main
+  if (m.haiku) env.ANTHROPIC_DEFAULT_HAIKU_MODEL = m.haiku
+  if (m.sonnet) env.ANTHROPIC_DEFAULT_SONNET_MODEL = m.sonnet
+  if (m.opus) env.ANTHROPIC_DEFAULT_OPUS_MODEL = m.opus
   return env
 }
 
@@ -202,13 +209,26 @@ function applyClaudeGlobal(profile: ProviderProfile): void {
   }
   const env = { ...(doc.env as Record<string, unknown> | undefined) }
   const isBuiltin = profile.id === BUILTIN_PROFILE_ID
+  const MODEL_ENV_KEYS = [
+    'ANTHROPIC_MODEL',
+    'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+    'ANTHROPIC_DEFAULT_SONNET_MODEL',
+    'ANTHROPIC_DEFAULT_OPUS_MODEL'
+  ] as const
   if (isBuiltin) {
     delete env.ANTHROPIC_BASE_URL
     delete env.ANTHROPIC_AUTH_TOKEN
+    for (const k of MODEL_ENV_KEYS) delete env[k]
   } else {
     env.ANTHROPIC_BASE_URL = profile.baseUrl
     if (profile.apiKey) env.ANTHROPIC_AUTH_TOKEN = profile.apiKey
     else delete env.ANTHROPIC_AUTH_TOKEN
+    const m = profile.modelMap ?? {}
+    for (const k of MODEL_ENV_KEYS) delete env[k]
+    if (m.main) env.ANTHROPIC_MODEL = m.main
+    if (m.haiku) env.ANTHROPIC_DEFAULT_HAIKU_MODEL = m.haiku
+    if (m.sonnet) env.ANTHROPIC_DEFAULT_SONNET_MODEL = m.sonnet
+    if (m.opus) env.ANTHROPIC_DEFAULT_OPUS_MODEL = m.opus
   }
   if (Object.keys(env).length === 0) delete doc.env
   else doc.env = env
@@ -246,4 +266,49 @@ function applyOpenCodeGlobal(profile: ProviderProfile): void {
 /** Config file path per engine (shown to the user in apply-confirmation texts) */
 export function globalConfigFile(engine: EngineId): string {
   return engine === 'opencode' ? openCodeConfigFile().file : claudeSettingsFile()
+}
+
+// ── Connectivity test ──
+
+export interface ProviderTestResult {
+  ok: boolean
+  /** Round-trip time of the probe request */
+  ms: number
+  error: string
+}
+
+/**
+ * One-token live request against the relay. Protocol follows the engine:
+ * claude and anthropic-SDK openCode providers speak Anthropic messages,
+ * openai-compatible SDK providers speak chat completions.
+ */
+export async function testProvider(profile: ProviderProfile): Promise<ProviderTestResult> {
+  const started = Date.now()
+  const base = profile.baseUrl.replace(/\/+$/, '')
+  if (!base) return { ok: false, ms: 0, error: 'empty base URL' }
+  const anthropicProtocol = profile.engine === 'claude' || (profile.npmPackage ?? '').includes('anthropic')
+  const url = anthropicProtocol ? base + '/v1/messages' : base + '/chat/completions'
+  const model =
+    (anthropicProtocol ? profile.modelMap?.main : profile.modelId) ||
+    (anthropicProtocol ? 'claude-sonnet-4-5' : 'gpt-4o-mini')
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${profile.apiKey}`,
+        ...(anthropicProtocol ? { 'x-api-key': profile.apiKey, 'anthropic-version': '2023-06-01' } : {})
+      },
+      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] }),
+      signal: AbortSignal.timeout(20_000)
+    })
+    const ms = Date.now() - started
+    if (res.ok) return { ok: true, ms, error: '' }
+    const text = (await res.text()).replace(/\s+/g, ' ').slice(0, 160)
+    // A 400 complaining about the probe model still proves the endpoint + key are accepted
+    if (res.status === 400 && /model/i.test(text)) return { ok: true, ms, error: '' }
+    return { ok: false, ms, error: `HTTP ${res.status}: ${text}` }
+  } catch (e) {
+    return { ok: false, ms: Date.now() - started, error: e instanceof Error ? e.message : String(e) }
+  }
 }

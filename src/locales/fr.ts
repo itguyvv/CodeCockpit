@@ -199,7 +199,23 @@ const fr: Translation = {
   'provider.applying': 'Écriture de la configuration globale…',
   'provider.confirmDelete': 'Supprimer le fournisseur « {name} » ? Les sessions en cours conservent leur environnement.',
   'provider.confirmApplyGlobal': 'Ceci réécrit {file} pour que TOUS les processus {engine} (y compris ceux démarrés hors de CodeCockpit) utilisent « {name} ». Les autres valeurs du fichier sont conservées. Continuer ?',
-  'provider.nameRequired': 'Le nom et l’URL de base de l’API sont requis'
+  'provider.nameRequired': 'Le nom et l’URL de base de l’API sont requis',
+  'settings.tabGeneral': 'Général',
+  'settings.tabEngines': 'Moteurs',
+  "settings.tabProviders": "Fournisseurs d'API",
+  'settings.tabClaude': 'Claude',
+  'provider.test': 'Tester',
+  'provider.testing': 'Test…',
+  'provider.testOk': 'Connexion OK · {ms} ms',
+  'provider.testFail': 'Échec du test : {err}',
+  'provider.modelMap': 'Mapping des modèles',
+  'provider.modelMapHint': 'Optionnel. Mappe les paliers de modèles demandés par Claude vers les vrais noms de modèles du relais — mettre le même modèle dans les quatre champs pour tout mapper sur un seul modèle. Vide = nom demandé conservé.',
+  'provider.modelMain': 'Modèle principal',
+  'provider.modelHaiku': 'Slot Haiku',
+  'provider.modelSonnet': 'Slot Sonnet',
+  'provider.modelOpus': 'Slot Opus',
+  'provider.modelMapSame': 'identique au principal',
+  'provider.listEmpty': 'Aucun fournisseur pour ce moteur — ajoutez-en un ci-dessous.',
 }
 
 export default fr

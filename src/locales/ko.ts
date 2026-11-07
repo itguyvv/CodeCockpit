@@ -190,7 +190,23 @@ const ko: Translation = {
   'provider.applying': '전역 설정에 쓰는 중…',
   'provider.confirmDelete': '"{name}" 공급자를 삭제할까요? 실행 중인 세션은 영향을 받지 않습니다.',
   'provider.confirmApplyGlobal': '{file}을(를) 다시 써서 모든 {engine} 프로세스(CodeCockpit 밖에서 시작된 것 포함)가 "{name}"을(를) 사용하도록 합니다. 파일의 다른 값은 유지됩니다. 계속할까요?',
-  'provider.nameRequired': '이름과 API 베이스 URL은 필수입니다'
+  'provider.nameRequired': '이름과 API 베이스 URL은 필수입니다',
+  'settings.tabGeneral': '일반',
+  'settings.tabEngines': '엔진',
+  'settings.tabProviders': 'API 공급자',
+  'settings.tabClaude': 'Claude',
+  'provider.test': '연결 테스트',
+  'provider.testing': '테스트 중…',
+  'provider.testOk': '연결 성공 · {ms} ms',
+  'provider.testFail': '테스트 실패: {err}',
+  'provider.modelMap': '모델 매핑',
+  'provider.modelMapHint': '선택 사항. Claude가 요청하는 모델 등급을 릴레이의 실제 모델 이름으로 매핑합니다. 네 칸에 같은 모델을 입력하면 하나의 모델로 통일됩니다. 빈칸 = 요청 이름 유지.',
+  'provider.modelMain': '메인 모델',
+  'provider.modelHaiku': 'Haiku 슬롯',
+  'provider.modelSonnet': 'Sonnet 슬롯',
+  'provider.modelOpus': 'Opus 슬롯',
+  'provider.modelMapSame': '메인과 동일',
+  'provider.listEmpty': '이 엔진의 공급자가 아직 없습니다. 아래에서 추가하세요.',
 }
 
 export default ko

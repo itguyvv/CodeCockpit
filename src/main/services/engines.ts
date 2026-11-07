@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { exec, execFile } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -57,40 +57,69 @@ let cachedOpenCodeVersion: string | null = null
 const OPENCODE_COMMON_PATHS = (): string[] => [
   process.env.OPENCODE_BIN || '',
   path.join(os.homedir(), '.opencode', 'bin', 'opencode.exe'),
+  path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'opencode-ai', 'bin', 'opencode.exe'),
   path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
+  'C:\\Program Files\\nodejs\\node_modules\\opencode-ai\\bin\\opencode.exe',
   'C:\\Program Files\\nodejs\\opencode.cmd'
 ]
+
+/** Rank a candidate: real .exe > npm .cmd shim > anything else (sh scripts cannot run under CreateProcess) */
+function openCodeBinRank(p: string): number {
+  const lower = p.toLowerCase()
+  return lower.endsWith('.exe') ? 2 : lower.endsWith('.cmd') ? 1 : 0
+}
+
+/**
+ * Resolve the best spawnable binary among candidates. npm installs "opencode" as an
+ * extension-less sh shim (first line of `where` output) which Windows cannot execute
+ * (exit code 193); the real binary ships inside the opencode-ai package next to the shim.
+ */
+function resolveOpenCodeBin(candidates: string[]): string {
+  const existing = candidates.filter((p) => p && fs.existsSync(p))
+  for (const p of existing) {
+    if (openCodeBinRank(p) === 2) return p
+  }
+  for (const p of existing) {
+    const sibling = path.join(path.dirname(p), 'node_modules', 'opencode-ai', 'bin', 'opencode.exe')
+    if (fs.existsSync(sibling)) return sibling
+  }
+  for (const p of existing) {
+    if (openCodeBinRank(p) === 1) return p
+  }
+  return ''
+}
 
 export function findOpenCodeBin(): Promise<string> {
   if (cachedOpenCodeBin) return Promise.resolve(cachedOpenCodeBin)
   return new Promise((resolve) => {
-    for (const p of OPENCODE_COMMON_PATHS()) {
-      if (p && fs.existsSync(p)) {
-        cachedOpenCodeBin = p
-        return resolve(p)
-      }
-    }
-    execFile('where', ['opencode'], (err, stdout) => {
-      if (!err && stdout.trim()) {
-        const first = stdout.split(/\r?\n/)[0].trim()
-        if (first && fs.existsSync(first)) {
-          cachedOpenCodeBin = first
-          return resolve(first)
-        }
-      }
-      resolve('')
+    execFile('where', ['opencode'], { timeout: 5000 }, (err, stdout) => {
+      const whereLines = err
+        ? []
+        : stdout
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean)
+      const bin = resolveOpenCodeBin([...OPENCODE_COMMON_PATHS(), ...whereLines])
+      if (bin) cachedOpenCodeBin = bin
+      resolve(bin)
     })
   })
 }
 
 export function getOpenCodeVersion(bin: string): Promise<string> {
   if (cachedOpenCodeVersion) return Promise.resolve(cachedOpenCodeVersion)
+  const isCmd = bin.toLowerCase().endsWith('.cmd')
   return new Promise((resolve) => {
-    execFile(bin, ['--version'], { timeout: 10000 }, (err, stdout) => {
-      const v = err ? '' : stdout.trim()
+    const done = (v: string) => {
       if (v) cachedOpenCodeVersion = v
       resolve(v)
-    })
+    }
+    if (isCmd) {
+      // .cmd shims can only run through cmd.exe
+      exec(`"${bin}" --version`, { timeout: 15000 }, (err, stdout) => done(err ? '' : stdout.trim()))
+    } else {
+      execFile(bin, ['--version'], { timeout: 15000 }, (err, stdout) => done(err ? '' : stdout.trim()))
+    }
   })
 }
 

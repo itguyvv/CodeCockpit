@@ -187,7 +187,23 @@ const zhCN: Translation = {
   'provider.applying': '正在写入全局配置…',
   'provider.confirmDelete': '删除服务商“{name}”？正在运行的会话不受影响。',
   'provider.confirmApplyGlobal': '此操作将改写 {file}，让所有 {engine} 进程使用“{name}”——包括在 CodeCockpit 之外启动的进程。文件中的其他配置保持不变。继续？',
-  'provider.nameRequired': '请填写名称和 API 地址'
+  'provider.nameRequired': '请填写名称和 API 地址',
+  'settings.tabGeneral': '通用',
+  'settings.tabEngines': '引擎',
+  'settings.tabProviders': 'API 服务商',
+  'settings.tabClaude': 'Claude',
+  'provider.test': '测试连接',
+  'provider.testing': '测试中…',
+  'provider.testOk': '连接成功 · {ms} ms',
+  'provider.testFail': '测试失败：{err}',
+  'provider.modelMap': '模型映射',
+  'provider.modelMapHint': '可选。把 Claude 请求的模型档位映射为中转的真实模型名 —— 四项填同一个模型即可全部映射到一个模型。留空 = 保持原模型名。',
+  'provider.modelMain': '主模型',
+  'provider.modelHaiku': 'Haiku 档位',
+  'provider.modelSonnet': 'Sonnet 档位',
+  'provider.modelOpus': 'Opus 档位',
+  'provider.modelMapSame': '同主模型',
+  'provider.listEmpty': '该引擎还没有服务商，在下方添加。',
 }
 
 export default zhCN
