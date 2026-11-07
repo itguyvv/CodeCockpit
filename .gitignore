@@ -6,3 +6,4 @@ data/
 data-dir.txt
 .npmrc
 *.log
+*.tsbuildinfo
