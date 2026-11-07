@@ -1,4 +1,5 @@
 import type { TranslationKey, TFn } from '../../locales'
+import type { EngineId } from './api'
 
 export interface SessionState {
   id: string
@@ -9,8 +10,12 @@ export interface SessionState {
   title: string
   /** PTY produced output within the last 3 seconds */
   busy: boolean
-  /** Model flag passed to the CLI ('' = follow CLI default) */
+  /** Model flag passed to the CLI ('' = follow CLI default; claude only) */
   model?: string
+  /** Owning engine */
+  engine: EngineId
+  /** API provider profile id ('' = builtin default) */
+  providerId?: string
 }
 
 export const MODES: Array<{ value: string; key: TranslationKey }> = [
@@ -19,6 +24,12 @@ export const MODES: Array<{ value: string; key: TranslationKey }> = [
   { value: 'plan', key: 'mode.plan' },
   { value: 'bypassPermissions', key: 'mode.bypassPermissions' }
 ]
+
+/** Permission modes an engine supports (openCode TUI: plain vs --auto) */
+export function modesForEngine(engine: EngineId): Array<{ value: string; key: TranslationKey }> {
+  if (engine === 'opencode') return MODES.filter((m) => m.value === 'default' || m.value === 'bypassPermissions')
+  return MODES
+}
 
 export function modeLabel(mode: string, t: TFn): string {
   const m = MODES.find((x) => x.value === mode)

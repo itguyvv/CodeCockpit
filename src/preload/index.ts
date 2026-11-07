@@ -12,6 +12,8 @@ const api = {
   getAppInfo: (): Promise<{
     claudeBin: string
     claudeVersion: string
+    opencodeBin: string
+    opencodeVersion: string
     gitBash: string
     dataDir: string
     appRoot: string
@@ -19,6 +21,8 @@ const api = {
     appVersion: string
     lastCwd: string
   }> => ipcRenderer.invoke('app:info'),
+  enginesDiscover: (): Promise<Array<{ id: string; bin: string; version: string }>> =>
+    ipcRenderer.invoke('engines:discover'),
   createSession: (opts: {
     cwd?: string
     mode: string
@@ -27,6 +31,8 @@ const api = {
     model?: string
     cols?: number
     rows?: number
+    engine?: string
+    providerId?: string
   }): Promise<{ id: string }> => ipcRenderer.invoke('session:create', opts),
   pickDir: (): Promise<string> => ipcRenderer.invoke('dialog:pickDir'),
   getSettings: (): Promise<{
@@ -35,13 +41,20 @@ const api = {
     defaultMode?: string
     defaultModel?: string
     locale?: string
+    engines?: Record<string, boolean>
   }> => ipcRenderer.invoke('settings:get'),
-  setSettings: (patch: { defaultMode?: string; defaultModel?: string; locale?: string }): Promise<{
+  setSettings: (patch: {
+    defaultMode?: string
+    defaultModel?: string
+    locale?: string
+    engines?: Record<string, boolean>
+  }): Promise<{
     lastCwd?: string
     recentCwds?: string[]
     defaultMode?: string
     defaultModel?: string
     locale?: string
+    engines?: Record<string, boolean>
   }> => ipcRenderer.invoke('settings:set', patch),
   input: (id: string, data: string): void => ipcRenderer.send('session:input', { id, data }),
   resize: (id: string, cols: number, rows: number): Promise<void> =>
@@ -67,7 +80,9 @@ const api = {
     lastActivity: number
     eventCount: number
   } | null> => ipcRenderer.invoke('session:getStatus', id),
-  listNativeSessions: (): Promise<
+  listNativeSessions: (
+    engine: string
+  ): Promise<
     Array<{
       sessionId: string
       cwd: string
@@ -78,7 +93,7 @@ const api = {
       projectEncoded: string
       custom?: boolean
     }>
-  > => ipcRenderer.invoke('sessions:native'),
+  > => ipcRenderer.invoke('sessions:native', engine),
   renameSession: (claudeSessionId: string, title: string): Promise<void> =>
     ipcRenderer.invoke('session:rename', { claudeSessionId, title }),
   deleteSession: (claudeSessionId: string): Promise<boolean> =>
@@ -94,6 +109,36 @@ const api = {
     ipcRenderer.invoke('history-order:load'),
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }): Promise<boolean> =>
     ipcRenderer.invoke('history-order:save', o),
+  providersList: (): Promise<{
+    profiles: Array<{
+      id: string
+      name: string
+      engine: string
+      baseUrl: string
+      apiKey: string
+      providerId?: string
+      modelId?: string
+      npmPackage?: string
+      builtin?: boolean
+    }>
+    activeByEngine: Record<string, string>
+    configFiles: { claude: string; opencode: string }
+  }> => ipcRenderer.invoke('providers:list'),
+  providersSave: (profile: {
+    id?: string
+    name: string
+    engine: string
+    baseUrl: string
+    apiKey: string
+    providerId?: string
+    modelId?: string
+    npmPackage?: string
+  }): Promise<unknown> => ipcRenderer.invoke('providers:save', profile),
+  providersDelete: (id: string): Promise<unknown> => ipcRenderer.invoke('providers:delete', id),
+  providersSetActive: (engine: string, id: string): Promise<unknown> =>
+    ipcRenderer.invoke('providers:setActive', { engine, id }),
+  providersApplyGlobal: (engine: string, id: string): Promise<string> =>
+    ipcRenderer.invoke('providers:applyGlobal', { engine, id }),
   setDataDir: (custom: string): Promise<string> => ipcRenderer.invoke('data-dir:set', custom),
   mcpList: (): Promise<Array<{ name: string; type: string; command: string; args: string[] }>> =>
     ipcRenderer.invoke('mcp:list'),

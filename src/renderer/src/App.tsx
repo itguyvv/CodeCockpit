@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
 import TerminalHost, { type TerminalHandle } from './components/TerminalHost'
 import Sidebar from './components/Sidebar'
-import NewSessionModal from './components/NewSessionModal'
+import NewSessionModal, { type NewSessionOpts } from './components/NewSessionModal'
 import Dashboard from './components/Dashboard'
 import SettingsModal from './components/SettingsModal'
-import { modeLabel, modelLabel, type SessionState } from './types'
-import type { AppInfo, NativeSessionInfo, SessionStatus } from './api'
+import { modeLabel, modelLabel, modesForEngine, type SessionState } from './types'
+import type { AppInfo, EngineId, EngineInfo, NativeSessionInfo, SessionStatus } from './api'
 import { I18nProvider, detectLocale, useI18n } from './i18n'
 import { LOCALE_LIST, type LocaleCode } from '../../locales'
 import logoUrl from './assets/logo.png'
@@ -32,10 +32,25 @@ function AppInner(): JSX.Element {
   const [customTitles, setCustomTitles] = useState<Record<string, string>>({})
   const [historyVer, setHistoryVer] = useState(0)
   const [wsLoaded, setWsLoaded] = useState(false)
+  const [engineTab, setEngineTab] = useState<EngineId>('claude')
+  const [engineInfos, setEngineInfos] = useState<EngineInfo[]>([])
+  const [enginesOn, setEnginesOn] = useState<Partial<Record<EngineId, boolean>>>({})
   const termRef = useRef<TerminalHandle>(null)
 
   const active = sessions.find((s) => s.id === activeId) ?? null
   const activeStatus = active ? statuses[active.id] ?? null : null
+
+  // Engines whose CLI was found and that are enabled in settings (default = enabled)
+  const enabledEngines = engineInfos.filter(
+    (e) => e.bin && (enginesOn[e.id] ?? true)
+  )
+
+  // Follow the tab when the current engine disappears (CLI removed / disabled in settings)
+  useEffect(() => {
+    if (enabledEngines.length > 0 && !enabledEngines.some((e) => e.id === engineTab)) {
+      setEngineTab(enabledEngines[0].id)
+    }
+  }, [enabledEngines, engineTab])
 
   const showToast = useCallback((msg: string) => {
     setToast(msg)
@@ -44,6 +59,8 @@ function AppInner(): JSX.Element {
 
   useEffect(() => {
     void window.api.getAppInfo().then(setAppInfo)
+    void window.api.enginesDiscover().then(setEngineInfos)
+    void window.api.getSettings().then((s) => setEnginesOn(s.engines ?? {}))
     void window.api.getTitles().then(setCustomTitles)
     // Restore the active session list from the previous window (processes are gone; a click relaunches with --resume)
     void window.api
@@ -58,7 +75,9 @@ function AppInner(): JSX.Element {
             status: 'exited' as const,
             title: r.title,
             busy: false,
-            model: r.model ?? ''
+            model: r.model ?? '',
+            engine: r.engine ?? 'claude',
+            providerId: r.providerId ?? ''
           }))
         )
       })
@@ -76,7 +95,9 @@ function AppInner(): JSX.Element {
           cwd: s.cwd,
           mode: s.mode,
           title: s.title,
-          model: s.model ?? ''
+          model: s.model ?? '',
+          engine: s.engine,
+          providerId: s.providerId ?? ''
         }))
       )
     }, 300)
@@ -123,7 +144,15 @@ function AppInner(): JSX.Element {
   )
 
   const launch = useCallback(
-    (opts: { cwd: string; mode: string; resumeId?: string; title?: string; model?: string }) => {
+    (opts: {
+      cwd: string
+      mode: string
+      resumeId?: string
+      title?: string
+      model?: string
+      engine: EngineId
+      providerId?: string
+    }) => {
       setError('')
       guardBypass(opts.mode, () => {
         const dims = termRef.current?.getDims() ?? { cols: 110, rows: 30 }
@@ -133,9 +162,11 @@ function AppInner(): JSX.Element {
             mode: opts.mode,
             resumeId: opts.resumeId,
             title: opts.title,
-            model: opts.model,
+            model: opts.engine === 'claude' ? opts.model : undefined,
             cols: dims.cols,
-            rows: dims.rows
+            rows: dims.rows,
+            engine: opts.engine,
+            providerId: opts.providerId
           })
           .then(({ id }) => {
             termRef.current?.renameSlot('__pending', id)
@@ -149,7 +180,9 @@ function AppInner(): JSX.Element {
                 status: 'running',
                 title: opts.title ?? '',
                 busy: false,
-                model: opts.model ?? ''
+                model: opts.model ?? '',
+                engine: opts.engine,
+                providerId: opts.providerId ?? ''
               }
             ])
             setActiveId(id)
@@ -170,14 +203,21 @@ function AppInner(): JSX.Element {
   )
 
   const handleNew = useCallback(
-    (opts: { cwd: string; mode: string; model: string }) => {
-      launch({ cwd: opts.cwd, mode: opts.mode, model: opts.model })
+    (opts: NewSessionOpts) => {
+      launch({
+        cwd: opts.cwd,
+        mode: opts.mode,
+        model: opts.model,
+        engine: opts.engine,
+        providerId: opts.providerId
+      })
     },
     [launch]
   )
 
   const handleResume = useCallback(
     (ns: NativeSessionInfo) => {
+      const engine: EngineId = ns.sessionId.startsWith('ses_') ? 'opencode' : 'claude'
       // A live session in the list → just switch to it, don't spawn a duplicate process
       const existing = sessions.find((s) => s.claudeSessionId === ns.sessionId)
       if (existing && existing.status !== 'exited') {
@@ -194,7 +234,9 @@ function AppInner(): JSX.Element {
         cwd: ns.cwd || appInfo?.lastCwd || appInfo?.appRoot || '',
         mode: existing?.mode || ns.permissionMode || 'default',
         resumeId: ns.sessionId,
-        title: ns.title || existing?.title || undefined
+        title: ns.title || existing?.title || undefined,
+        engine,
+        providerId: existing?.providerId
       })
     },
     [sessions, launch, appInfo]
@@ -213,7 +255,9 @@ function AppInner(): JSX.Element {
           mode: s.mode,
           resumeId: s.claudeSessionId ?? undefined,
           title: s.title || undefined,
-          model: s.model || undefined
+          model: s.model || undefined,
+          engine: s.engine,
+          providerId: s.providerId || undefined
         })
         return
       }
@@ -223,15 +267,25 @@ function AppInner(): JSX.Element {
     [sessions, launch]
   )
 
-  const handleReorderActive = useCallback((from: number, to: number) => {
-    setSessions((prev) => {
-      if (from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev
-      const arr = [...prev]
-      const [m] = arr.splice(from, 1)
-      arr.splice(to, 0, m)
-      return arr
-    })
-  }, [])
+  // Reorder within the visible engine tab: Sidebar indices refer to the filtered list
+  const handleReorderActive = useCallback(
+    (from: number, to: number) => {
+      const visible = sessions.filter((s) => s.engine === engineTab)
+      if (from === to || from < 0 || to < 0 || from >= visible.length || to >= visible.length) return
+      const movingId = visible[from].id
+      const targetId = visible[to].id
+      setSessions((prev) => {
+        const fromG = prev.findIndex((s) => s.id === movingId)
+        const toG = prev.findIndex((s) => s.id === targetId)
+        if (fromG < 0 || toG < 0) return prev
+        const arr = [...prev]
+        const [m] = arr.splice(fromG, 1)
+        arr.splice(toG, 0, m)
+        return arr
+      })
+    },
+    [sessions, engineTab]
+  )
 
   // Rename (active sessions by internal id; history sessions by claudeSessionId) — same as /rename, persisted to titles.json
   const handleRename = useCallback((claudeSessionId: string, title: string) => {
@@ -338,7 +392,10 @@ function AppInner(): JSX.Element {
       <div className="body">
         {sidebarOpen && (
           <Sidebar
-            activeSessions={sessions}
+            engines={enabledEngines.map((e) => e.id)}
+            engine={engineTab}
+            onEngineChange={setEngineTab}
+            activeSessions={sessions.filter((s) => s.engine === engineTab)}
             activeId={activeId}
             customTitles={customTitles}
             historyVersion={historyVer}
@@ -396,9 +453,9 @@ function AppInner(): JSX.Element {
                 onChange={(e) => changeMode(active.id, e.target.value)}
                 title={t('sessionbar.modeSelect')}
               >
-                {['default', 'acceptEdits', 'plan', 'bypassPermissions'].map((m) => (
-                  <option key={m} value={m}>
-                    {modeLabel(m, t)}
+                {modesForEngine(active.engine).map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {t(m.key)}
                   </option>
                 ))}
               </select>
@@ -449,6 +506,13 @@ function AppInner(): JSX.Element {
             ? t('statusbar.cli', { bin: `claude ${appInfo.claudeVersion || ''}` })
             : t('statusbar.cliMissing')}
         </span>
+        {appInfo && (enabledEngines.some((e) => e.id === 'opencode') || appInfo.opencodeBin) && (
+          <span title={appInfo.opencodeBin}>
+            {appInfo.opencodeBin
+              ? t('statusbar.opencodeCli', { ver: appInfo.opencodeVersion || '?' })
+              : t('statusbar.opencodeMissing')}
+          </span>
+        )}
         {appInfo && !appInfo.gitBash && (
           <span className="status-error" title={t('statusbar.gitBashMissingTip')}>
             ⚠ {t('statusbar.gitBashMissing')}
@@ -461,7 +525,9 @@ function AppInner(): JSX.Element {
         {error && <span className="status-error">{error}</span>}
       </div>
 
-      {showNew && <NewSessionModal onClose={() => setShowNew(false)} onStart={handleNew} />}
+      {showNew && (
+        <NewSessionModal engines={enabledEngines} onClose={() => setShowNew(false)} onStart={handleNew} />
+      )}
 
       {showSettings && (
         <SettingsModal

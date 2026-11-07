@@ -5,14 +5,30 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { dataFile } from './dataDir'
 import { t } from './i18n'
-import { findClaudeBin, findGitBash } from './claude'
-import { scanNativeSessions, listExistingSessionIds, sniffNewSessionFile, type NativeSessionInfo } from './jsonl'
+import { findGitBash } from './claude'
+import {
+  scanNativeSessions,
+  listExistingSessionIds,
+  sniffNewSessionFile,
+  deleteNativeSession,
+  type NativeSessionInfo
+} from './jsonl'
 import { SessionTailer, resolveSessionFile, sessionFilePath, type SessionStatus } from './jsonlTail'
+import { buildEngineArgs, engineBin, isEngineId, type EngineId } from './engines'
+import { injectionEnv } from './providers'
+import {
+  OpenCodeTailer,
+  deleteOpenCodeSession,
+  listOpenCodeSessionIds,
+  scanOpenCodeSessions,
+  sniffNewOpenCodeSession
+} from './opencodeStore'
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
 
 export interface SessionRecord {
   id: string
+  /** Engine-native session id (claude UUID / openCode ses_...); null until the CLI reports one */
   claudeSessionId: string | null
   cwd: string
   permissionMode: PermissionMode
@@ -21,15 +37,25 @@ export interface SessionRecord {
   startedAt: number
   cols?: number
   rows?: number
-  /** --model flag passed to the CLI ('' = CLI default) */
+  /** --model flag passed to the CLI ('' = CLI default; claude only) */
   model?: string
+  /** Owning engine; older records on disk default to 'claude' */
+  engine: EngineId
+  /** API provider profile used for env injection; '' = builtin default, undefined = engine active profile */
+  providerId?: string
+}
+
+/** Telemetry source shared by both engines (claude jsonl tailer / openCode storage tailer) */
+interface StatusTailer {
+  getStatus(): SessionStatus
+  dispose(): void
 }
 
 interface LiveProc {
   pty: pty.IPty
   record: SessionRecord
   stopSniffer?: () => void
-  tailer?: SessionTailer
+  tailer?: StatusTailer
 }
 
 const registry = new Map<string, SessionRecord>()
@@ -86,14 +112,17 @@ const statusTimer = setInterval(() => {
 function ensureTailer(live: LiveProc): void {
   if (live.tailer || !live.record.claudeSessionId) return
   const id = live.record.claudeSessionId
-  // Locate by id across all projects first (file stays in the original project after a directory change); fall back to cwd
-  const filePath = resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id)
-  live.tailer = new SessionTailer(filePath, () => {
+  const emit = (): void => {
     statusBySession.set(live.record.id, live.tailer!.getStatus())
     dirtyStatus.add(live.record.id)
-  })
+  }
+  // openCode aggregates from its own JSON storage instead of a claude jsonl
+  live.tailer =
+    live.record.engine === 'opencode'
+      ? new OpenCodeTailer(id, emit)
+      : new SessionTailer(resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id), emit)
   // Broadcast an initial snapshot right after tailing (resumed sessions get full stats immediately)
-  statusBySession.set(live.record.id, live.tailer.getStatus())
+  statusBySession.set(live.record.id, live.tailer!.getStatus())
   dirtyStatus.add(live.record.id)
 }
 
@@ -122,42 +151,42 @@ function loadRegistry(): void {
   try {
     const raw = fs.readFileSync(dataFile('sessions.json'), 'utf-8')
     const list: SessionRecord[] = JSON.parse(raw)
-    for (const r of list) registry.set(r.id, r)
+    for (const r of list) {
+      registry.set(r.id, { ...r, engine: r.engine ?? 'claude' }) // older records predate engines
+    }
   } catch {
     // No file on first launch
   }
 }
 
-function buildArgs(record: SessionRecord): string[] {
-  const args: string[] = []
-  if (record.claudeSessionId) args.push('--resume', record.claudeSessionId)
-  if (record.model && record.model !== 'default') args.push('--model', record.model)
-  if (record.permissionMode === 'bypassPermissions') {
-    args.push('--dangerously-skip-permissions')
-  } else {
-    args.push('--permission-mode', record.permissionMode)
-  }
-  return args
-}
-
 let spawnEnvCache: Record<string, string> | null = null
 
-async function buildSpawnEnv(): Promise<Record<string, string>> {
-  if (spawnEnvCache) return spawnEnvCache
-  const env = { ...process.env } as Record<string, string>
-  const bash = await findGitBash()
-  if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
-  spawnEnvCache = env
-  return env
+async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, string>> {
+  let env = spawnEnvCache
+  if (!env) {
+    env = { ...process.env } as Record<string, string>
+    if (record.engine === 'claude') {
+      const bash = await findGitBash()
+      if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
+    }
+    spawnEnvCache = env
+  }
+  // Provider injection is resolved per spawn (the active profile may change between sessions)
+  const extra = injectionEnv(record.engine, record.providerId)
+  return { ...env, ...extra }
 }
 
 async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
-  const p = pty.spawn(bin, buildArgs(record), {
+  const p = pty.spawn(bin, buildEngineArgs(record.engine, {
+    resumeId: record.claudeSessionId ?? undefined,
+    model: record.model,
+    mode: record.permissionMode
+  }), {
     name: 'xterm-256color',
     cols: record.cols ?? 110,
     rows: record.rows ?? 30,
     cwd: record.cwd,
-    env: await buildSpawnEnv()
+    env: await buildSpawnEnv(record)
   })
   p.onData((data) => {
     lastDataAt.set(record.id, Date.now())
@@ -188,11 +217,16 @@ export interface CreateOpts {
   model?: string
   cols?: number
   rows?: number
+  /** Target engine; defaults to claude */
+  engine?: EngineId
+  /** API provider profile id ('' = builtin default); omitted = engine active profile */
+  providerId?: string
 }
 
 export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
-  const bin = await findClaudeBin()
-  if (!bin) throw new Error(t('main.noCli'))
+  const engine: EngineId = isEngineId(opts.engine) ? opts.engine : 'claude'
+  const bin = await engineBin(engine)
+  if (!bin) throw new Error(t(engine === 'opencode' ? 'main.noOcCli' : 'main.noCli'))
   const record: SessionRecord = {
     id: randomUUID(),
     claudeSessionId: opts.resumeId ?? null,
@@ -203,26 +237,34 @@ export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
     startedAt: Date.now(),
     cols: opts.cols,
     rows: opts.rows,
-    model: opts.model ?? ''
+    model: engine === 'claude' ? opts.model ?? '' : '',
+    engine,
+    providerId: opts.providerId
   }
   registry.set(record.id, record)
   saveRegistry()
-  // Snapshot before spawn: a new session's jsonl is guaranteed to be a file not in this snapshot
-  const knownIds = listExistingSessionIds(record.cwd)
+  // Snapshot before spawn: the new session's id is guaranteed to be absent from this snapshot
+  const knownIds =
+    engine === 'opencode' ? listOpenCodeSessionIds() : listExistingSessionIds(record.cwd)
   await spawnFor(record, bin)
   if (!record.claudeSessionId) {
     const live = procs.get(record.id)
     if (live) {
-      live.stopSniffer = sniffNewSessionFile(record.cwd, knownIds, (sessionId) => {
-        record.claudeSessionId = sessionId
-        registry.set(record.id, record)
-        saveRegistry()
-        broadcast('pty:session-id', { id: record.id, claudeSessionId: sessionId })
-        ensureTailer(live)
-      })
+      live.stopSniffer =
+        engine === 'opencode'
+          ? sniffNewOpenCodeSession(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
+          : sniffNewSessionFile(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
     }
   }
   return { id: record.id }
+}
+
+function assignSessionId(record: SessionRecord, sessionId: string, live: LiveProc): void {
+  record.claudeSessionId = sessionId
+  registry.set(record.id, record)
+  saveRegistry()
+  broadcast('pty:session-id', { id: record.id, claudeSessionId: sessionId })
+  ensureTailer(live)
 }
 
 export function writeInput(id: string, data: string): void {
@@ -278,7 +320,7 @@ export async function setMode(id: string, mode: PermissionMode): Promise<void> {
     // Already exited
   }
   oldStop?.()
-  const bin = await findClaudeBin()
+  const bin = await engineBin(record.engine)
   if (!bin) throw new Error(t('main.noCliShort'))
   // Give the CLI a moment to release the session file lock so --resume doesn't read a half-written state
   await new Promise((r) => setTimeout(r, 600))
@@ -321,7 +363,7 @@ export async function changeDir(id: string, cwd: string): Promise<void> {
     // Already exited
   }
   oldStop?.()
-  const bin = await findClaudeBin()
+  const bin = await engineBin(record.engine)
   if (!bin) throw new Error(t('main.noCliShort'))
   await new Promise((r) => setTimeout(r, 600))
   if (procs.has(id)) return
@@ -337,8 +379,20 @@ export async function changeDir(id: string, cwd: string): Promise<void> {
   }
 }
 
-export function listNativeSessions(limit?: number): NativeSessionInfo[] {
-  const list = scanNativeSessions(limit ?? 60)
+/** History of one engine (claude jsonl mirror / openCode JSON storage), custom names overlaid */
+export function listNativeSessions(engine: EngineId = 'claude', limit?: number): NativeSessionInfo[] {
+  const list: NativeSessionInfo[] =
+    engine === 'opencode'
+      ? scanOpenCodeSessions(limit ?? 60).map((s) => ({
+          sessionId: s.sessionId,
+          cwd: s.cwd,
+          title: s.title || t('history.noTitle'),
+          permissionMode: 'default',
+          lastTs: s.lastTs,
+          sizeBytes: s.sizeBytes,
+          projectEncoded: s.projectID
+        }))
+      : scanNativeSessions(limit ?? 60)
   const titles = loadTitles()
   for (const item of list) {
     const custom = titles[item.sessionId]
@@ -348,6 +402,11 @@ export function listNativeSessions(limit?: number): NativeSessionInfo[] {
     }
   }
   return list
+}
+
+/** Route a history delete by id: openCode ids carry the ses_ prefix, claude ids are UUIDs */
+export function deleteHistorySession(sessionId: string): boolean {
+  return sessionId.startsWith('ses_') ? deleteOpenCodeSession(sessionId) : deleteNativeSession(sessionId)
 }
 
 // ── Custom session names (same effect as /rename; local persistence takes display priority) ──

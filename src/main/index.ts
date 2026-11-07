@@ -5,8 +5,17 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { getAppRoot, getDataDir, setDataDir, dataFile } from './services/dataDir'
 import { t, setLocale } from './services/i18n'
-import { findClaudeBin, getClaudeVersion, findGitBash } from './services/claude'
-import { deleteNativeSession } from './services/jsonl'
+import { findGitBash } from './services/claude'
+import { discoverEngines, isEngineId, type EngineId } from './services/engines'
+import {
+  listProfiles,
+  saveProfile,
+  deleteProfile,
+  setActiveProfile,
+  applyGlobalProfile,
+  globalConfigFile,
+  type ProviderProfile
+} from './services/providers'
 import {
   createSession,
   writeInput,
@@ -16,12 +25,11 @@ import {
   changeDir,
   getStatus,
   listNativeSessions,
+  deleteHistorySession,
   renameSession,
   shutdownAll,
   type PermissionMode
 } from './services/sessionManager'
-
-let win: BrowserWindow | null = null
 
 interface AppSettings {
   lastCwd?: string
@@ -29,7 +37,11 @@ interface AppSettings {
   defaultMode?: PermissionMode
   defaultModel?: string
   locale?: string
+  /** Engines shown in the sidebar tab bar; missing = enabled */
+  engines?: Partial<Record<EngineId, boolean>>
 }
+
+let win: BrowserWindow | null = null
 
 function readSettings(): AppSettings {
   try {
@@ -54,12 +66,15 @@ function writeSettings(patch: Record<string, unknown>): void {
 
 function registerIpc(): void {
   ipcMain.handle('app:info', async () => {
-    const bin = await findClaudeBin()
-    const version = bin ? await getClaudeVersion(bin) : ''
+    const engines = await discoverEngines()
+    const claude = engines.find((e) => e.id === 'claude')
+    const opencode = engines.find((e) => e.id === 'opencode')
     const gitBash = await findGitBash()
     return {
-      claudeBin: bin,
-      claudeVersion: version,
+      claudeBin: claude?.bin ?? '',
+      claudeVersion: claude?.version ?? '',
+      opencodeBin: opencode?.bin ?? '',
+      opencodeVersion: opencode?.version ?? '',
       gitBash,
       dataDir: getDataDir(),
       appRoot: getAppRoot(),
@@ -68,6 +83,8 @@ function registerIpc(): void {
       lastCwd: readSettings().lastCwd || ''
     }
   })
+
+  ipcMain.handle('engines:discover', () => discoverEngines())
 
   ipcMain.handle('session:create', async (
     _e,
@@ -79,6 +96,8 @@ function registerIpc(): void {
       model?: string
       cols?: number
       rows?: number
+      engine?: EngineId
+      providerId?: string
     }
   ) => {
     let cwd = (opts.cwd || '').trim()
@@ -94,7 +113,9 @@ function registerIpc(): void {
       title: opts.title,
       model: opts.model || s.defaultModel || '',
       cols: opts.cols,
-      rows: opts.rows
+      rows: opts.rows,
+      engine: isEngineId(opts.engine) ? opts.engine : 'claude',
+      providerId: opts.providerId
     })
   })
 
@@ -115,11 +136,33 @@ function registerIpc(): void {
   ipcMain.handle('session:setMode', (_e, p: { id: string; mode: PermissionMode }) => setMode(p.id, p.mode))
   ipcMain.handle('session:changeDir', (_e, p: { id: string; cwd: string }) => changeDir(p.id, p.cwd))
   ipcMain.handle('session:getStatus', (_e, id: string) => getStatus(id))
-  ipcMain.handle('sessions:native', () => listNativeSessions())
+  ipcMain.handle('sessions:native', (_e, engine: EngineId) => listNativeSessions(isEngineId(engine) ? engine : 'claude'))
   ipcMain.handle('session:rename', (_e, p: { claudeSessionId: string; title: string }) =>
     renameSession(p.claudeSessionId, p.title)
   )
-  ipcMain.handle('session:delete', (_e, claudeSessionId: string) => deleteNativeSession(claudeSessionId))
+  ipcMain.handle('session:delete', (_e, claudeSessionId: string) => deleteHistorySession(claudeSessionId))
+
+  // ── API provider profiles (cc-switch style) ──
+  ipcMain.handle('providers:list', () => ({
+    ...listProfiles(),
+    configFiles: {
+      claude: globalConfigFile('claude'),
+      opencode: globalConfigFile('opencode')
+    }
+  }))
+  ipcMain.handle('providers:save', (_e, profile: ProviderProfile) => saveProfile(profile))
+  ipcMain.handle('providers:delete', (_e, id: string) => deleteProfile(id))
+  ipcMain.handle('providers:setActive', (_e, p: { engine: EngineId; id: string }) =>
+    setActiveProfile(isEngineId(p.engine) ? p.engine : 'claude', p.id)
+  )
+  ipcMain.handle('providers:applyGlobal', (_e, p: { engine: EngineId; id: string }) => {
+    const engine = isEngineId(p.engine) ? p.engine : 'claude'
+    const store = listProfiles()
+    const profile = store.profiles.find((x) => x.id === (p.id || 'builtin-default'))
+    if (!profile) throw new Error('profile not found: ' + p.id)
+    applyGlobalProfile(profile)
+    return globalConfigFile(engine)
+  })
   ipcMain.handle('titles:get', () => {
     // Custom title map for renderer initialization
     try {

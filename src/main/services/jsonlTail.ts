@@ -1,46 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { encodeProjectDir, projectsRoot } from './jsonl'
+import { emptyStatus, type SessionStatus } from './status'
 
-/** Structured session status (aggregated from the jsonl mirror) */
-export interface SessionStatus {
-  model: string
-  /** Tool name of the most recent invocation */
-  tool: string | null
-  /** Tool input summary (command / file path etc., ≤80 chars) */
-  toolDetail: string
-  tokensIn: number
-  tokensOut: number
-  cacheRead: number
-  cacheWrite: number
-  /** Estimated from the API pricing table (reference only for subscription users) */
-  costUsd: number
-  turns: number
-  toolCalls: number
-  toolCounts: Record<string, number>
-  durationMs: number
-  lastActivity: number
-  eventCount: number
-}
-
-export function emptyStatus(): SessionStatus {
-  return {
-    model: '',
-    tool: null,
-    toolDetail: '',
-    tokensIn: 0,
-    tokensOut: 0,
-    cacheRead: 0,
-    cacheWrite: 0,
-    costUsd: 0,
-    turns: 0,
-    toolCalls: 0,
-    toolCounts: {},
-    durationMs: 0,
-    lastActivity: 0,
-    eventCount: 0
-  }
-}
+export { emptyStatus, type SessionStatus }
 
 /** API pricing table (USD per million tokens), matched by model-name substring */
 const PRICING: Array<{ match: string; in: number; out: number; cacheRead: number; cacheWrite: number }> = [

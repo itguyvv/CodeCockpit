@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
-import type { NativeSessionInfo } from '../api'
+import type { EngineId, NativeSessionInfo } from '../api'
 import type { SessionState } from '../types'
 import { useT } from '../i18n'
 
@@ -47,6 +47,10 @@ interface MenuState {
 }
 
 interface Props {
+  /** Engines shown in the tab bar (CLI found + enabled in settings) */
+  engines: EngineId[]
+  engine: EngineId
+  onEngineChange: (e: EngineId) => void
   activeSessions: SessionState[]
   activeId: string
   customTitles: Record<string, string>
@@ -64,6 +68,9 @@ interface Props {
 }
 
 export default function Sidebar({
+  engines,
+  engine,
+  onEngineChange,
   activeSessions,
   activeId,
   customTitles,
@@ -96,7 +103,7 @@ export default function Sidebar({
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const refresh = (): void => {
-    void window.api.listNativeSessions().then((list) => {
+    void window.api.listNativeSessions(engine).then((list) => {
       setNativeList(list)
       setLoaded(true)
     })
@@ -109,7 +116,7 @@ export default function Sidebar({
     )
     const timer = setInterval(refresh, 30_000) // periodically refresh size/timestamps
     return () => clearInterval(timer)
-  }, [])
+  }, [engine])
 
   useEffect(() => {
     if (historyVersion > 0) refresh()
@@ -135,9 +142,11 @@ export default function Sidebar({
           (s) => s.title.toLowerCase().includes(q) || s.cwd.toLowerCase().includes(q)
         )
       : nativeList
+    // Group keys are engine-scoped so the two histories never share manual ordering
+    const groupKey = (cwd: string): string => (engine === 'opencode' ? `opencode:${cwd}` : cwd)
     const map = new Map<string, NativeSessionInfo[]>()
     for (const s of filtered) {
-      const key = s.cwd || s.projectEncoded
+      const key = groupKey(s.cwd || s.projectEncoded)
       let arr = map.get(key)
       if (!arr) {
         arr = []
@@ -160,9 +169,15 @@ export default function Sidebar({
         .sort((a, b) => b.lastTs - a.lastTs)
       const orderedIds = [...saved, ...extra.map((i) => i.sessionId)]
       const ordered = orderedIds.map((id) => items.find((i) => i.sessionId === id)!)
-      return { key, project: basename(key), cwd: ordered[0]?.cwd ?? '', items: ordered }
+      const head = ordered[0]?.cwd ?? ''
+      return {
+        key,
+        project: engine === 'opencode' ? basename(head || key.replace(/^opencode:/, '')) : basename(key),
+        cwd: head,
+        items: ordered
+      }
     })
-  }, [nativeList, search, order])
+  }, [nativeList, search, order, engine])
 
   const persistOrder = (next: HistoryOrder, keys: string[]): void => {
     setOrder(next)
@@ -252,6 +267,19 @@ export default function Sidebar({
           «
         </button>
       </div>
+      {engines.length > 1 && (
+        <div className="engine-tabs">
+          {engines.map((e) => (
+            <button
+              key={e}
+              className={`engine-tab ${e === engine ? 'on' : ''}`}
+              onClick={() => onEngineChange(e)}
+            >
+              {e === 'opencode' ? t('engine.opencode') : t('engine.claude')}
+            </button>
+          ))}
+        </div>
+      )}
       <input
         className="sidebar-search"
         placeholder={t('sidebar.search')}
