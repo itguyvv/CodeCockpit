@@ -5,7 +5,7 @@ import NewSessionModal, { type NewSessionOpts } from './components/NewSessionMod
 import Dashboard from './components/Dashboard'
 import SettingsModal from './components/SettingsModal'
 import { modeLabel, modelLabel, modesForEngine, type SessionState } from './types'
-import type { AppInfo, EngineId, EngineInfo, NativeSessionInfo, SessionStatus } from './api'
+import type { AppInfo, AppSettings, EngineId, EngineInfo, NativeSessionInfo, SessionStatus } from './api'
 import { I18nProvider, detectLocale, useI18n } from './i18n'
 import { LOCALE_LIST, type LocaleCode } from '../../locales'
 import logoUrl from './assets/logo.png'
@@ -35,6 +35,7 @@ function AppInner(): JSX.Element {
   const [engineTab, setEngineTab] = useState<EngineId>('claude')
   const [engineInfos, setEngineInfos] = useState<EngineInfo[]>([])
   const [enginesOn, setEnginesOn] = useState<Partial<Record<EngineId, boolean>>>({})
+  const [scrollback, setScrollback] = useState(2000)
   const termRef = useRef<TerminalHandle>(null)
 
   const active = sessions.find((s) => s.id === activeId) ?? null
@@ -57,10 +58,19 @@ function AppInner(): JSX.Element {
     setTimeout(() => setToast(''), 4000)
   }, [])
 
+  // Settings saved inside the modal apply immediately (engine tabs, new-terminal scrollback)
+  const handleSettingsChanged = useCallback((patch: Partial<AppSettings>) => {
+    if (patch.engines) setEnginesOn(patch.engines)
+    if (patch.scrollback !== undefined) setScrollback(patch.scrollback)
+  }, [])
+
   useEffect(() => {
     void window.api.getAppInfo().then(setAppInfo)
     void window.api.enginesDiscover().then(setEngineInfos)
-    void window.api.getSettings().then((s) => setEnginesOn(s.engines ?? {}))
+    void window.api.getSettings().then((s) => {
+      setEnginesOn(s.engines ?? {})
+      setScrollback(Math.max(200, Math.min(50_000, s.scrollback ?? 2000)))
+    })
     void window.api.getTitles().then(setCustomTitles)
     // Restore the active session list from the previous window (processes are gone; a click relaunches with --resume)
     void window.api
@@ -462,7 +472,7 @@ function AppInner(): JSX.Element {
             </div>
           )}
           <div className="term-area">
-            <TerminalHost ref={termRef} />
+            <TerminalHost ref={termRef} scrollback={scrollback} />
             {!active && (
               <div className="welcome">
                 <img className="welcome-logo" src={logoUrl} alt="CodeCockpit logo" />
@@ -542,7 +552,7 @@ function AppInner(): JSX.Element {
           appInfo={appInfo}
           locale={locale}
           onSetLocale={setLocale}
-          onEnginesChanged={setEnginesOn}
+          onSettingsChanged={handleSettingsChanged}
           onClose={() => setShowSettings(false)}
           onNotify={showToast}
         />

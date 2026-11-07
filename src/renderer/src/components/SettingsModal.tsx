@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react'
 import { MODES } from '../types'
 import type {
   AppInfo,
+  AppSettings,
   EngineId,
   EngineInfo,
   McpServerInfo,
@@ -16,8 +17,8 @@ interface Props {
   appInfo: AppInfo | null
   locale: LocaleCode
   onSetLocale: (l: LocaleCode) => void
-  /** Live sync of the engine switches to the main window (sidebar tabs etc.) */
-  onEnginesChanged: (next: Partial<Record<EngineId, boolean>>) => void
+  /** Live sync of settings changes to the main window (sidebar tabs, terminal scrollback etc.) */
+  onSettingsChanged: (patch: Partial<AppSettings>) => void
   onClose: () => void
   onNotify: (msg: string) => void
 }
@@ -36,7 +37,7 @@ export default function SettingsModal({
   appInfo,
   locale,
   onSetLocale,
-  onEnginesChanged,
+  onSettingsChanged,
   onClose,
   onNotify
 }: Props): JSX.Element {
@@ -44,6 +45,7 @@ export default function SettingsModal({
   const [tab, setTab] = useState<SettingsTab>('general')
   const [defaultMode, setDefaultMode] = useState('default')
   const [defaultModel, setDefaultModel] = useState('')
+  const [scrollback, setScrollback] = useState(2000)
   const [mcp, setMcp] = useState<McpServerInfo[]>([])
   const [busy, setBusy] = useState('')
   const [engineInfos, setEngineInfos] = useState<EngineInfo[]>([])
@@ -58,6 +60,7 @@ export default function SettingsModal({
     void window.api.getSettings().then((s) => {
       setDefaultMode(s.defaultMode || 'default')
       setDefaultModel(s.defaultModel || '')
+      setScrollback(s.scrollback ?? 2000)
       setEnginesEnabled(s.engines ?? {})
     })
     void window.api.mcpList().then(setMcp)
@@ -83,12 +86,13 @@ export default function SettingsModal({
     const next = { ...enginesEnabled, [id]: on }
     setEnginesEnabled(next)
     void window.api.setSettings({ engines: next })
-    onEnginesChanged(next)
+    onSettingsChanged({ engines: next })
     onNotify(t('settings.enginesSaved'))
   }
 
   const saveDefaults = (): void => {
-    void window.api.setSettings({ defaultMode, defaultModel }).then(() => {
+    void window.api.setSettings({ defaultMode, defaultModel, scrollback }).then(() => {
+      onSettingsChanged({ scrollback })
       onNotify(t('settings.defaultsSaved'))
     })
   }
@@ -249,6 +253,17 @@ export default function SettingsModal({
                   <option value="haiku">{t('model.haiku')}</option>
                 </select>
               </div>
+              <div className="settings-row">
+                <label title={t('settings.scrollbackHint')}>{t('settings.defaultScrollback')}</label>
+                <select value={scrollback} onChange={(e) => setScrollback(Number(e.target.value))}>
+                  {[1000, 2000, 5000, 10_000, 20_000].map((n) => (
+                    <option key={n} value={n}>
+                      {n.toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="settings-hint">{t('settings.scrollbackHint')}</p>
               <div className="settings-actions">
                 <button className="primary" onClick={saveDefaults}>
                   {t('settings.saveDefaults')}

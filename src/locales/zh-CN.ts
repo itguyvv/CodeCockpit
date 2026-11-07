@@ -99,6 +99,8 @@ const zhCN: Translation = {
   'settings.defaultMode': '默认权限模式',
   'settings.defaultModel': '默认模型',
   'settings.saveDefaults': '保存默认设置',
+  'settings.defaultScrollback': '终端回滚行数',
+  'settings.scrollbackHint': '每个终端保留的可回看行数，对修改后新开的终端生效。',
   'settings.defaultsSaved': '默认设置已保存，之后新建的会话生效',
   'settings.sectionData': '数据与迁移',
   'settings.dataDir': '当前数据目录',

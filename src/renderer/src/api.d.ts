@@ -101,6 +101,9 @@ export interface AppSettings {
   defaultModel?: string
   locale?: string
   engines?: Partial<Record<EngineId, boolean>>
+  confirmExit?: boolean
+  /** xterm scrollback lines for new terminals */
+  scrollback?: number
 }
 
 export interface WorkbenchApi {
@@ -119,12 +122,7 @@ export interface WorkbenchApi {
   }) => Promise<{ id: string }>
   pickDir: () => Promise<string>
   getSettings: () => Promise<AppSettings>
-  setSettings: (patch: {
-    defaultMode?: string
-    defaultModel?: string
-    locale?: string
-    engines?: Partial<Record<EngineId, boolean>>
-  }) => Promise<AppSettings>
+  setSettings: (patch: Partial<AppSettings>) => Promise<AppSettings>
   input: (id: string, data: string) => void
   resize: (id: string, cols: number, rows: number) => Promise<void>
   kill: (id: string) => Promise<void>

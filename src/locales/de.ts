@@ -106,6 +106,8 @@ const de: Translation = {
   'settings.defaultMode': 'Standard-Berechtigungsmodus',
   'settings.defaultModel': 'Standardmodell',
   'settings.saveDefaults': 'Standardwerte speichern',
+  'settings.defaultScrollback': 'Terminal-Scrollback',
+  'settings.scrollbackHint': 'Zeilen pro Terminal zum Zurückscrollen. Gilt für Terminals, die nach der Änderung geöffnet werden.',
   'settings.defaultsSaved': 'Gespeichert — gilt für alle neu erstellten Sitzungen',
   'settings.sectionData': 'Daten & Migration',
   'settings.dataDir': 'Aktuelles Datenverzeichnis',

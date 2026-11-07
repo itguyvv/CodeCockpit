@@ -104,6 +104,8 @@ const en = {
   'settings.defaultMode': 'Default permission mode',
   'settings.defaultModel': 'Default model',
   'settings.saveDefaults': 'Save defaults',
+  'settings.defaultScrollback': 'Terminal scrollback',
+  'settings.scrollbackHint': 'Lines kept per terminal for scrolling back. Applies to terminals opened after the change.',
   'settings.defaultsSaved': 'Defaults saved — applies to sessions created from now on',
   'settings.sectionData': 'Data & migration',
   'settings.dataDir': 'Current data directory',

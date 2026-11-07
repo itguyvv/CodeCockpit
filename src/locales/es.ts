@@ -107,6 +107,8 @@ const es: Translation = {
   'settings.defaultMode': 'Modo de permisos predeterminado',
   'settings.defaultModel': 'Modelo predeterminado',
   'settings.saveDefaults': 'Guardar valores predeterminados',
+  'settings.defaultScrollback': 'Desplazamiento del terminal',
+  'settings.scrollbackHint': 'Líneas que conserva cada terminal para desplazarse hacia atrás. Se aplica a los terminales abiertos tras el cambio.',
   'settings.defaultsSaved': 'Guardado — se aplicará a las sesiones creadas a partir de ahora',
   'settings.sectionData': 'Datos y migración',
   'settings.dataDir': 'Directorio de datos actual',

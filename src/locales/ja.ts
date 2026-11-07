@@ -102,6 +102,8 @@ const ja: Translation = {
   'settings.defaultMode': '既定の権限モード',
   'settings.defaultModel': '既定のモデル',
   'settings.saveDefaults': '既定値を保存',
+  'settings.defaultScrollback': 'ターミナルのスクロールバック',
+  'settings.scrollbackHint': 'ターミナルごとに保持するスクロールバック行数。変更後に開いたターミナルに適用されます。',
   'settings.defaultsSaved': '既定値を保存しました。以後の新規セッションに適用されます',
   'settings.sectionData': 'データと移行',
   'settings.dataDir': '現在のデータディレクトリ',

@@ -24,11 +24,11 @@ export interface TerminalHandle {
   dispose: (id: string) => void
 }
 
-function createTerm(): { term: Terminal; fit: FitAddon } {
+function createTerm(scrollback: number): { term: Terminal; fit: FitAddon } {
   const term = new Terminal({
     fontFamily: '"Cascadia Mono", Consolas, "Microsoft YaHei Mono", "Noto Sans Mono CJK SC", monospace',
     fontSize: 14,
-    scrollback: 2000,
+    scrollback,
     cursorBlink: true,
     allowProposedApi: true,
     theme: {
@@ -55,10 +55,13 @@ function clipboardHasImage(): boolean {
   }
 }
 
-const TerminalHost = forwardRef<TerminalHandle>((_props, ref) => {
+const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, ref) => {
   const hostRef = useRef<HTMLDivElement>(null)
   const entries = useRef<Map<string, Entry>>(new Map())
   const attachedId = useRef<string | null>(null)
+  // Mirrored so the imperative handlers create new terminals with the latest setting
+  const scrollbackRef = useRef(props.scrollback)
+  scrollbackRef.current = props.scrollback
 
   useImperativeHandle(ref, () => {
     const PENDING = '__pending'
@@ -135,7 +138,7 @@ const TerminalHost = forwardRef<TerminalHandle>((_props, ref) => {
 
     const getDims = (): { cols: number; rows: number } => {
       if (!attachedId.current) {
-        const { term, fit } = createTerm()
+        const { term, fit } = createTerm(scrollbackRef.current)
         const entry: Entry = { term, fit, offs: [] }
         entries.current.set(PENDING, entry)
         if (hostRef.current && !term.element) {
@@ -164,7 +167,7 @@ const TerminalHost = forwardRef<TerminalHandle>((_props, ref) => {
       }
       const prev = entries.current.get(attachedId.current ?? '')
       prev?.term.element?.remove()
-      const { term, fit } = createTerm()
+      const { term, fit } = createTerm(scrollbackRef.current)
       const entry: Entry = { term, fit, offs: [] }
       entries.current.set(id, entry)
       if (hostRef.current) {

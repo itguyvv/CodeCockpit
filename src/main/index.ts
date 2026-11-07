@@ -43,14 +43,16 @@ interface AppSettings {
   engines?: Partial<Record<EngineId, boolean>>
   /** false = close the window without the running-sessions confirmation */
   confirmExit?: boolean
+  /** xterm scrollback lines for new terminals */
+  scrollback?: number
 }
 
 let win: BrowserWindow | null = null
 /** Set after the user confirms exit so the next close event goes through */
 let closeArmed = false
 
-// Trim the memory footprint: renderer heap ceiling (the renderer is our biggest consumer)
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512')
+// Renderer heap ceiling: a leak safety net, sized far above real usage (scrollback is bounded separately)
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=2048')
 
 function readSettings(): AppSettings {
   try {

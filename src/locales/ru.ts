@@ -106,6 +106,8 @@ const ru: Translation = {
   'settings.defaultMode': 'Режим разрешений по умолчанию',
   'settings.defaultModel': 'Модель по умолчанию',
   'settings.saveDefaults': 'Сохранить значения',
+  'settings.defaultScrollback': 'Буфер прокрутки терминала',
+  'settings.scrollbackHint': 'Строк прокрутки, сохраняемых в каждом терминале. Применяется к терминалам, открытым после изменения.',
   'settings.defaultsSaved': 'Сохранено — применяется к сессиям, созданным с этого момента',
   'settings.sectionData': 'Данные и миграция',
   'settings.dataDir': 'Текущий каталог данных',

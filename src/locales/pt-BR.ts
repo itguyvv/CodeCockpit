@@ -107,6 +107,8 @@ const ptBR: Translation = {
   'settings.defaultMode': 'Modo de permissão padrão',
   'settings.defaultModel': 'Modelo padrão',
   'settings.saveDefaults': 'Salvar padrões',
+  'settings.defaultScrollback': 'Rolagem do terminal',
+  'settings.scrollbackHint': 'Linhas mantidas por terminal para rolar de volta. Vale para terminais abertos após a alteração.',
   'settings.defaultsSaved': 'Padrões salvos — vale para as sessões criadas a partir de agora',
   'settings.sectionData': 'Dados e migração',
   'settings.dataDir': 'Diretório de dados atual',

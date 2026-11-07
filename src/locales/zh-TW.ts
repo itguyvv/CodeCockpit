@@ -99,6 +99,8 @@ const zhTW: Translation = {
   'settings.defaultMode': '預設權限模式',
   'settings.defaultModel': '預設模型',
   'settings.saveDefaults': '儲存預設設定',
+  'settings.defaultScrollback': '終端回溯行數',
+  'settings.scrollbackHint': '每個終端保留的可回看行數，對修改後新開的終端生效。',
   'settings.defaultsSaved': '預設設定已儲存，之後新增的工作階段生效',
   'settings.sectionData': '資料與遷移',
   'settings.dataDir': '目前資料目錄',

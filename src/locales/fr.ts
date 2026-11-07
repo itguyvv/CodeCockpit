@@ -108,6 +108,8 @@ const fr: Translation = {
   'settings.defaultMode': 'Mode de permission par défaut',
   'settings.defaultModel': 'Modèle par défaut',
   'settings.saveDefaults': 'Enregistrer les valeurs par défaut',
+  'settings.defaultScrollback': 'Défilement du terminal',
+  'settings.scrollbackHint': 'Lignes conservées par terminal pour revenir en arrière. Appliqué aux terminaux ouverts après la modification.',
   'settings.defaultsSaved': 'Enregistré — s’applique aux sessions créées à partir de maintenant',
   'settings.sectionData': 'Données & migration',
   'settings.dataDir': 'Répertoire de données actuel',
