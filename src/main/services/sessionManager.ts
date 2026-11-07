@@ -1,0 +1,386 @@
+import { BrowserWindow, Notification } from 'electron'
+import * as pty from '@lydell/node-pty'
+import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import { dataFile } from './dataDir'
+import { t } from './i18n'
+import { findClaudeBin, findGitBash } from './claude'
+import { scanNativeSessions, listExistingSessionIds, sniffNewSessionFile, type NativeSessionInfo } from './jsonl'
+import { SessionTailer, resolveSessionFile, sessionFilePath, type SessionStatus } from './jsonlTail'
+
+export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
+
+export interface SessionRecord {
+  id: string
+  claudeSessionId: string | null
+  cwd: string
+  permissionMode: PermissionMode
+  title: string
+  status: 'running' | 'exited'
+  startedAt: number
+  cols?: number
+  rows?: number
+  /** --model flag passed to the CLI ('' = CLI default) */
+  model?: string
+}
+
+interface LiveProc {
+  pty: pty.IPty
+  record: SessionRecord
+  stopSniffer?: () => void
+  tailer?: SessionTailer
+}
+
+const registry = new Map<string, SessionRecord>()
+const procs = new Map<string, LiveProc>()
+
+// Busy detection: PTY output within the last 3 seconds = processing (AI streaming / tool execution / animations).
+// The claude TUI is completely silent while waiting for input; this distinguishes green(busy) from gray(idle).
+const lastDataAt = new Map<string, number>()
+const busyStates = new Map<string, boolean>()
+const BUSY_WINDOW_MS = 3000
+
+const busyTimer = setInterval(() => {
+  const now = Date.now()
+  for (const [id] of procs) {
+    const last = lastDataAt.get(id) ?? 0
+    const busy = now - last < BUSY_WINDOW_MS
+    if (busyStates.get(id) !== busy) {
+      const prev = busyStates.get(id)
+      busyStates.set(id, busy)
+      broadcast('pty:busy', { id, busy })
+      // busy → idle while the window is unfocused: system notification (only after 30s of busyness to avoid typing false alarms)
+      if (prev === true && !busy) {
+        const startedAt = busyStartAt.get(id) ?? 0
+        const focused = BrowserWindow.getAllWindows().some((w) => w.isFocused())
+        if (!focused && now - startedAt > 30_000 && Notification.isSupported()) {
+          const rec = registry.get(id)
+          void new Notification({
+            title: t('main.notifyTitle'),
+            body: rec
+              ? t('main.notifyIdleBody', { name: rec.title || path.basename(rec.cwd) })
+              : t('main.notifyIdleBodyPlain')
+          }).show()
+        }
+      }
+      if (busy && prev !== true) busyStartAt.set(id, now)
+    }
+  }
+}, 1000)
+
+// ── jsonl-mirrored status: tailer aggregation → throttled pty:status broadcast ──
+const statusBySession = new Map<string, SessionStatus>()
+const dirtyStatus = new Set<string>()
+const busyStartAt = new Map<string, number>()
+
+const statusTimer = setInterval(() => {
+  if (dirtyStatus.size === 0) return
+  for (const id of dirtyStatus) {
+    const st = statusBySession.get(id)
+    if (st) broadcast('pty:status', { id, status: st })
+  }
+  dirtyStatus.clear()
+}, 800)
+
+function ensureTailer(live: LiveProc): void {
+  if (live.tailer || !live.record.claudeSessionId) return
+  const id = live.record.claudeSessionId
+  // Locate by id across all projects first (file stays in the original project after a directory change); fall back to cwd
+  const filePath = resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id)
+  live.tailer = new SessionTailer(filePath, () => {
+    statusBySession.set(live.record.id, live.tailer!.getStatus())
+    dirtyStatus.add(live.record.id)
+  })
+  // Broadcast an initial snapshot right after tailing (resumed sessions get full stats immediately)
+  statusBySession.set(live.record.id, live.tailer.getStatus())
+  dirtyStatus.add(live.record.id)
+}
+
+export function getStatus(id: string): SessionStatus | null {
+  const live = procs.get(id)
+  if (live?.tailer) return live.tailer.getStatus()
+  return statusBySession.get(id) ?? null
+}
+
+function broadcast(channel: string, payload: unknown): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    w.webContents.send(channel, payload)
+  }
+}
+
+function saveRegistry(): void {
+  try {
+    const list = [...registry.values()]
+    fs.writeFileSync(dataFile('sessions.json'), JSON.stringify(list, null, 2), 'utf-8')
+  } catch {
+    // Non-fatal if the save fails
+  }
+}
+
+function loadRegistry(): void {
+  try {
+    const raw = fs.readFileSync(dataFile('sessions.json'), 'utf-8')
+    const list: SessionRecord[] = JSON.parse(raw)
+    for (const r of list) registry.set(r.id, r)
+  } catch {
+    // No file on first launch
+  }
+}
+
+function buildArgs(record: SessionRecord): string[] {
+  const args: string[] = []
+  if (record.claudeSessionId) args.push('--resume', record.claudeSessionId)
+  if (record.model && record.model !== 'default') args.push('--model', record.model)
+  if (record.permissionMode === 'bypassPermissions') {
+    args.push('--dangerously-skip-permissions')
+  } else {
+    args.push('--permission-mode', record.permissionMode)
+  }
+  return args
+}
+
+let spawnEnvCache: Record<string, string> | null = null
+
+async function buildSpawnEnv(): Promise<Record<string, string>> {
+  if (spawnEnvCache) return spawnEnvCache
+  const env = { ...process.env } as Record<string, string>
+  const bash = await findGitBash()
+  if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
+  spawnEnvCache = env
+  return env
+}
+
+async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
+  const p = pty.spawn(bin, buildArgs(record), {
+    name: 'xterm-256color',
+    cols: record.cols ?? 110,
+    rows: record.rows ?? 30,
+    cwd: record.cwd,
+    env: await buildSpawnEnv()
+  })
+  p.onData((data) => {
+    lastDataAt.set(record.id, Date.now())
+    broadcast('pty:data', { id: record.id, data })
+  })
+  p.onExit(({ exitCode }) => {
+    const live = procs.get(record.id)
+    if (live) {
+      live.stopSniffer?.()
+      live.tailer?.dispose()
+      procs.delete(record.id)
+    }
+    record.status = 'exited'
+    registry.set(record.id, record)
+    saveRegistry()
+    broadcast('pty:exit', { id: record.id, exitCode })
+  })
+  procs.set(record.id, { pty: p, record })
+  ensureTailer(procs.get(record.id)!)
+  return p
+}
+
+export interface CreateOpts {
+  cwd: string
+  mode: PermissionMode
+  resumeId?: string
+  title?: string
+  model?: string
+  cols?: number
+  rows?: number
+}
+
+export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
+  const bin = await findClaudeBin()
+  if (!bin) throw new Error(t('main.noCli'))
+  const record: SessionRecord = {
+    id: randomUUID(),
+    claudeSessionId: opts.resumeId ?? null,
+    cwd: opts.cwd,
+    permissionMode: opts.mode,
+    title: opts.title ?? '',
+    status: 'running',
+    startedAt: Date.now(),
+    cols: opts.cols,
+    rows: opts.rows,
+    model: opts.model ?? ''
+  }
+  registry.set(record.id, record)
+  saveRegistry()
+  // Snapshot before spawn: a new session's jsonl is guaranteed to be a file not in this snapshot
+  const knownIds = listExistingSessionIds(record.cwd)
+  await spawnFor(record, bin)
+  if (!record.claudeSessionId) {
+    const live = procs.get(record.id)
+    if (live) {
+      live.stopSniffer = sniffNewSessionFile(record.cwd, knownIds, (sessionId) => {
+        record.claudeSessionId = sessionId
+        registry.set(record.id, record)
+        saveRegistry()
+        broadcast('pty:session-id', { id: record.id, claudeSessionId: sessionId })
+        ensureTailer(live)
+      })
+    }
+  }
+  return { id: record.id }
+}
+
+export function writeInput(id: string, data: string): void {
+  const live = procs.get(id)
+  if (live) live.pty.write(data)
+}
+
+export function resizeSession(id: string, cols: number, rows: number): void {
+  const live = procs.get(id)
+  if (live) {
+    // Remember the latest size: mode switches relaunch at the same size to avoid TUI corruption
+    live.record.cols = Math.max(2, Math.floor(cols))
+    live.record.rows = Math.max(2, Math.floor(rows))
+    try {
+      live.pty.resize(live.record.cols, live.record.rows)
+    } catch {
+      // Resizing an already-exited process throws; ignore
+    }
+  }
+}
+
+export function killSession(id: string): void {
+  const live = procs.get(id)
+  if (!live) return
+  live.stopSniffer?.()
+  try {
+    live.pty.kill()
+  } catch {
+    // Already exited
+  }
+}
+
+/** Switch permission mode mid-session: bypass affects spawn args, so always do a seamless restart via --resume */
+export async function setMode(id: string, mode: PermissionMode): Promise<void> {
+  const live = procs.get(id)
+  if (!live) return
+  const record = live.record
+  if (record.permissionMode === mode) return
+  record.permissionMode = mode
+  registry.set(id, record)
+  saveRegistry()
+  const oldStop = live.stopSniffer
+  live.stopSniffer = undefined
+  const oldPty = live.pty
+  procs.delete(id) // onExit won't find a live entry, so the tailer won't be disposed by mistake
+  broadcast('pty:data', {
+    id,
+    data: t('main.bannerModeChanged', { mode })
+  })
+  try {
+    oldPty.kill()
+  } catch {
+    // Already exited
+  }
+  oldStop?.()
+  const bin = await findClaudeBin()
+  if (!bin) throw new Error(t('main.noCliShort'))
+  // Give the CLI a moment to release the session file lock so --resume doesn't read a half-written state
+  await new Promise((r) => setTimeout(r, 600))
+  if (procs.has(id)) return // killed externally in the meantime
+  await spawnFor(record, bin)
+  // Keep the original tailer: same session file keeps incremental reads, aggregation is not reset
+  const newLive = procs.get(id)
+  const oldTailer = live.tailer
+  if (newLive) {
+    newLive.tailer?.dispose() // spawnFor already created a new tailer for the resumed session; drop it to avoid a leak
+    if (oldTailer) {
+      newLive.tailer = oldTailer
+      statusBySession.set(id, oldTailer.getStatus())
+      dirtyStatus.add(id)
+    }
+  }
+}
+
+/** Change the working directory and restart with --resume (after a project moved): kill → swap cwd → relaunch */
+export async function changeDir(id: string, cwd: string): Promise<void> {
+  if (!fs.existsSync(cwd)) throw new Error(t('main.dirNotExist', { dir: cwd }))
+  const live = procs.get(id)
+  if (!live) throw new Error(t('main.sessionNotRunning'))
+  const record = live.record
+  record.cwd = cwd
+  registry.set(id, record)
+  saveRegistry()
+  broadcast('pty:data', {
+    id,
+    data: t('main.bannerDirChanged', { dir: cwd })
+  })
+  const oldPty = live.pty
+  const oldTailer = live.tailer
+  const oldStop = live.stopSniffer
+  live.stopSniffer = undefined
+  procs.delete(id)
+  try {
+    oldPty.kill()
+  } catch {
+    // Already exited
+  }
+  oldStop?.()
+  const bin = await findClaudeBin()
+  if (!bin) throw new Error(t('main.noCliShort'))
+  await new Promise((r) => setTimeout(r, 600))
+  if (procs.has(id)) return
+  await spawnFor(record, bin)
+  const newLive = procs.get(id)
+  if (newLive) {
+    newLive.tailer?.dispose()
+    if (oldTailer) {
+      newLive.tailer = oldTailer
+      statusBySession.set(id, oldTailer.getStatus())
+      dirtyStatus.add(id)
+    }
+  }
+}
+
+export function listNativeSessions(limit?: number): NativeSessionInfo[] {
+  const list = scanNativeSessions(limit ?? 60)
+  const titles = loadTitles()
+  for (const item of list) {
+    const custom = titles[item.sessionId]
+    if (custom) {
+      item.title = custom
+      item.custom = true
+    }
+  }
+  return list
+}
+
+// ── Custom session names (same effect as /rename; local persistence takes display priority) ──
+
+function titlesFile(): string {
+  return dataFile('titles.json')
+}
+
+function loadTitles(): Record<string, string> {
+  try {
+    return JSON.parse(fs.readFileSync(titlesFile(), 'utf-8'))
+  } catch {
+    return {}
+  }
+}
+
+export function renameSession(claudeSessionId: string, title: string): void {
+  const titles = loadTitles()
+  if (title.trim()) titles[claudeSessionId] = title.trim()
+  else delete titles[claudeSessionId]
+  fs.writeFileSync(titlesFile(), JSON.stringify(titles, null, 2), 'utf-8')
+}
+
+export function shutdownAll(): void {
+  for (const [id, live] of [...procs.entries()]) {
+    live.stopSniffer?.()
+    try {
+      live.pty.kill()
+    } catch {
+      // Already exited
+    }
+    procs.delete(id)
+  }
+}
+
+loadRegistry()

@@ -1,0 +1,510 @@
+import { useCallback, useEffect, useRef, useState, type JSX } from 'react'
+import TerminalHost, { type TerminalHandle } from './components/TerminalHost'
+import Sidebar from './components/Sidebar'
+import NewSessionModal from './components/NewSessionModal'
+import Dashboard from './components/Dashboard'
+import SettingsModal from './components/SettingsModal'
+import { modeLabel, modelLabel, type SessionState } from './types'
+import type { AppInfo, NativeSessionInfo, SessionStatus } from './api'
+import { I18nProvider, detectLocale, useI18n } from './i18n'
+import type { LocaleCode } from '../../locales'
+import logoUrl from './assets/logo.png'
+
+function fmtK(n: number): string {
+  if (n < 1000) return String(n)
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`
+  return `${(n / 1_000_000).toFixed(2)}M`
+}
+
+function AppInner(): JSX.Element {
+  const { t, locale, setLocale } = useI18n()
+  const [sessions, setSessions] = useState<SessionState[]>([])
+  const [activeId, setActiveId] = useState<string>('')
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [showNew, setShowNew] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showDash, setShowDash] = useState(false)
+  const [statuses, setStatuses] = useState<Record<string, SessionStatus>>({})
+  const [confirm, setConfirm] = useState<null | { text: string; onOk: () => void }>(null)
+  const [error, setError] = useState('')
+  const [toast, setToast] = useState('')
+  const [customTitles, setCustomTitles] = useState<Record<string, string>>({})
+  const [historyVer, setHistoryVer] = useState(0)
+  const [wsLoaded, setWsLoaded] = useState(false)
+  const termRef = useRef<TerminalHandle>(null)
+
+  const active = sessions.find((s) => s.id === activeId) ?? null
+  const activeStatus = active ? statuses[active.id] ?? null : null
+
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 4000)
+  }, [])
+
+  useEffect(() => {
+    void window.api.getAppInfo().then(setAppInfo)
+    void window.api.getTitles().then(setCustomTitles)
+    // Restore the active session list from the previous window (processes are gone; a click relaunches with --resume)
+    void window.api
+      .loadWorkspace()
+      .then((list) => {
+        setSessions(
+          list.map((r) => ({
+            id: r.id,
+            claudeSessionId: r.claudeSessionId,
+            cwd: r.cwd,
+            mode: r.mode,
+            status: 'exited' as const,
+            title: r.title,
+            busy: false,
+            model: r.model ?? ''
+          }))
+        )
+      })
+      .finally(() => setWsLoaded(true))
+  }, [])
+
+  // Active list changes (add/remove/reorder/rename) → debounced persistence
+  useEffect(() => {
+    if (!wsLoaded) return
+    const timer = setTimeout(() => {
+      void window.api.saveWorkspace(
+        sessions.map((s) => ({
+          id: s.id,
+          claudeSessionId: s.claudeSessionId,
+          cwd: s.cwd,
+          mode: s.mode,
+          title: s.title,
+          model: s.model ?? ''
+        }))
+      )
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [sessions, wsLoaded])
+
+  const updateSession = useCallback((id: string, patch: Partial<SessionState>) => {
+    setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+  }, [])
+
+  useEffect(() => {
+    const offExit = window.api.onExit((id, code) => {
+      updateSession(id, { status: 'exited' })
+      termRef.current?.write(id, t('banner.exited', { code }))
+    })
+    const offSid = window.api.onSessionId((id, sid) => {
+      updateSession(id, { claudeSessionId: sid })
+      // Pull an initial status as soon as a new session gets its id (history tokens arrive via onStatus)
+      void window.api.getStatus(id).then((st) => {
+        if (st) setStatuses((prev) => ({ ...prev, [id]: st }))
+      })
+    })
+    const offBusy = window.api.onBusy((id, busy) => updateSession(id, { busy }))
+    const offStatus = window.api.onStatus((id, st) =>
+      setStatuses((prev) => ({ ...prev, [id]: st }))
+    )
+    return () => {
+      offExit()
+      offSid()
+      offBusy()
+      offStatus()
+    }
+  }, [updateSession, t])
+
+  const guardBypass = useCallback(
+    (mode: string, onOk: () => void) => {
+      if (mode === 'bypassPermissions') {
+        setConfirm({ text: t('confirm.bypass'), onOk })
+      } else {
+        onOk()
+      }
+    },
+    [t]
+  )
+
+  const launch = useCallback(
+    (opts: { cwd: string; mode: string; resumeId?: string; title?: string; model?: string }) => {
+      setError('')
+      guardBypass(opts.mode, () => {
+        const dims = termRef.current?.getDims() ?? { cols: 110, rows: 30 }
+        window.api
+          .createSession({
+            cwd: opts.cwd,
+            mode: opts.mode,
+            resumeId: opts.resumeId,
+            title: opts.title,
+            model: opts.model,
+            cols: dims.cols,
+            rows: dims.rows
+          })
+          .then(({ id }) => {
+            termRef.current?.renameSlot('__pending', id)
+            setSessions((prev) => [
+              ...prev,
+              {
+                id,
+                claudeSessionId: opts.resumeId ?? null,
+                cwd: opts.cwd,
+                mode: opts.mode,
+                status: 'running',
+                title: opts.title ?? '',
+                busy: false,
+                model: opts.model ?? ''
+              }
+            ])
+            setActiveId(id)
+            setShowNew(false)
+            if (opts.resumeId) {
+              // Pull the aggregated history stats for a resumed session
+              setTimeout(() => {
+                void window.api.getStatus(id).then((st) => {
+                  if (st) setStatuses((prev) => ({ ...prev, [id]: st }))
+                })
+              }, 1500)
+            }
+          })
+          .catch((e) => setError(String((e as Error).message || e)))
+      })
+    },
+    [guardBypass]
+  )
+
+  const handleNew = useCallback(
+    (opts: { cwd: string; mode: string; model: string }) => {
+      launch({ cwd: opts.cwd, mode: opts.mode, model: opts.model })
+    },
+    [launch]
+  )
+
+  const handleResume = useCallback(
+    (ns: NativeSessionInfo) => {
+      // A live session in the list → just switch to it, don't spawn a duplicate process
+      const existing = sessions.find((s) => s.claudeSessionId === ns.sessionId)
+      if (existing && existing.status !== 'exited') {
+        setActiveId(existing.id)
+        termRef.current?.attach(existing.id)
+        return
+      }
+      if (existing) {
+        // The old slot's process is dead → drop the terminal slot and list item, then relaunch with --resume
+        termRef.current?.dispose(existing.id)
+        setSessions((prev) => prev.filter((x) => x.id !== existing.id))
+      }
+      launch({
+        cwd: ns.cwd || appInfo?.lastCwd || appInfo?.appRoot || '',
+        mode: existing?.mode || ns.permissionMode || 'default',
+        resumeId: ns.sessionId,
+        title: ns.title || existing?.title || undefined
+      })
+    },
+    [sessions, launch, appInfo]
+  )
+
+  const handleSelectActive = useCallback(
+    (id: string) => {
+      const s = sessions.find((x) => x.id === id)
+      if (!s) return
+      // Session restored from the previous window (dead process) → a click relaunches it with --resume
+      if (s.status === 'exited') {
+        termRef.current?.dispose(id)
+        setSessions((prev) => prev.filter((x) => x.id !== id))
+        launch({
+          cwd: s.cwd,
+          mode: s.mode,
+          resumeId: s.claudeSessionId ?? undefined,
+          title: s.title || undefined,
+          model: s.model || undefined
+        })
+        return
+      }
+      setActiveId(id)
+      termRef.current?.attach(id)
+    },
+    [sessions, launch]
+  )
+
+  const handleReorderActive = useCallback((from: number, to: number) => {
+    setSessions((prev) => {
+      if (from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev
+      const arr = [...prev]
+      const [m] = arr.splice(from, 1)
+      arr.splice(to, 0, m)
+      return arr
+    })
+  }, [])
+
+  // Rename (active sessions by internal id; history sessions by claudeSessionId) — same as /rename, persisted to titles.json
+  const handleRename = useCallback((claudeSessionId: string, title: string) => {
+    void window.api.renameSession(claudeSessionId, title)
+    setCustomTitles((prev) => {
+      const next = { ...prev }
+      if (title) next[claudeSessionId] = title
+      else delete next[claudeSessionId]
+      return next
+    })
+    setSessions((prev) =>
+      prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, title } : s))
+    )
+  }, [])
+
+  // Remove from this window: stop the process and drop it from the active list (history stays, restore from history later)
+  const handleRemoveActive = useCallback((id: string) => {
+    void window.api.kill(id)
+    termRef.current?.dispose(id)
+    setSessions((prev) => prev.filter((s) => s.id !== id))
+    setActiveId((cur) => (cur === id ? '' : cur))
+  }, [])
+
+  // Change the working directory and restart with --resume (after a project moved)
+  const handleChangeDir = useCallback(
+    (id: string) => {
+      void window.api.pickDir().then((dir) => {
+        if (!dir) return
+        void window.api
+          .changeDir(id, dir)
+          .then(() => {
+            updateSession(id, { cwd: dir })
+            showToast(t('toast.dirChanged'))
+          })
+          .catch((e) => setError(String((e as Error).message || e)))
+      })
+    },
+    [updateSession, showToast, t]
+  )
+
+  // Permanently delete a history session (jsonl is unrecoverable); stop it first if it's running here
+  const handleDelete = useCallback(
+    (claudeSessionId: string) => {
+      const victim = sessions.find((s) => s.claudeSessionId === claudeSessionId)
+      setConfirm({
+        text:
+          t('confirm.deleteIntro') +
+          (victim ? t('confirm.deleteRunning') : '') +
+          t('confirm.deleteAsk'),
+        onOk: () => {
+          if (victim) handleRemoveActive(victim.id)
+          void window.api.renameSession(claudeSessionId, '').then(() => {
+            setCustomTitles((prev) => {
+              const next = { ...prev }
+              delete next[claudeSessionId]
+              return next
+            })
+          })
+          void window.api.deleteSession(claudeSessionId).then(() => setHistoryVer((v) => v + 1))
+        }
+      })
+    },
+    [sessions, handleRemoveActive, t]
+  )
+
+  const changeMode = useCallback(
+    (id: string, mode: string) => {
+      guardBypass(mode, () => {
+        updateSession(id, { mode })
+        void window.api.setMode(id, mode)
+      })
+    },
+    [guardBypass, updateSession]
+  )
+
+  // Opening the dev URL in a plain browser has no preload bridge; guard against testing features on a fake page
+  if (!('api' in window)) {
+    return (
+      <div className="browser-warn">
+        <h2>⚠ {t('browser.warn.title')}</h2>
+        <p>{t('browser.warn.body')}</p>
+        <p>{t('browser.warn.hint')}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="app">
+      <div className="toolbar">
+        <button className="icon-btn" onClick={() => setSidebarOpen((v) => !v)} title={t('toolbar.toggleSidebar')}>
+          ☰
+        </button>
+        <img className="logo-img" src={logoUrl} alt="logo" />
+        <span className="logo">{t('app.name')}</span>
+        <button className="primary" onClick={() => setShowNew(true)}>
+          {t('toolbar.new')}
+        </button>
+        <button className="ghost" onClick={() => setShowSettings(true)} title={t('settings.title')}>
+          {t('toolbar.settings')}
+        </button>
+        <div className="toolbar-space" />
+      </div>
+
+      <div className="body">
+        {sidebarOpen && (
+          <Sidebar
+            activeSessions={sessions}
+            activeId={activeId}
+            customTitles={customTitles}
+            historyVersion={historyVer}
+            onSelectActive={handleSelectActive}
+            onResume={handleResume}
+            onRename={handleRename}
+            onDelete={handleDelete}
+            onRemoveActive={handleRemoveActive}
+            onReorderActive={handleReorderActive}
+            onChangeDir={handleChangeDir}
+            onToggle={() => setSidebarOpen(false)}
+          />
+        )}
+        <div className="main">
+          {active && (
+            <div className="session-bar">
+              <span className={`dot ${active.status}`} />
+              <span className="session-title">
+                {active.title || `${active.cwd.replace(/[\\/]+$/, '').split(/[\\/]/).pop()} · ${active.id.slice(0, 6)}`}
+              </span>
+              {active.claudeSessionId && (
+                <span className="session-sid" title={active.claudeSessionId}>
+                  {active.claudeSessionId.slice(0, 8)}…
+                </span>
+              )}
+              <span className="session-cwd" title={active.cwd}>
+                {active.cwd}
+              </span>
+              {activeStatus && (
+                <span
+                  className="session-stat"
+                  title={t('sessionbar.statTip', {
+                    tin: activeStatus.tokensIn,
+                    tout: activeStatus.tokensOut,
+                    turns: activeStatus.turns
+                  })}
+                >
+                  {modelLabel(activeStatus.model, t)} · ↑{fmtK(activeStatus.tokensIn)} ↓
+                  {fmtK(activeStatus.tokensOut)} · ${activeStatus.costUsd.toFixed(3)}
+                  {active.busy && activeStatus.tool ? (
+                    <span className="session-tool"> · {activeStatus.tool}</span>
+                  ) : null}
+                </span>
+              )}
+              <button
+                className={`dash-toggle ${showDash ? 'on' : ''}`}
+                onClick={() => setShowDash((v) => !v)}
+                title={t('sessionbar.dash')}
+              >
+                📊
+              </button>
+              <select
+                className="mode-select"
+                value={active.mode}
+                onChange={(e) => changeMode(active.id, e.target.value)}
+                title={t('sessionbar.modeSelect')}
+              >
+                {['default', 'acceptEdits', 'plan', 'bypassPermissions'].map((m) => (
+                  <option key={m} value={m}>
+                    {modeLabel(m, t)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="term-area">
+            <TerminalHost ref={termRef} />
+            {!active && (
+              <div className="welcome">
+                <img className="welcome-logo" src={logoUrl} alt="logo" />
+                <h1>{t('app.name')}</h1>
+                <p>{t('welcome.hint')}</p>
+                <p className="muted">{t('welcome.features')}</p>
+              </div>
+            )}
+          </div>
+          {showDash && active && (
+            <Dashboard session={active} status={activeStatus} onClose={() => setShowDash(false)} />
+          )}
+        </div>
+      </div>
+
+      <div className="statusbar">
+        <span className="status-version">v{appInfo?.appVersion ?? '…'}</span>
+        <span title={appInfo?.claudeBin}>
+          {appInfo?.claudeBin
+            ? t('statusbar.cli', { bin: `claude ${appInfo.claudeVersion || ''}` })
+            : t('statusbar.cliMissing')}
+        </span>
+        {appInfo && !appInfo.gitBash && (
+          <span className="status-error" title={t('statusbar.gitBashMissingTip')}>
+            ⚠ {t('statusbar.gitBashMissing')}
+          </span>
+        )}
+        <span title={appInfo?.dataDir}>{t('statusbar.data', { dir: appInfo?.dataDir ?? '' })}</span>
+        <span>{t('statusbar.sessions', { n: sessions.length })}</span>
+        {active && <span>{t('statusbar.mode', { mode: modeLabel(active.mode, t) })}</span>}
+        <span className="status-hint">{t('statusbar.hint')}</span>
+        {error && <span className="status-error">{error}</span>}
+      </div>
+
+      {showNew && <NewSessionModal onClose={() => setShowNew(false)} onStart={handleNew} />}
+
+      {showSettings && (
+        <SettingsModal
+          appInfo={appInfo}
+          locale={locale}
+          onSetLocale={setLocale}
+          onClose={() => setShowSettings(false)}
+          onNotify={showToast}
+        />
+      )}
+
+      {toast && <div className="toast">{toast}</div>}
+
+      {confirm && (
+        <div className="modal-mask">
+          <div className="modal">
+            <h3>{t('confirm.title')}</h3>
+            <p>{confirm.text}</p>
+            <div className="modal-actions">
+              <button
+                className="ghost"
+                onClick={() => {
+                  setConfirm(null)
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                className="danger"
+                onClick={() => {
+                  const ok = confirm.onOk
+                  setConfirm(null)
+                  ok()
+                }}
+              >
+                {t('common.continue')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function App(): JSX.Element {
+  const [locale, setLocaleState] = useState<LocaleCode>('en')
+
+  useEffect(() => {
+    void window.api.getSettings().then((s) => {
+      const next = (s.locale as LocaleCode) || detectLocale()
+      setLocaleState(next)
+      if (!s.locale) void window.api.setSettings({ locale: next })
+    })
+  }, [])
+
+  const setLocale = useCallback((l: LocaleCode) => {
+    setLocaleState(l)
+    void window.api.setSettings({ locale: l })
+  }, [])
+
+  return (
+    <I18nProvider locale={locale} onSetLocale={setLocale}>
+      <AppInner />
+    </I18nProvider>
+  )
+}
