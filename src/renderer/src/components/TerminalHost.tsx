@@ -28,7 +28,7 @@ function createTerm(): { term: Terminal; fit: FitAddon } {
   const term = new Terminal({
     fontFamily: '"Cascadia Mono", Consolas, "Microsoft YaHei Mono", "Noto Sans Mono CJK SC", monospace',
     fontSize: 14,
-    scrollback: 10000,
+    scrollback: 2000,
     cursorBlink: true,
     allowProposedApi: true,
     theme: {

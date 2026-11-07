@@ -501,19 +501,27 @@ function AppInner(): JSX.Element {
 
       <div className="statusbar">
         <span className="status-version">v{appInfo?.appVersion ?? '…'}</span>
-        <span title={appInfo?.claudeBin}>
-          {appInfo?.claudeBin
-            ? t('statusbar.cli', { bin: `claude ${appInfo.claudeVersion || ''}` })
-            : t('statusbar.cliMissing')}
-        </span>
-        {appInfo && (enabledEngines.some((e) => e.id === 'opencode') || appInfo.opencodeBin) && (
-          <span title={appInfo.opencodeBin}>
-            {appInfo.opencodeBin
+        {(enginesOn.claude ?? true) && (
+          <span
+            className={appInfo?.claudeBin ? '' : 'status-error'}
+            title={appInfo?.claudeBin}
+          >
+            {appInfo?.claudeBin
+              ? t('statusbar.cli', { bin: `claude ${appInfo.claudeVersion || ''}` })
+              : t('statusbar.cliMissing')}
+          </span>
+        )}
+        {(enginesOn.opencode ?? true) && (
+          <span
+            className={appInfo?.opencodeBin ? '' : 'status-error'}
+            title={appInfo?.opencodeBin}
+          >
+            {appInfo?.opencodeBin
               ? t('statusbar.opencodeCli', { ver: appInfo.opencodeVersion || '?' })
               : t('statusbar.opencodeMissing')}
           </span>
         )}
-        {appInfo && !appInfo.gitBash && (
+        {appInfo && !appInfo.gitBash && (enginesOn.claude ?? true) && (
           <span className="status-error" title={t('statusbar.gitBashMissingTip')}>
             ⚠ {t('statusbar.gitBashMissing')}
           </span>
@@ -534,6 +542,7 @@ function AppInner(): JSX.Element {
           appInfo={appInfo}
           locale={locale}
           onSetLocale={setLocale}
+          onEnginesChanged={setEnginesOn}
           onClose={() => setShowSettings(false)}
           onNotify={showToast}
         />

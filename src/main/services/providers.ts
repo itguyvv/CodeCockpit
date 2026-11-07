@@ -41,7 +41,7 @@ export interface ProviderStore {
 function builtinProfile(engine: EngineId): ProviderProfile {
   return {
     id: BUILTIN_PROFILE_ID,
-    name: engine === 'opencode' ? 'Default (openCode)' : 'Default (Claude)',
+    name: engine === 'opencode' ? 'Default (OpenCode)' : 'Default (Claude)',
     engine,
     baseUrl: '',
     apiKey: '',

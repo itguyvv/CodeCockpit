@@ -16,6 +16,8 @@ interface Props {
   appInfo: AppInfo | null
   locale: LocaleCode
   onSetLocale: (l: LocaleCode) => void
+  /** Live sync of the engine switches to the main window (sidebar tabs etc.) */
+  onEnginesChanged: (next: Partial<Record<EngineId, boolean>>) => void
   onClose: () => void
   onNotify: (msg: string) => void
 }
@@ -34,6 +36,7 @@ export default function SettingsModal({
   appInfo,
   locale,
   onSetLocale,
+  onEnginesChanged,
   onClose,
   onNotify
 }: Props): JSX.Element {
@@ -70,9 +73,17 @@ export default function SettingsModal({
   const engineName = (e: EngineId): string => (e === 'opencode' ? t('engine.opencode') : t('engine.claude'))
 
   const setEngineEnabled = (id: EngineId, on: boolean): void => {
+    // At least one installed engine must stay enabled, otherwise the window has no sessions at all
+    const installed = engineInfos.filter((e) => e.bin)
+    const enabledNow = installed.filter((e) => (enginesEnabled[e.id] ?? true))
+    if (!on && enabledNow.length === 1 && enabledNow[0].id === id) {
+      onNotify(t('settings.engineKeepOne'))
+      return
+    }
     const next = { ...enginesEnabled, [id]: on }
     setEnginesEnabled(next)
     void window.api.setSettings({ engines: next })
+    onEnginesChanged(next)
     onNotify(t('settings.enginesSaved'))
   }
 
@@ -281,7 +292,9 @@ export default function SettingsModal({
           <div className="settings-section">
             <div className="settings-title">{t('settings.sectionEngines')}</div>
             {engineInfos.map((info) => {
-              const on = info.id === 'claude' ? true : enginesEnabled[info.id] ?? Boolean(info.bin)
+              const on = enginesEnabled[info.id] ?? Boolean(info.bin)
+              const lastEnabled =
+                engineInfos.filter((e) => e.bin && (enginesEnabled[e.id] ?? Boolean(e.bin))).length === 1
               return (
                 <div key={info.id} className="settings-row">
                   <label>{engineName(info.id)}</label>
@@ -294,7 +307,7 @@ export default function SettingsModal({
                     <input
                       type="checkbox"
                       checked={on}
-                      disabled={!info.bin || info.id === 'claude'}
+                      disabled={!info.bin || (!on && lastEnabled)}
                       onChange={(e) => setEngineEnabled(info.id, e.target.checked)}
                     />
                     {on ? t('settings.engineEnabled') : t('settings.engineDisabled')}

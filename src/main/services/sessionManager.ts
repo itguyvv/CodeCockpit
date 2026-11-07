@@ -289,6 +289,11 @@ export function resizeSession(id: string, cols: number, rows: number): void {
   }
 }
 
+/** Number of sessions with a live pty (exited sessions are removed from the map) */
+export function runningSessionCount(): number {
+  return procs.size
+}
+
 export function killSession(id: string): void {
   const live = procs.get(id)
   if (!live) return

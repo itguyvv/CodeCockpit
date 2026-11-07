@@ -29,6 +29,7 @@ import {
   deleteHistorySession,
   renameSession,
   shutdownAll,
+  runningSessionCount,
   type PermissionMode
 } from './services/sessionManager'
 
@@ -40,9 +41,16 @@ interface AppSettings {
   locale?: string
   /** Engines shown in the sidebar tab bar; missing = enabled */
   engines?: Partial<Record<EngineId, boolean>>
+  /** false = close the window without the running-sessions confirmation */
+  confirmExit?: boolean
 }
 
 let win: BrowserWindow | null = null
+/** Set after the user confirms exit so the next close event goes through */
+let closeArmed = false
+
+// Trim the memory footprint: renderer heap ceiling (the renderer is our biggest consumer)
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512')
 
 function readSettings(): AppSettings {
   try {
@@ -369,6 +377,33 @@ function createWindow(): void {
   })
   win.on('closed', () => {
     win = null
+  })
+
+  // Confirm before exiting while sessions are still running (skip once armed or opted out)
+  win.on('close', (e) => {
+    if (closeArmed || readSettings().confirmExit === false) return
+    const running = runningSessionCount()
+    if (running === 0) return
+    e.preventDefault()
+    void dialog
+      .showMessageBox(win!, {
+        type: 'warning',
+        title: t('confirm.exitTitle'),
+        message: t('confirm.exitMessage', { n: running }),
+        detail: t('confirm.exitDetail'),
+        buttons: [t('confirm.exitOk'), t('common.cancel')],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+        checkboxLabel: t('confirm.exitDontAsk'),
+        checkboxChecked: false
+      })
+      .then(({ response, checkboxChecked }) => {
+        if (response !== 0) return
+        if (checkboxChecked) writeSettings({ confirmExit: false })
+        closeArmed = true
+        win?.close()
+      })
   })
 }
 
