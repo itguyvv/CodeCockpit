@@ -35,9 +35,11 @@ scripts/      Build/post-build helpers
 
 ## Conventions
 
-- **Language of the codebase is English.** All identifiers, comments, commit messages, and UI strings in source must be English. User-facing strings live exclusively in `src/locales/` — never hard-code UI text in components or the main process.
+These are hard rules — see [CLAUDE.md](CLAUDE.md) for the authoritative version.
+
+- **English-only source.** All identifiers, comments, commit messages, and docs are English. No Chinese (or any other natural language) anywhere in `src/` or `scripts/` except the translation dictionaries themselves (`src/locales/zh-CN.ts`, `src/locales/zh-TW.ts`). User-facing text lives exclusively in `src/locales/` — never hard-code UI strings in components or the main process.
+- **Complete translations on every change.** Adding or changing any UI string requires updating **all 10 locale files in the same PR**: `en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `de`, `fr`, `es`, `pt-BR`, `ru`. The `Translation` type makes a missing key a compile error, so `npm run typecheck` proves completeness. Never leave a stale product name, exe name, or path in any locale — the brand `CodeCockpit` stays identical in every language.
 - **TypeScript strict.** `npm run typecheck` must pass.
-- **i18n keys**: add new keys to `en.ts` first, then to all other locales — the `Translation` type makes a missing key a compile error, so `npm run typecheck` catches incomplete translations.
 - Keep PRs focused: one bug fix or one feature per PR.
 
 ## Commit messages

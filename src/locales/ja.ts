@@ -1,16 +1,18 @@
 import type { Translation } from './en'
 
 const ja: Translation = {
-  'app.name': 'AI ワークベンチ',
-  'browser.warn.title': 'ここは AI ワークベンチ アプリではありません',
+  'app.name': 'CodeCockpit',
+  'browser.warn.title': 'ここは CodeCockpit アプリではありません',
   'browser.warn.body':
     '開発用デバッグ URL（localhost:5173）を通常のブラウザで開いています。このページにはバックエンドがないため、ターミナル・クリップボード・セッション機能は動作しません。',
-  'browser.warn.hint': 'Electron アプリのウィンドウを使うか、dist/CodeCockpit/AI ワークベンチ.exe を実行してください。',
+  'browser.warn.hint': 'Electron アプリのウィンドウを使うか、dist/CodeCockpit/CodeCockpit.exe を実行してください。',
   'toolbar.new': '＋ 新規セッション',
   'toolbar.settings': '⚙ 設定',
   'toolbar.toggleSidebar': 'サイドバーの切り替え',
   'welcome.hint': '左側で履歴セッションを選ぶか、「＋ 新規セッション」をクリックして開始します。',
   'welcome.features': '各セッションは独立した実プロセス · ピクセル単位のターミナル · 同時実行可能 · マルチエンジン対応',
+  'welcome.language': '言語',
+  'welcome.credit': '{name} が開発 · MIT ライセンスでオープンソース',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude が見つかりません',
   'statusbar.gitBashMissing': 'git-bash が見つかりません',

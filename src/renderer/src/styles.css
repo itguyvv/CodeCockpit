@@ -612,6 +612,32 @@ input:focus {
   font-size: 12px;
 }
 
+/* Home-page language switcher and author credit (the welcome overlay is pointer-events:none, so re-enable here) */
+.welcome-lang {
+  pointer-events: auto;
+  margin-top: 6px;
+}
+
+.welcome-lang select {
+  min-width: 170px;
+}
+
+.welcome-credit {
+  pointer-events: auto;
+  color: var(--fg-dim);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.welcome-credit a {
+  color: var(--accent2);
+  text-decoration: none;
+}
+
+.welcome-credit a:hover {
+  text-decoration: underline;
+}
+
 /* ── Status bar ── */
 .statusbar {
   display: flex;

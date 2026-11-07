@@ -104,6 +104,10 @@ CodeCockpit ships 10 languages out of the box and uses a type-safe shared dictio
 
 Issues and pull requests are welcome — especially translations and engine adapters. See [CONTRIBUTING.md](CONTRIBUTING.md) for the build setup and conventions.
 
+## Author
+
+Created and maintained by **[ITGuyVV](https://github.com/ITGuyVV)**.
+
 ## License
 
 [MIT](LICENSE) © CodeCockpit Contributors

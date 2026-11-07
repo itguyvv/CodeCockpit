@@ -1,16 +1,18 @@
 import type { Translation } from './en'
 
 const zhTW: Translation = {
-  'app.name': 'AI 工作台',
-  'browser.warn.title': '這裡不是 AI 工作台應用',
+  'app.name': 'CodeCockpit',
+  'browser.warn.title': '這裡不是 CodeCockpit 應用',
   'browser.warn.body':
     '你在用瀏覽器開啟開發除錯位址（localhost:5173），此頁面沒有真實後端，終端、貼上、工作階段等都不會運作。',
-  'browser.warn.hint': '請使用 Electron 應用視窗，或直接執行 dist/CodeCockpit/AI 工作台.exe。',
+  'browser.warn.hint': '請使用 Electron 應用視窗，或直接執行 dist/CodeCockpit/CodeCockpit.exe。',
   'toolbar.new': '＋ 新增工作階段',
   'toolbar.settings': '⚙ 設定',
   'toolbar.toggleSidebar': '切換側邊欄',
   'welcome.hint': '從左側選擇歷史工作階段繼續，或點「＋ 新增工作階段」開始。',
   'welcome.features': '每個工作階段都是獨立的真實程序 · 像素級終端機 · 可並行多個 · 支援多引擎',
+  'welcome.language': '語言',
+  'welcome.credit': '由 {name} 建立 · MIT 授權開源',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': '找不到 claude',
   'statusbar.gitBashMissing': '找不到 git-bash',
@@ -133,9 +135,9 @@ const zhTW: Translation = {
   'main.sessionNotRunning': '工作階段未在執行',
   'main.pathEmpty': '路徑為空',
   'main.bannerModeChanged':
-    '\r\n\x1b[90m── 工作台：權限模式已切換為 {mode}，重新啟動工作階段（上下文保留）… ──\x1b[0m\r\n',
+    '\r\n\x1b[90m── CodeCockpit：權限模式已切換為 {mode}，重新啟動工作階段（上下文保留）… ──\x1b[0m\r\n',
   'main.bannerDirChanged':
-    '\r\n\x1b[90m── 工作台：工作目錄已切換為 {dir}，重新啟動工作階段（嘗試 --resume 續接上下文）… ──\x1b[0m\r\n',
+    '\r\n\x1b[90m── CodeCockpit：工作目錄已切換為 {dir}，重新啟動工作階段（嘗試 --resume 續接上下文）… ──\x1b[0m\r\n',
   'main.pickDirTitle': '選擇工作目錄',
   'main.exportTitle': '匯出資料',
   'main.importTitle': '匯入資料（zip）',

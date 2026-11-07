@@ -11,6 +11,8 @@ const en = {
   'welcome.hint': 'Pick a history session on the left, or click “＋ New Session” to start.',
   'welcome.features':
     'Each session is a real isolated process · pixel-perfect terminal · run many in parallel · multi-engine ready',
+  'welcome.language': 'Language',
+  'welcome.credit': 'Created by {name} · Open source under the MIT License',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude CLI not found',
   'statusbar.gitBashMissing': 'git-bash not found',

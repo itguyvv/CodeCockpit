@@ -12,6 +12,8 @@ const ru: Translation = {
   'welcome.hint': 'Выберите сессию из истории слева или нажмите «＋ Новая сессия».',
   'welcome.features':
     'Каждая сессия — реальный изолированный процесс · Пиксель-в-пиксель терминал · Параллельный запуск · Поддержка нескольких движков',
+  'welcome.language': 'Язык',
+  'welcome.credit': 'Создано {name} · Открытый код под лицензией MIT',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude не найден',
   'statusbar.gitBashMissing': 'git-bash не найден',

@@ -12,6 +12,8 @@ const de: Translation = {
   'welcome.hint': 'Wählen Sie links eine Sitzung aus der Historie oder klicken Sie auf „＋ Neue Sitzung“.',
   'welcome.features':
     'Jede Sitzung ist ein echtes, isoliertes Programm · Pixelgenaues Terminal · Beliebig viele parallel · Multi-Engine-fähig',
+  'welcome.language': 'Sprache',
+  'welcome.credit': 'Erstellt von {name} · Open Source unter der MIT-Lizenz',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude nicht gefunden',
   'statusbar.gitBashMissing': 'git-bash nicht gefunden',

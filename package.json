@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "CodeCockpit — a desktop cockpit for managing multiple AI coding CLI sessions (Claude Code / openCode and more)",
   "main": "out/main/index.js",
-  "author": "CodeCockpit Contributors",
+  "author": "ITGuyVV",
   "license": "MIT",
   "private": true,
   "keywords": [

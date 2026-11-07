@@ -104,6 +104,10 @@ CodeCockpit 内置 10 种语言，渲染进程与主进程（菜单、对话框�
 
 欢迎 Issue 与 PR——尤其是翻译与引擎适配。构建方式与规范见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
+## 作者
+
+由 **[ITGuyVV](https://github.com/ITGuyVV)** 创建并维护。
+
 ## 许可证
 
 [MIT](LICENSE) © CodeCockpit Contributors

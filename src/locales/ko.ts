@@ -1,16 +1,18 @@
 import type { Translation } from './en'
 
 const ko: Translation = {
-  'app.name': 'AI 워크벤치',
-  'browser.warn.title': '여기는 AI 워크벤치 앱이 아닙니다',
+  'app.name': 'CodeCockpit',
+  'browser.warn.title': '여기는 CodeCockpit 앱이 아닙니다',
   'browser.warn.body':
     '개발 디버그 주소(localhost:5173)를 일반 브라우저로 열었습니다. 이 페이지에는 실제 백엔드가 없어 터미널, 클립보드, 세션 기능이 동작하지 않습니다.',
-  'browser.warn.hint': 'Electron 앱 창을 사용하거나 dist/CodeCockpit/AI 워크벤치.exe를 실행하세요.',
+  'browser.warn.hint': 'Electron 앱 창을 사용하거나 dist/CodeCockpit/CodeCockpit.exe를 실행하세요.',
   'toolbar.new': '＋ 새 세션',
   'toolbar.settings': '⚙ 설정',
   'toolbar.toggleSidebar': '사이드바 전환',
   'welcome.hint': '왼쪽에서 기록 세션을 선택하거나 「＋ 새 세션」을 클릭해 시작하세요.',
   'welcome.features': '세션마다 독립된 실제 프로세스 · 픽셀 단위 터미널 · 다중 병렬 실행 · 멀티 엔진 지원',
+  'welcome.language': '언어',
+  'welcome.credit': '{name} 제작 · MIT 라이선스 오픈소스',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude를 찾을 수 없음',
   'statusbar.gitBashMissing': 'git-bash를 찾을 수 없음',

@@ -13,6 +13,8 @@ const ptBR: Translation = {
   'welcome.hint': 'Escolha uma sessão do histórico à esquerda ou clique em “＋ Nova sessão” para começar.',
   'welcome.features':
     'Cada sessão é um processo real isolado · Terminal fiel ao pixel · Várias em paralelo · Pronto para múltiplos engines',
+  'welcome.language': 'Idioma',
+  'welcome.credit': 'Criado por {name} · Código aberto sob a licença MIT',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude não encontrado',
   'statusbar.gitBashMissing': 'git-bash não encontrado',

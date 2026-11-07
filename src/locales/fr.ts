@@ -14,6 +14,8 @@ const fr: Translation = {
     'Choisissez une session dans l’historique à gauche, ou cliquez sur « ＋ Nouvelle session ».',
   'welcome.features':
     'Chaque session est un vrai processus isolé · Terminal au pixel près · Exécution parallèle · Prêt pour plusieurs moteurs',
+  'welcome.language': 'Langue',
+  'welcome.credit': 'Créé par {name} · Open source sous licence MIT',
   'statusbar.cli': 'CLI : {bin}',
   'statusbar.cliMissing': 'claude introuvable',
   'statusbar.gitBashMissing': 'git-bash introuvable',

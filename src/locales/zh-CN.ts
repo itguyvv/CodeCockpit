@@ -1,16 +1,18 @@
 import type { Translation } from './en'
 
 const zhCN: Translation = {
-  'app.name': 'AI 工作台',
-  'browser.warn.title': '这里不是 AI 工作台应用',
+  'app.name': 'CodeCockpit',
+  'browser.warn.title': '这里不是 CodeCockpit 应用',
   'browser.warn.body':
     '你在用浏览器打开开发调试地址（localhost:5173），此页面没有真实后端，终端、粘贴、会话等都不工作。',
-  'browser.warn.hint': '请使用 Electron 应用窗口，或直接运行 dist/CodeCockpit/AI 工作台.exe。',
+  'browser.warn.hint': '请使用 Electron 应用窗口，或直接运行 dist/CodeCockpit/CodeCockpit.exe。',
   'toolbar.new': '＋ 新建会话',
   'toolbar.settings': '⚙ 设置',
   'toolbar.toggleSidebar': '切换侧边栏',
   'welcome.hint': '左侧选择历史会话继续，或点「＋ 新建会话」开始。',
   'welcome.features': '每个会话是独立的真实进程 · 像素级终端 · 可并行多个 · 支持多引擎',
+  'welcome.language': '语言',
+  'welcome.credit': '由 {name} 创建 · MIT 许可证开源',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': '未找到 claude',
   'statusbar.gitBashMissing': '未找到 git-bash',
@@ -133,9 +135,9 @@ const zhCN: Translation = {
   'main.sessionNotRunning': '会话未在运行',
   'main.pathEmpty': '路径为空',
   'main.bannerModeChanged':
-    '\r\n\x1b[90m── 工作台：权限模式已切换为 {mode}，重启会话（上下文保留）… ──\x1b[0m\r\n',
+    '\r\n\x1b[90m── CodeCockpit：权限模式已切换为 {mode}，重启会话（上下文保留）… ──\x1b[0m\r\n',
   'main.bannerDirChanged':
-    '\r\n\x1b[90m── 工作台：工作目录已切换为 {dir}，重启会话（尝试 --resume 续接上下文）… ──\x1b[0m\r\n',
+    '\r\n\x1b[90m── CodeCockpit：工作目录已切换为 {dir}，重启会话（尝试 --resume 续接上下文）… ──\x1b[0m\r\n',
   'main.pickDirTitle': '选择工作目录',
   'main.exportTitle': '导出数据',
   'main.importTitle': '导入数据（zip）',

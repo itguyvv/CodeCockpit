@@ -7,7 +7,7 @@ import SettingsModal from './components/SettingsModal'
 import { modeLabel, modelLabel, type SessionState } from './types'
 import type { AppInfo, NativeSessionInfo, SessionStatus } from './api'
 import { I18nProvider, detectLocale, useI18n } from './i18n'
-import type { LocaleCode } from '../../locales'
+import { LOCALE_LIST, type LocaleCode } from '../../locales'
 import logoUrl from './assets/logo.png'
 
 function fmtK(n: number): string {
@@ -408,10 +408,31 @@ function AppInner(): JSX.Element {
             <TerminalHost ref={termRef} />
             {!active && (
               <div className="welcome">
-                <img className="welcome-logo" src={logoUrl} alt="logo" />
+                <img className="welcome-logo" src={logoUrl} alt="CodeCockpit logo" />
                 <h1>{t('app.name')}</h1>
                 <p>{t('welcome.hint')}</p>
                 <p className="muted">{t('welcome.features')}</p>
+                {/* Language switcher right on the home page: recovery if the app ever opens in a language the user cannot read */}
+                <div className="welcome-lang">
+                  <select
+                    value={locale}
+                    onChange={(e) => setLocale(e.target.value as LocaleCode)}
+                    aria-label={t('welcome.language')}
+                    title={t('welcome.language')}
+                  >
+                    {LOCALE_LIST.map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="welcome-credit">
+                  {t('welcome.credit', { name: 'ITGuyVV' })} ·{' '}
+                  <a href="https://github.com/ITGuyVV" target="_blank" rel="noreferrer">
+                    github.com/ITGuyVV
+                  </a>
+                </p>
               </div>
             )}
           </div>
@@ -491,9 +512,11 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
-      const next = (s.locale as LocaleCode) || detectLocale()
+      // First launch: follow the OS language; an unknown persisted value also falls back to detection
+      const saved = s.locale as LocaleCode | undefined
+      const next = saved && LOCALE_LIST.some((l) => l.code === saved) ? saved : detectLocale()
       setLocaleState(next)
-      if (!s.locale) void window.api.setSettings({ locale: next })
+      if (!saved || saved !== next) void window.api.setSettings({ locale: next })
     })
   }, [])
 

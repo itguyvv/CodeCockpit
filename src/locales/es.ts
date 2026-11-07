@@ -13,6 +13,8 @@ const es: Translation = {
   'welcome.hint': 'Elija una sesión del historial a la izquierda, o pulse «＋ Nueva sesión» para empezar.',
   'welcome.features':
     'Cada sesión es un proceso real aislado · Terminal fiel al píxel · Varias en paralelo · Listo para varios motores',
+  'welcome.language': 'Idioma',
+  'welcome.credit': 'Creado por {name} · Código abierto bajo la licencia MIT',
   'statusbar.cli': 'CLI: {bin}',
   'statusbar.cliMissing': 'claude no encontrado',
   'statusbar.gitBashMissing': 'git-bash no encontrado',
