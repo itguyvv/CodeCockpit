@@ -193,6 +193,7 @@ const zhTW: Translation = {
   'provider.activeSet': '新 {engine} 工作階段將使用「{name}」',
   'provider.appliedGlobal': '已改寫 {engine} 全域設定：{file}',
   'provider.applyFailed': '套用失敗：{err}',
+  'provider.globalParseFailed': '無法解析 {file}，未寫入任何內容。請修復或刪除該檔案後重試。',
   'provider.applying': '正在寫入全域設定…',
   'provider.confirmDelete': '刪除供應商「{name}」？執行中的工作階段不受影響。',
   'provider.confirmApplyGlobal': '此操作將改寫 {file}，讓所有 {engine} 程序使用「{name}」——包括在 CodeCockpit 之外啟動的程序。檔案中的其他設定保持不變。繼續？',

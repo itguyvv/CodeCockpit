@@ -264,10 +264,11 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
       }
     }
     host.addEventListener('contextmenu', onContextMenu)
-    host.addEventListener('mousedown', () => {
+    const onMouseDown = (): void => {
       const id = attachedId.current
       if (id) entries.current.get(id)?.term.focus()
-    })
+    }
+    host.addEventListener('mousedown', onMouseDown)
     // Drag & drop: files → insert quoted paths (same as cmd); text → paste; also stop Electron from navigating to dropped files
     const onDragOver = (e: DragEvent): void => {
       e.preventDefault()
@@ -308,6 +309,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
     ro.observe(host)
     return () => {
       host.removeEventListener('contextmenu', onContextMenu)
+      host.removeEventListener('mousedown', onMouseDown)
       host.removeEventListener('dragover', onDragOver)
       host.removeEventListener('drop', onDrop)
       window.removeEventListener('dragover', preventNav)

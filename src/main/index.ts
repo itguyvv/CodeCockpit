@@ -50,6 +50,7 @@ interface AppSettings {
 let win: BrowserWindow | null = null
 /** Set after the user confirms exit so the next close event goes through */
 let closeArmed = false
+let exitDialogOpen = false
 
 // Renderer heap ceiling: a leak safety net, sized far above real usage (scrollback is bounded separately)
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=2048')
@@ -384,8 +385,10 @@ function createWindow(): void {
   // Confirm before exiting (skip once armed or opted out); message adapts to running sessions
   win.on('close', (e) => {
     if (closeArmed || readSettings().confirmExit === false) return
-    const running = runningSessionCount()
     e.preventDefault()
+    if (exitDialogOpen) return // dialog already showing; keep vetoing repeated close attempts
+    const running = runningSessionCount()
+    exitDialogOpen = true
     void dialog
       .showMessageBox(win!, {
         type: 'warning',
@@ -401,6 +404,7 @@ function createWindow(): void {
         checkboxChecked: false
       })
       .then(({ response, checkboxChecked }) => {
+        exitDialogOpen = false
         if (response !== 0) return
         if (checkboxChecked) writeSettings({ confirmExit: false })
         closeArmed = true
@@ -421,6 +425,8 @@ app.on('window-all-closed', () => {
   app.quit()
 })
 
-app.on('before-quit', () => {
+// will-quit runs only after every window closed for real (a cancelled exit dialog must
+// not have killed the PTYs already, which is what before-quit would do)
+app.on('will-quit', () => {
   shutdownAll()
 })

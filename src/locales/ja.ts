@@ -198,6 +198,7 @@ const ja: Translation = {
   'provider.activeSet': '新しい {engine} セッションは「{name}」を使用します',
   'provider.appliedGlobal': '{engine} のグローバル設定を書き換えました：{file}',
   'provider.applyFailed': '適用に失敗しました：{err}',
+  'provider.globalParseFailed': '{file} を解析できなかったため、何も書き込んでいません。修正または削除してから再試行してください。',
   'provider.applying': 'グローバル設定に書き込み中…',
   'provider.confirmDelete': 'プロバイダー「{name}」を削除しますか？実行中のセッションには影響しません。',
   'provider.confirmApplyGlobal': '{file} を書き換え、すべての {engine} プロセス（CodeCockpit 以外で起動したものを含む）が「{name}」を使用するようにします。ファイル内の他の値は保持されます。続行しますか？',

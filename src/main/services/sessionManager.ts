@@ -67,6 +67,10 @@ const lastDataAt = new Map<string, number>()
 const busyStates = new Map<string, boolean>()
 const BUSY_WINDOW_MS = 3000
 
+/** Sessions whose process is being deliberately replaced (mode switch / changeDir):
+ *  the stale exit event must not mark the session exited in the renderer */
+const replacing = new Set<string>()
+
 const busyTimer = setInterval(() => {
   const now = Date.now()
   for (const [id] of procs) {
@@ -165,10 +169,9 @@ async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, stri
   let env = spawnEnvCache
   if (!env) {
     env = { ...process.env } as Record<string, string>
-    if (record.engine === 'claude') {
-      const bash = await findGitBash()
-      if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
-    }
+    // Resolved unconditionally: the first session may be openCode but later ones need bash too
+    const bash = await findGitBash()
+    if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
     spawnEnvCache = env
   }
   // Provider injection is resolved per spawn (the active profile may change between sessions)
@@ -197,6 +200,10 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
   })
   p.onExit(({ exitCode }) => {
     const live = procs.get(record.id)
+    // A respawned process already owns this session: this exit is from a replaced process
+    if (live && live.pty !== p) return
+    // Deliberate restart (mode switch / changeDir): the renderer keeps the session alive
+    if (replacing.has(record.id)) return
     if (live) {
       live.stopSniffer?.()
       live.tailer?.dispose()
@@ -249,7 +256,14 @@ export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
   // Snapshot before spawn: the new session's id is guaranteed to be absent from this snapshot
   const knownIds =
     engine === 'opencode' ? listOpenCodeSessionIds() : listExistingSessionIds(record.cwd)
-  await spawnFor(record, bin)
+  try {
+    await spawnFor(record, bin)
+  } catch (e) {
+    // No orphan record with status 'running' may survive a failed spawn
+    registry.delete(record.id)
+    saveRegistry()
+    throw e
+  }
   if (!record.claudeSessionId) {
     const live = procs.get(record.id)
     if (live) {
@@ -317,6 +331,7 @@ export async function setMode(id: string, mode: PermissionMode): Promise<void> {
   const oldStop = live.stopSniffer
   live.stopSniffer = undefined
   const oldPty = live.pty
+  replacing.add(id) // the old process's exit must not mark the session exited
   procs.delete(id) // onExit won't find a live entry, so the tailer won't be disposed by mistake
   broadcast('pty:data', {
     id,
@@ -329,11 +344,27 @@ export async function setMode(id: string, mode: PermissionMode): Promise<void> {
   }
   oldStop?.()
   const bin = await engineBin(record.engine)
-  if (!bin) throw new Error(t('main.noCliShort'))
+  if (!bin) {
+    replacing.delete(id)
+    throw new Error(t('main.noCliShort'))
+  }
   // Give the CLI a moment to release the session file lock so --resume doesn't read a half-written state
   await new Promise((r) => setTimeout(r, 600))
-  if (procs.has(id)) return // killed externally in the meantime
-  await spawnFor(record, bin)
+  if (procs.has(id)) {
+    // Killed or replaced externally in the meantime
+    replacing.delete(id)
+    return
+  }
+  try {
+    await spawnFor(record, bin)
+  } catch (e) {
+    replacing.delete(id)
+    record.status = 'exited'
+    registry.set(id, record)
+    saveRegistry()
+    throw e
+  }
+  replacing.delete(id)
   // Keep the original tailer: same session file keeps incremental reads, aggregation is not reset
   const newLive = procs.get(id)
   const oldTailer = live.tailer
@@ -364,6 +395,7 @@ export async function changeDir(id: string, cwd: string): Promise<void> {
   const oldTailer = live.tailer
   const oldStop = live.stopSniffer
   live.stopSniffer = undefined
+  replacing.add(id) // the old process's exit must not mark the session exited
   procs.delete(id)
   try {
     oldPty.kill()
@@ -372,10 +404,26 @@ export async function changeDir(id: string, cwd: string): Promise<void> {
   }
   oldStop?.()
   const bin = await engineBin(record.engine)
-  if (!bin) throw new Error(t('main.noCliShort'))
+  if (!bin) {
+    replacing.delete(id)
+    throw new Error(t('main.noCliShort'))
+  }
   await new Promise((r) => setTimeout(r, 600))
-  if (procs.has(id)) return
-  await spawnFor(record, bin)
+  if (procs.has(id)) {
+    // Killed or replaced externally in the meantime
+    replacing.delete(id)
+    return
+  }
+  try {
+    await spawnFor(record, bin)
+  } catch (e) {
+    replacing.delete(id)
+    record.status = 'exited'
+    registry.set(id, record)
+    saveRegistry()
+    throw e
+  }
+  replacing.delete(id)
   const newLive = procs.get(id)
   if (newLive) {
     newLive.tailer?.dispose()
@@ -446,8 +494,11 @@ export function shutdownAll(): void {
     } catch {
       // Already exited
     }
+    const rec = registry.get(id)
+    if (rec) rec.status = 'exited' // sessions.json must not keep claiming 'running' after a quit
     procs.delete(id)
   }
+  saveRegistry()
 }
 
 loadRegistry()

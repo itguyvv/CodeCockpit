@@ -6,7 +6,7 @@
 
 **你的 AI 编程智能体驾驶舱。**
 
-在同一个原生窗口里运行、观测、管理多个 AI 编程 CLI 会话（当前支持 Claude Code，openCode 即将接入）——真实 PTY 终端、精确的 token/成本统计、完整的会话历史。
+在同一个原生窗口里运行、观测、管理多个 AI 编程 CLI 会话（当前支持 Claude Code 与 OpenCode，持续扩展中）——真实 PTY 终端、精确的 token/成本统计、完整的会话历史。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-blue)
@@ -24,29 +24,33 @@
 同时驾驭多个 AI 编程智能体意味着：在一堆原始终端窗口里来回切换、搞不清哪个会话烧了多少 token、手动翻历史记录文件。CodeCockpit 把这一切收进一个驾驶舱：
 
 - 一个窗口，多个活跃智能体终端——每个都是真实 PTY，不是文本转储。
-- 每个会话的遥测数据直接解析自 Claude Code 自己的会话记录：模型、输入/输出 token、缓存读写、估算成本、工具调用分布、纯 AI 工作时长。
-- 历史与工作区状态在重启后完整保留；任何历史会话一键 `--resume` 续聊。
+- 每个会话的遥测数据直接解析自各引擎自己的会话记录：模型、输入/输出 token、缓存读写、估算成本、工具调用分布、纯 AI 工作时长。
+- 历史与工作区状态在重启后完整保留；任何历史会话一键续聊。
+- 自带 API 中转——服务商配置可让任意会话走自定义端点（cc-switch 风格）。
 
 ## 特性
 
+- **双引擎驾驶舱** — Claude Code 与 OpenCode 并行使用，各自独立的历史中心；用不到的引擎可在设置中停用。
 - **真实 PTY 终端** — 每个会话运行在独立的 ConPTY 进程中，由 xterm.js 完整渲染，支持选中、复制/粘贴、文件路径拖拽，可并行任意多个会话。
-- **精确会话遥测** — 解析 Claude Code 的 jsonl 会话日志：模型、输入/输出 token、缓存读/写、估算成本、轮次、工具调用排行、纯 AI 工作时长。
+- **精确会话遥测** — 解析各引擎自己的会话记录（Claude jsonl / OpenCode 存储）：模型、输入/输出 token、缓存读/写、估算成本、轮次、工具调用排行、纯 AI 工作时长。
 - **会话仪表盘** — 每个会话底部一条实时状态栏：上下文占用、输出速度、工具使用分布一目了然。
-- **历史中心** — 汇集 `~/.claude/projects` 下全部会话，按项目分组，支持重命名、删除（带确认）、拖动排序、搜索、记录大小。分组默认折叠，一键全部展开。
-- **工作区持久化** — 启动时完整恢复活跃会话列表；已退出的进程一键 `--resume` 回来。
+- **历史中心** — 汇集各引擎的全部本地会话，按项目分组，支持重命名、删除（带确认）、拖动排序、搜索、记录大小。分组默认折叠，一键全部展开。
+- **工作区持久化** — 启动时完整恢复活跃会话列表；已退出的进程一键恢复。
+- **API 服务商配置** — cc-switch 风格：每个引擎可配多个服务商（Base URL + API Key），一键连通性测试，模型映射（main/haiku/sonnet/opus 四档映射到任意模型），按会话环境变量注入或全局配置改写（改写前自动生成 `.bak` 备份）。
 - **权限模式切换** — default / acceptEdits / plan / bypassPermissions 实时切换、上下文不丢；bypass 模式双重确认。
-- **换目录续接上下文** — 项目搬家后切换 cwd 并对同一会话 `--resume`，上下文原样保留。
+- **换目录续接上下文** — 项目搬家后切换 cwd 并续接同一会话，上下文原样保留。
 - **完成通知** — 窗口在后台时智能体完成即弹系统通知，点击跳回。
-- **设置中心** — 新会话默认模式/模型、数据目录可迁移、数据导出/导入（zip）、Claude 配置快捷入口、MCP 服务器概览。
+- **退出确认** — 有会话在跑时关窗先询问（可选"不再提示"），误点不会误杀你的智能体。
+- **设置中心** — 页签式：默认项（模式/模型、终端回滚行数）、引擎开关、服务商配置、Claude 配置快捷入口 + MCP 服务器概览；数据目录可迁移，支持 zip 导出/导入。
 - **10 种语言** — English、简体中文、繁體中文、日本語、한국어、Deutsch、Français、Español、Português (Brasil)、Русский。设置里随时切换。
-- **多引擎就绪** — 架构保持引擎层中立，openCode 支持已列入计划。
 
 ## 环境要求
 
 - **操作系统**：Windows 10 (1809+) 或 Windows 11
 - **Node.js** ≥ 20（仅源码构建需要；打包产物无需任何依赖）
-- 已安装并可在终端正常使用的 [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
-- Git Bash（Windows 上的 Claude Code CLI 依赖它；CodeCockpit 自动探测常见安装路径）
+- 至少其一：
+  - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) — Windows 上该 CLI 依赖 Git Bash；CodeCockpit 自动探测常见安装路径
+  - [OpenCode CLI](https://opencode.ai) — `npm i -g opencode-ai` 或官方安装器
 
 ## 开发
 
@@ -55,7 +59,7 @@ npm install
 npm run dev
 ```
 
-CodeCockpit 启动时自动定位 `claude` CLI（PATH、WinGet Links、npm 全局）与 Git Bash。
+CodeCockpit 启动时自动定位 `claude` CLI（PATH、WinGet Links、npm 全局）、`opencode` CLI 与 Git Bash。
 
 常用脚本：
 
@@ -73,8 +77,10 @@ npm run dist        # 构建 + 打包便携目录 + 带版本 zip 到 dist/
 
 ## 数据位置
 
-- **应用数据**（会话列表、自定义命名、排序、设置）：便携模式下位于可执行文件旁边的 `data/`，或 `data-dir.txt` 指定的路径。可在设置中更改，或通过导出/导入 zip 迁移。
-- **聊天记录**：`~/.claude/projects/<项目目录编码>/<sessionId>.jsonl`，由 Claude Code 自身写入。CodeCockpit 只读取这些文件——绝不改写你的会话记录。
+- **应用数据**（会话列表、自定义命名、排序、服务商配置、设置）：便携模式下位于可执行文件旁边的 `data/`，或 `data-dir.txt` 指定的路径。可在设置中更改，或通过导出/导入 zip 迁移。
+- **聊天记录**：由引擎自身写入——Claude Code 位于 `~/.claude/projects/<项目目录编码>/<sessionId>.jsonl`，OpenCode 位于其自己的存储目录（Windows：`%USERPROFILE%\.local\share\opencode`）。CodeCockpit 只读取这些文件——绝不改写你的会话记录。
+
+> **API Key 说明**：服务商配置以明文保存在应用数据目录中（与各 CLI 自身配置文件的做法一致）。你在设置里填入的内容只留在本机；按会话注入环境变量，Key 不会进入项目文件。
 
 ## 国际化
 
@@ -97,7 +103,9 @@ CodeCockpit 内置 10 种语言，渲染进程与主进程（菜单、对话框�
 - [x] M5 — 设置中心 + 数据迁移 + MCP 概览
 - [x] M6 — 完成通知 + 打包
 - [x] M7 — 国际化（10 种语言）
-- [ ] openCode 第二引擎接入
+- [x] M8 — OpenCode 第二引擎（启动、遥测、历史、续聊）
+- [x] M9 — API 服务商配置（连通性测试、模型映射、全局应用）
+- [ ] Codex CLI 第三引擎接入
 - [ ] macOS / Linux 构建
 
 ## 参与贡献

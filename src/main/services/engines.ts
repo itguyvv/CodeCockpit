@@ -52,7 +52,8 @@ export function supportedModes(engine: EngineId): string[] {
 }
 
 let cachedOpenCodeBin: string | null = null
-let cachedOpenCodeVersion: string | null = null
+/** Version strings keyed by binary path (the resolved path can change after an upgrade) */
+const openCodeVersionCache = new Map<string, string>()
 
 const OPENCODE_COMMON_PATHS = (): string[] => [
   process.env.OPENCODE_BIN || '',
@@ -107,11 +108,12 @@ export function findOpenCodeBin(): Promise<string> {
 }
 
 export function getOpenCodeVersion(bin: string): Promise<string> {
-  if (cachedOpenCodeVersion) return Promise.resolve(cachedOpenCodeVersion)
+  const hit = openCodeVersionCache.get(bin)
+  if (hit) return Promise.resolve(hit)
   const isCmd = bin.toLowerCase().endsWith('.cmd')
   return new Promise((resolve) => {
     const done = (v: string) => {
-      if (v) cachedOpenCodeVersion = v
+      if (v) openCodeVersionCache.set(bin, v)
       resolve(v)
     }
     if (isCmd) {

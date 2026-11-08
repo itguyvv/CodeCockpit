@@ -15,7 +15,8 @@ const COMMON_PATHS = (): string[] => {
 }
 
 let cachedBin: string | null = null
-let cachedVersion: string | null = null
+/** Version strings keyed by binary path (the resolved path can change after an upgrade) */
+const versionCache = new Map<string, string>()
 
 /** Rank a candidate: real .exe > npm .cmd shim > anything else (sh scripts cannot run under CreateProcess) */
 function claudeBinRank(p: string): number {
@@ -53,11 +54,12 @@ export function findClaudeBin(): Promise<string> {
 }
 
 export function getClaudeVersion(bin: string): Promise<string> {
-  if (cachedVersion) return Promise.resolve(cachedVersion)
+  const hit = versionCache.get(bin)
+  if (hit) return Promise.resolve(hit)
   const isCmd = bin.toLowerCase().endsWith('.cmd')
   return new Promise((resolve) => {
     const done = (v: string) => {
-      if (v) cachedVersion = v
+      if (v) versionCache.set(bin, v)
       resolve(v)
     }
     if (isCmd) {
@@ -83,7 +85,6 @@ export function findGitBash(): Promise<string> {
     const candidates = [
       'C:\\Program Files\\Git\\bin\\bash.exe',
       'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
-      'D:\\Program Files\\Git\\bin\\bash.exe',
       path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe'),
       path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'usr', 'bin', 'bash.exe')
     ]

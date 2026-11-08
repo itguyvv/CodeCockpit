@@ -204,6 +204,7 @@ const es: Translation = {
   'provider.activeSet': 'Las nuevas sesiones de {engine} usarán «{name}»',
   'provider.appliedGlobal': 'Configuración global de {engine} reescrita: {file}',
   'provider.applyFailed': 'Error al aplicar: {err}',
+  'provider.globalParseFailed': 'No se pudo analizar {file}; no se escribió nada. Corrige o elimina el archivo e inténtalo de nuevo.',
   'provider.applying': 'Escribiendo la configuración global…',
   'provider.confirmDelete': '¿Eliminar el proveedor «{name}»? Las sesiones en curso conservan su entorno.',
   'provider.confirmApplyGlobal': 'Esto reescribe {file} para que TODOS los procesos de {engine} (incluidos los iniciados fuera de CodeCockpit) usen «{name}». Los demás valores del archivo se conservan. ¿Continuar?',

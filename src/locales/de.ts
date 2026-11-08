@@ -203,6 +203,7 @@ const de: Translation = {
   'provider.activeSet': 'Neue {engine}-Sitzungen verwenden „{name}“',
   'provider.appliedGlobal': 'Globale {engine}-Konfiguration umgeschrieben: {file}',
   'provider.applyFailed': 'Anwenden fehlgeschlagen: {err}',
+  'provider.globalParseFailed': '{file} konnte nicht geparst werden — nichts wurde geschrieben. Datei korrigieren oder löschen und erneut versuchen.',
   'provider.applying': 'Globale Konfiguration wird geschrieben…',
   'provider.confirmDelete': 'Anbieter „{name}“ löschen? Laufende Sitzungen behalten ihre Umgebung.',
   'provider.confirmApplyGlobal': 'Damit wird {file} umgeschrieben, sodass ALLE {engine}-Prozesse „{name}“ verwenden — auch solche außerhalb von CodeCockpit. Andere Werte in der Datei bleiben erhalten. Fortfahren?',

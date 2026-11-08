@@ -204,6 +204,7 @@ const ptBR: Translation = {
   'provider.activeSet': 'As novas sessões de {engine} usarão “{name}”',
   'provider.appliedGlobal': 'Configuração global do {engine} reescrita: {file}',
   'provider.applyFailed': 'Falha ao aplicar: {err}',
+  'provider.globalParseFailed': 'Não foi possível analisar {file} — nada foi gravado. Corrija ou remova o arquivo e tente novamente.',
   'provider.applying': 'Gravando a configuração global…',
   'provider.confirmDelete': 'Excluir o provedor “{name}”? As sessões em execução mantêm o ambiente delas.',
   'provider.confirmApplyGlobal': 'Isso reescreve {file} para que TODOS os processos do {engine} (incluindo os iniciados fora do CodeCockpit) usem “{name}”. Os outros valores do arquivo são preservados. Continuar?',

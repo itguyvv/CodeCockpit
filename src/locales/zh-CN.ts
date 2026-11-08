@@ -193,6 +193,7 @@ const zhCN: Translation = {
   'provider.activeSet': '新建 {engine} 会话将使用“{name}”',
   'provider.appliedGlobal': '已改写 {engine} 全局配置：{file}',
   'provider.applyFailed': '应用失败：{err}',
+  'provider.globalParseFailed': '无法解析 {file}，未写入任何内容。请修复或删除该文件后重试。',
   'provider.applying': '正在写入全局配置…',
   'provider.confirmDelete': '删除服务商“{name}”？正在运行的会话不受影响。',
   'provider.confirmApplyGlobal': '此操作将改写 {file}，让所有 {engine} 进程使用“{name}”——包括在 CodeCockpit 之外启动的进程。文件中的其他配置保持不变。继续？',

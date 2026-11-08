@@ -203,6 +203,7 @@ const ru: Translation = {
   'provider.activeSet': 'Новые сессии {engine} будут использовать «{name}»',
   'provider.appliedGlobal': 'Глобальная конфигурация {engine} переписана: {file}',
   'provider.applyFailed': 'Не удалось применить: {err}',
+  'provider.globalParseFailed': 'Не удалось разобрать {file} — ничего не записано. Исправьте или удалите файл и повторите попытку.',
   'provider.applying': 'Запись глобальной конфигурации…',
   'provider.confirmDelete': 'Удалить провайдера «{name}»? Запущенные сессии сохранят своё окружение.',
   'provider.confirmApplyGlobal': 'Файл {file} будет переписан так, что ВСЕ процессы {engine} (включая запущенные вне CodeCockpit) будут использовать «{name}». Остальные значения файла сохраняются. Продолжить?',

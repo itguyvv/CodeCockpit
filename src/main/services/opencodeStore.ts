@@ -122,8 +122,11 @@ export function deleteOpenCodeSession(sessionId: string): boolean {
     }
   }
   const msgDir = path.join(root, 'message', sessionId)
+  let msgFiles: string[] = []
   try {
     if (fs.existsSync(msgDir)) {
+      // Collect names BEFORE deleting: the directory is gone afterwards
+      msgFiles = fs.readdirSync(msgDir)
       fs.rmSync(msgDir, { recursive: true, force: true })
       deleted = true
     }
@@ -131,20 +134,16 @@ export function deleteOpenCodeSession(sessionId: string): boolean {
     // Skip
   }
   // part/ is keyed by message id — remove the parts of this session's messages individually
-  try {
-    for (const msgFile of fs.readdirSync(msgDir)) {
-      const dir = path.join(root, 'part', msgFile.replace(/\.json$/, ''))
-      try {
-        if (fs.existsSync(dir)) {
-          fs.rmSync(dir, { recursive: true, force: true })
-          deleted = true
-        }
-      } catch {
-        // Skip
+  for (const msgFile of msgFiles) {
+    const dir = path.join(root, 'part', msgFile.replace(/\.json$/, ''))
+    try {
+      if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true })
+        deleted = true
       }
+    } catch {
+      // Skip
     }
-  } catch {
-    // No message storage for this session
   }
   return deleted
 }

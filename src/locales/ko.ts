@@ -196,6 +196,7 @@ const ko: Translation = {
   'provider.activeSet': '새 {engine} 세션은 "{name}"을(를) 사용합니다',
   'provider.appliedGlobal': '{engine} 전역 설정을 다시 썼습니다: {file}',
   'provider.applyFailed': '적용 실패: {err}',
+  'provider.globalParseFailed': '{file}을(를) 구문 분석할 수 없어 아무것도 쓰지 않았습니다. 파일을 수정하거나 삭제한 후 다시 시도하세요.',
   'provider.applying': '전역 설정에 쓰는 중…',
   'provider.confirmDelete': '"{name}" 공급자를 삭제할까요? 실행 중인 세션은 영향을 받지 않습니다.',
   'provider.confirmApplyGlobal': '{file}을(를) 다시 써서 모든 {engine} 프로세스(CodeCockpit 밖에서 시작된 것 포함)가 "{name}"을(를) 사용하도록 합니다. 파일의 다른 값은 유지됩니다. 계속할까요?',

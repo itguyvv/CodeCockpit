@@ -78,7 +78,7 @@ export default function SettingsModal({
   const setEngineEnabled = (id: EngineId, on: boolean): void => {
     // At least one installed engine must stay enabled, otherwise the window has no sessions at all
     const installed = engineInfos.filter((e) => e.bin)
-    const enabledNow = installed.filter((e) => (enginesEnabled[e.id] ?? true))
+    const enabledNow = installed.filter((e) => (enginesEnabled[e.id] ?? Boolean(e.bin)))
     if (!on && enabledNow.length === 1 && enabledNow[0].id === id) {
       onNotify(t('settings.engineKeepOne'))
       return

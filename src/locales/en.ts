@@ -200,6 +200,7 @@ const en = {
   'provider.activeSet': 'New {engine} sessions will use "{name}"',
   'provider.appliedGlobal': 'Global {engine} config rewritten: {file}',
   'provider.applyFailed': 'Failed to apply: {err}',
+  'provider.globalParseFailed': 'Could not parse {file} — nothing was written. Fix or remove the file and try again.',
   'provider.applying': 'Applying to global config…',
   'provider.confirmDelete': 'Delete provider "{name}"? Running sessions keep their environment.',
   'provider.confirmApplyGlobal':

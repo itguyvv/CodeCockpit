@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { dataFile } from './dataDir'
+import { t } from './i18n'
 import type { EngineId } from './engines'
 
 /**
@@ -199,14 +200,37 @@ export function applyGlobalProfile(profile: ProviderProfile): void {
 }
 
 /** cc-switch mechanism: rewrite the env block of ~/.claude/settings.json */
+/**
+ * Load a global config doc for merging. A missing file yields {} (start fresh); a
+ * corrupt existing file throws so the rewrite never proceeds and wipes the user's config.
+ */
+function loadGlobalDoc(file: string, jsonc: boolean): Record<string, unknown> {
+  let raw: string
+  try {
+    raw = fs.readFileSync(file, 'utf-8')
+  } catch {
+    return {} // Missing file: start fresh
+  }
+  try {
+    return jsonc ? lenientParse(raw) : (JSON.parse(raw) as Record<string, unknown>)
+  } catch {
+    throw new Error(t('provider.globalParseFailed', { file }))
+  }
+}
+
+/** Rolling one-file backup taken before every global config rewrite */
+function backupGlobal(file: string): void {
+  try {
+    if (fs.existsSync(file)) fs.copyFileSync(file, `${file}.bak`)
+  } catch {
+    // Backup is best-effort; never block the rewrite on it
+  }
+}
+
 function applyClaudeGlobal(profile: ProviderProfile): void {
   const file = claudeSettingsFile()
-  let doc: Record<string, unknown> = {}
-  try {
-    doc = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, unknown>
-  } catch {
-    // Missing or broken settings.json: start fresh (cli recreates it)
-  }
+  const doc = loadGlobalDoc(file, false)
+  backupGlobal(file)
   const env = { ...(doc.env as Record<string, unknown> | undefined) }
   const isBuiltin = profile.id === BUILTIN_PROFILE_ID
   const MODEL_ENV_KEYS = [
@@ -239,16 +263,13 @@ function applyClaudeGlobal(profile: ProviderProfile): void {
 /** Merge a provider block + default model into ~/.config/opencode/opencode.json(c) */
 function applyOpenCodeGlobal(profile: ProviderProfile): void {
   const { file, jsonc } = openCodeConfigFile()
-  let doc: Record<string, unknown> = {}
-  try {
-    doc = jsonc ? lenientParse(fs.readFileSync(file, 'utf-8')) : JSON.parse(fs.readFileSync(file, 'utf-8'))
-  } catch {
-    // Missing or unreadable config: start fresh
-  }
+  const doc = loadGlobalDoc(file, jsonc)
   if (profile.id === BUILTIN_PROFILE_ID) {
     // Builtin default cannot be "applied" to global config; nothing to write
     return
   }
+  // Note: a .jsonc file is rewritten as strict JSON (comments dropped); the .bak keeps the original
+  backupGlobal(file)
   const providerId = profile.providerId || 'custom'
   const providers = { ...((doc.provider as Record<string, unknown>) ?? {}) }
   const modelId = profile.modelId || ''
