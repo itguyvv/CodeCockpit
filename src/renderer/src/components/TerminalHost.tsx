@@ -96,23 +96,30 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
       entry.term.attachCustomKeyEventHandler((evt) => {
         if (evt.type !== 'keydown') return true
         const key = evt.key.toLowerCase()
+        // Every handled branch must preventDefault: returning false only stops xterm's own
+        // handling — without it the browser still fires its native paste/copy on the hidden
+        // helper textarea, which would duplicate what we do here
         if (evt.ctrlKey && evt.shiftKey && key === 'c') {
           if (entry.term.hasSelection()) {
             copyClip(entry.term.getSelection())
             entry.term.clearSelection()
           }
+          evt.preventDefault()
           return false
         }
         if (evt.ctrlKey && evt.shiftKey && key === 'v') {
+          evt.preventDefault()
           pasteText()
           return false
         }
         if (evt.ctrlKey && !evt.shiftKey && key === 'c' && entry.term.hasSelection()) {
+          evt.preventDefault()
           copyClip(entry.term.getSelection())
           entry.term.clearSelection()
           return false
         }
         if (evt.ctrlKey && !evt.shiftKey && key === 'v') {
+          evt.preventDefault()
           if (clipboardHasImage()) {
             pasteImageKey() // Forward as Alt+V; the CLI reads the clipboard image itself
             return false
@@ -129,6 +136,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
           return false
         }
         if (evt.ctrlKey && evt.shiftKey && key === 'a') {
+          evt.preventDefault()
           entry.term.selectAll()
           return false
         }
