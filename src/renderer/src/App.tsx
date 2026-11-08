@@ -129,6 +129,9 @@ function AppInner(): JSX.Element {
       void window.api.getStatus(id).then((st) => {
         if (st) setStatuses((prev) => ({ ...prev, [id]: st }))
       })
+      // The engine has just written the session record: refresh the history list so the
+      // new session shows up in its project group without a manual refresh
+      setHistoryVer((v) => v + 1)
     })
     const offBusy = window.api.onBusy((id, busy) => updateSession(id, { busy }))
     const offStatus = window.api.onStatus((id, st) =>
