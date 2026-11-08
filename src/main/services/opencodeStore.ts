@@ -1,13 +1,21 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { emptyStatus, type SessionStatus } from './status'
 
-// openCode stores all session data as plain JSON under its data root (opencode.db is legacy):
-//   storage/project/<projectID>.json        { id, worktree, time }
-//   storage/session/<projectID>/<ses>.json  { id, title, directory, projectID, time: { created, updated } }
-//   storage/message/<sesID>/<msgID>.json    { role, tokens: { input, output, reasoning, cache: { read, write } }, cost, modelID, providerID, time }
-//   storage/part/<msgID>/<prtID>.json       message parts incl. tool calls { type: 'tool', tool, ... } (keyed by message id!)
+// openCode storage, two generations:
+// - legacy (< 1.18): plain JSON under <root>/storage/ —
+//     storage/project/<projectID>.json        { id, worktree, time }
+//     storage/session/<projectID>/<ses>.json  { id, title, directory, projectID, time }
+//     storage/message/<sesID>/<msgID>.json    { role, tokens, cost, modelID, providerID, time }
+//     storage/part/<msgID>/<prtID>.json       message parts incl. tool calls (keyed by message id)
+//   The JSON tree is frozen after the engine migrates, but still readable — kept as fallback.
+// - current (>= 1.18): SQLite database <root>/opencode.db (WAL mode) with session/message/part
+//   tables; JSON payloads inside `data` columns keep the exact same shapes as the legacy files.
+//   The DB is the primary source; concurrent read-only connections are safe under WAL.
+// - opencode.db on legacy versions is NOT the session store (account rows only) — every DB read
+//   must tolerate the old schema being absent (SQL error → drop the connection, fall back to JSON).
 
 export interface OpenCodeSessionInfo {
   sessionId: string
@@ -25,6 +33,48 @@ export function openCodeDataRoot(): string {
 
 function storageRoot(): string {
   return path.join(openCodeDataRoot(), 'storage')
+}
+
+function dbFile(): string {
+  return path.join(openCodeDataRoot(), 'opencode.db')
+}
+
+// ── DB access (read-only shared connection; errors drop it so the next call reopens) ──
+
+let readDb: DatabaseSync | null = null
+
+function dbRead(): DatabaseSync | null {
+  if (readDb) return readDb
+  const file = dbFile()
+  if (!fs.existsSync(file)) return null
+  try {
+    readDb = new DatabaseSync(file, { readOnly: true })
+    return readDb
+  } catch {
+    return null
+  }
+}
+
+function dropReadDb(): void {
+  try {
+    readDb?.close()
+  } catch {
+    // Already closed
+  }
+  readDb = null
+}
+
+/** Run a read query against the shared connection; null on any error (caller falls back) */
+function query<T>(sql: string, ...params: (string | number)[]): T[] | null {
+  const db = dbRead()
+  if (!db) return null
+  try {
+    return db.prepare(sql).all(...params) as T[]
+  } catch {
+    // Missing table / old schema / unreadable file — reopen next time and let the caller fall back
+    dropReadDb()
+    return null
+  }
 }
 
 function readJson<T>(file: string): T | null {
@@ -52,8 +102,49 @@ function toTs(v: number | string | undefined): number {
   return 0
 }
 
-/** List openCode sessions across all projects, newest first */
+interface DbSessionRow {
+  id: string
+  title: string | null
+  directory: string | null
+  project_id: string | null
+  time_updated: number | bigint
+  bytes: number | bigint
+}
+
+/** List openCode sessions across all projects, newest first (DB + legacy JSON, deduped) */
 export function scanOpenCodeSessions(limit = 60): OpenCodeSessionInfo[] {
+  const found: OpenCodeSessionInfo[] = []
+  const seen = new Set<string>()
+  const rows = query<DbSessionRow>(
+    `SELECT s.id, s.title, s.directory, s.project_id, s.time_updated,
+       (SELECT COALESCE(SUM(LENGTH(m.data)), 0) FROM message m WHERE m.session_id = s.id)
+     + (SELECT COALESCE(SUM(LENGTH(p.data)), 0) FROM part p WHERE p.session_id = s.id) AS bytes
+     FROM session s WHERE s.parent_id IS NULL
+     ORDER BY s.time_updated DESC LIMIT ?`,
+    limit
+  )
+  for (const r of rows ?? []) {
+    if (!r.id || seen.has(r.id)) continue
+    seen.add(r.id)
+    found.push({
+      sessionId: r.id,
+      cwd: r.directory || projectWorktree(r.project_id || ''),
+      title: r.title || '',
+      projectID: r.project_id || '',
+      lastTs: Number(r.time_updated) || 0,
+      sizeBytes: Number(r.bytes) || 0
+    })
+  }
+  for (const legacy of scanLegacySessions(Number.MAX_SAFE_INTEGER)) {
+    if (seen.has(legacy.sessionId)) continue
+    seen.add(legacy.sessionId)
+    found.push(legacy)
+  }
+  found.sort((a, b) => b.lastTs - a.lastTs)
+  return found.slice(0, limit)
+}
+
+function scanLegacySessions(limit: number): OpenCodeSessionInfo[] {
   const sessionRoot = path.join(storageRoot(), 'session')
   let projectDirs: string[] = []
   try {
@@ -98,8 +189,133 @@ function projectWorktree(projectID: string): string {
   return doc?.worktree || ''
 }
 
-/** Permanently delete an openCode session (session + messages + parts) */
+/** All known session ids across projects (snapshot used before spawning to detect the new one) */
+export function listOpenCodeSessionIds(): Set<string> {
+  const out = new Set<string>()
+  for (const row of query<{ id: string }>('SELECT id FROM session') ?? []) {
+    if (row.id) out.add(row.id)
+  }
+  const sessionRoot = path.join(storageRoot(), 'session')
+  try {
+    for (const pid of fs.readdirSync(sessionRoot)) {
+      try {
+        for (const name of fs.readdirSync(path.join(sessionRoot, pid))) {
+          if (name.endsWith('.json')) out.add(name.slice(0, -'.json'.length))
+        }
+      } catch {
+        // Skip
+      }
+    }
+  } catch {
+    // Storage root missing = openCode never ran
+  }
+  return out
+}
+
+function sameDir(a: string, b: string): boolean {
+  return a.replace(/[\\/]+/g, '\\').toLowerCase().endsWith(b.replace(/[\\/]+/g, '\\').toLowerCase())
+}
+
+/** Poll storage for a newly created session started from cwd (excluding pre-spawn ids) */
+export function sniffNewOpenCodeSession(
+  cwd: string,
+  knownIds: Set<string>,
+  onFound: (sessionId: string) => void,
+  timeoutMs = 120_000
+): () => void {
+  let stopped = false
+  const startedAt = Date.now()
+  const timer = setInterval(() => {
+    if (stopped) return
+    if (Date.now() - startedAt > timeoutMs) {
+      stop()
+      return
+    }
+    // Current generation: session rows appear in the DB
+    const rows = query<{ id: string; directory: string | null; parent_id: string | null }>(
+      'SELECT id, directory, parent_id FROM session ORDER BY time_created DESC LIMIT 30'
+    )
+    for (const row of rows ?? []) {
+      if (!row.id || knownIds.has(row.id) || row.parent_id) continue
+      if (row.directory && sameDir(row.directory, cwd)) {
+        stopped = true
+        clearInterval(timer)
+        onFound(row.id)
+        return
+      }
+    }
+    // Legacy generation: JSON files under storage/session
+    const sessionRoot = path.join(storageRoot(), 'session')
+    try {
+      for (const pid of fs.readdirSync(sessionRoot)) {
+        const pdir = path.join(sessionRoot, pid)
+        for (const name of fs.readdirSync(pdir)) {
+          if (!name.endsWith('.json')) continue
+          const id = name.slice(0, -'.json'.length)
+          if (knownIds.has(id)) continue
+          const doc = readJson<SessionDoc>(path.join(pdir, name))
+          if (doc?.directory && sameDir(doc.directory, cwd)) {
+            stopped = true
+            clearInterval(timer)
+            onFound(id)
+            return
+          }
+        }
+      }
+    } catch {
+      // Storage not created yet; check again next tick
+    }
+  }, 800)
+  const stop = () => {
+    stopped = true
+    clearInterval(timer)
+  }
+  return stop
+}
+
+/** Permanently delete an openCode session (DB rows and/or legacy JSON files) */
 export function deleteOpenCodeSession(sessionId: string): boolean {
+  let deleted = deleteLegacySession(sessionId)
+  const file = dbFile()
+  if (!fs.existsSync(file)) return deleted
+  let db: DatabaseSync | null = null
+  try {
+    db = new DatabaseSync(file)
+    db.exec('PRAGMA busy_timeout = 3000')
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+      .all() as unknown as Array<{ name: string }>
+    db.exec('BEGIN')
+    for (const { name } of tables) {
+      if (name === 'session') continue
+      const quoted = '"' + name.replace(/"/g, '""') + '"'
+      const cols = db.prepare(`PRAGMA table_info(${quoted})`).all() as unknown as Array<{
+        name: string
+      }>
+      if (!cols.some((c) => c.name === 'session_id')) continue
+      const res = db.prepare(`DELETE FROM ${quoted} WHERE session_id = ?`).run(sessionId)
+      if (Number(res.changes) > 0) deleted = true
+    }
+    const res = db.prepare('DELETE FROM session WHERE id = ?').run(sessionId)
+    if (Number(res.changes) > 0) deleted = true
+    db.exec('COMMIT')
+  } catch {
+    try {
+      db?.exec('ROLLBACK')
+    } catch {
+      // Nothing to roll back
+    }
+  } finally {
+    try {
+      db?.close()
+    } catch {
+      // Already closed
+    }
+  }
+  return deleted
+}
+
+function deleteLegacySession(sessionId: string): boolean {
   const root = storageRoot()
   const sessionRoot = path.join(root, 'session')
   let deleted = false
@@ -148,74 +364,7 @@ export function deleteOpenCodeSession(sessionId: string): boolean {
   return deleted
 }
 
-/** All known session ids across projects (snapshot used before spawning to detect the new one) */
-export function listOpenCodeSessionIds(): Set<string> {
-  const out = new Set<string>()
-  const sessionRoot = path.join(storageRoot(), 'session')
-  try {
-    for (const pid of fs.readdirSync(sessionRoot)) {
-      try {
-        for (const name of fs.readdirSync(path.join(sessionRoot, pid))) {
-          if (name.endsWith('.json')) out.add(name.slice(0, -'.json'.length))
-        }
-      } catch {
-        // Skip
-      }
-    }
-  } catch {
-    // Storage root missing = openCode never ran
-  }
-  return out
-}
-
-function sameDir(a: string, b: string): boolean {
-  return a.replace(/[\\/]+/g, '\\').toLowerCase().endsWith(b.replace(/[\\/]+/g, '\\').toLowerCase())
-}
-
-/** Poll the session storage for a newly created session started from cwd (excluding pre-spawn ids) */
-export function sniffNewOpenCodeSession(
-  cwd: string,
-  knownIds: Set<string>,
-  onFound: (sessionId: string) => void,
-  timeoutMs = 120_000
-): () => void {
-  const sessionRoot = path.join(storageRoot(), 'session')
-  let stopped = false
-  const startedAt = Date.now()
-  const timer = setInterval(() => {
-    if (stopped) return
-    if (Date.now() - startedAt > timeoutMs) {
-      stop()
-      return
-    }
-    try {
-      for (const pid of fs.readdirSync(sessionRoot)) {
-        const pdir = path.join(sessionRoot, pid)
-        for (const name of fs.readdirSync(pdir)) {
-          if (!name.endsWith('.json')) continue
-          const id = name.slice(0, -'.json'.length)
-          if (knownIds.has(id)) continue
-          const doc = readJson<SessionDoc>(path.join(pdir, name))
-          if (doc?.directory && sameDir(doc.directory, cwd)) {
-            stopped = true
-            clearInterval(timer)
-            onFound(id)
-            return
-          }
-        }
-      }
-    } catch {
-      // Storage not created yet; check again next tick
-    }
-  }, 800)
-  const stop = () => {
-    stopped = true
-    clearInterval(timer)
-  }
-  return stop
-}
-
-// ── Telemetry: aggregate message jsons into the same SessionStatus shape as claude ──
+// ── Telemetry: aggregate message/part payloads into the same SessionStatus shape as claude ──
 
 interface MessageDoc {
   role?: string
@@ -233,7 +382,8 @@ interface MessageDoc {
 
 interface Contribution {
   kind: 'msg' | 'part'
-  mtimeMs: number
+  /** Change key of the source row (mtime of a legacy file / updated+size of a DB row) */
+  stamp: string
   tokensIn: number
   tokensOut: number
   cacheRead: number
@@ -243,33 +393,23 @@ interface Contribution {
   isUserTurn: boolean
   model: string
   eventCount: number
+  tool?: string
+  toolDetail?: string
 }
 
-function contributionOf(file: string, kind: 'msg' | 'part'): Contribution | null {
-  const mtime = mtimeOf(file)
-  if (kind === 'part') {
-    return {
-      kind,
-      mtimeMs: mtime,
-      tokensIn: 0,
-      tokensOut: 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      costUsd: 0,
-      durationMs: 0,
-      isUserTurn: false,
-      model: '',
-      eventCount: 0
-    }
+function contributionOfMessage(data: string): Contribution | null {
+  let doc: MessageDoc
+  try {
+    doc = JSON.parse(data) as MessageDoc
+  } catch {
+    return null
   }
-  const doc = readJson<MessageDoc>(file)
-  if (!doc) return null
   const t = doc.tokens ?? {}
   const created = toTs(doc.time?.created)
   const completed = toTs(doc.time?.completed)
   return {
-    kind,
-    mtimeMs: mtime,
+    kind: 'msg',
+    stamp: '',
     tokensIn: t.input ?? 0,
     tokensOut: (t.output ?? 0) + (t.reasoning ?? 0),
     cacheRead: t.cache?.read ?? 0,
@@ -282,17 +422,48 @@ function contributionOf(file: string, kind: 'msg' | 'part'): Contribution | null
   }
 }
 
-function mtimeOf(file: string): number {
-  try {
-    return fs.statSync(file).mtimeMs
-  } catch {
-    return -1
+function contributionOfPart(data: string): Contribution {
+  const c: Contribution = {
+    kind: 'part',
+    stamp: '',
+    tokensIn: 0,
+    tokensOut: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    costUsd: 0,
+    durationMs: 0,
+    isUserTurn: false,
+    model: '',
+    eventCount: 0
   }
+  try {
+    const doc = JSON.parse(data) as { type?: string; tool?: string; state?: { input?: unknown } }
+    if (doc?.type === 'tool' && doc.tool) {
+      c.tool = doc.tool
+      c.toolDetail = toolDetailOf(doc.state?.input)
+    }
+  } catch {
+    // Unparseable part — keep the zero contribution
+  }
+  return c
+}
+
+function toolDetailOf(input: unknown): string {
+  if (!input || typeof input !== 'object') return ''
+  const o = input as Record<string, unknown>
+  const raw = o.command ?? o.file_path ?? o.filePath ?? o.path ?? o.pattern ?? o.url ?? o.query ?? ''
+  const s = typeof raw === 'string' ? raw : JSON.stringify(raw)
+  const s1 = s.replace(/\s+/g, ' ').trim()
+  return s1.length > 80 ? s1.slice(0, 80) + '…' : s1
 }
 
 const POLL_MS = 1000
 
-/** Aggregate openCode storage into SessionStatus by tracking per-file contributions (re-read only changed files) */
+/**
+ * Aggregate openCode storage into SessionStatus.
+ * Primary backend: the SQLite DB (rows appended/updated in place, polled by id+stamp).
+ * Fallback: the legacy JSON tree (per-file mtime tracking), for pre-1.18 engines.
+ */
 export class OpenCodeTailer {
   readonly sessionId: string
   private readonly onDirty: () => void
@@ -302,10 +473,13 @@ export class OpenCodeTailer {
   private status = emptyStatus()
   private stopped = false
   private timer: NodeJS.Timeout
+  private readonly useDb: boolean
 
   constructor(sessionId: string, onDirty: () => void) {
     this.sessionId = sessionId
     this.onDirty = onDirty
+    // Prefer the DB whenever it exists; the legacy tree is frozen after migration
+    this.useDb = fs.existsSync(dbFile())
     this.timer = setInterval(() => this.poll(), POLL_MS)
   }
 
@@ -320,6 +494,41 @@ export class OpenCodeTailer {
 
   private poll(): void {
     if (this.stopped) return
+    if (this.useDb) this.pollDb()
+    else this.pollLegacy()
+  }
+
+  /** Poll message/part rows for this session from the DB */
+  private pollDb(): void {
+    let changed = false
+    const seen = new Set<string>()
+    const msgs = query<{ id: string; time_updated: number | bigint; data: string }>(
+      'SELECT id, time_updated, data FROM message WHERE session_id = ?',
+      this.sessionId
+    )
+    for (const row of msgs ?? []) {
+      changed =
+        this.track('m:' + row.id, `${row.time_updated}:${row.data.length}`, () => contributionOfMessage(row.data), seen) ||
+        changed
+    }
+    const parts = query<{ id: string; time_updated: number | bigint; data: string }>(
+      'SELECT id, time_updated, data FROM part WHERE session_id = ?',
+      this.sessionId
+    )
+    for (const row of parts ?? []) {
+      changed =
+        this.track('p:' + row.id, `${row.time_updated}:${row.data.length}`, () => contributionOfPart(row.data), seen) ||
+        changed
+    }
+    changed = this.prune(seen) || changed
+    if (changed) {
+      this.recompute()
+      this.onDirty()
+    }
+  }
+
+  /** Poll the legacy JSON tree (message/<ses>/<msg>.json + part/<msgID>/*) */
+  private pollLegacy(): void {
     let changed = false
     const seen = new Set<string>()
     const msgDir = path.join(storageRoot(), 'message', this.sessionId)
@@ -331,7 +540,9 @@ export class OpenCodeTailer {
       return // No message storage for this session (yet)
     }
     for (const msgFile of msgIds) {
-      changed = this.track(path.join(msgDir, msgFile), 'msg', seen) || changed
+      const msgPath = path.join(msgDir, msgFile)
+      changed =
+        this.track(msgPath, String(mtimeOf(msgPath)), () => contributionOfLegacyFile(msgPath, 'msg'), seen) || changed
       const partDir = path.join(storageRoot(), 'part', msgFile.replace(/\.json$/, ''))
       let parts: string[] = []
       try {
@@ -339,33 +550,44 @@ export class OpenCodeTailer {
       } catch {
         continue
       }
-      for (const p of parts) changed = this.track(path.join(partDir, p), 'part', seen) || changed
-    }
-    if (seen.size !== this.contrib.size) {
-      for (const key of [...this.contrib.keys()]) {
-        if (!seen.has(key)) {
-          this.contrib.delete(key)
-          changed = true
-        }
+      for (const p of parts) {
+        const partPath = path.join(partDir, p)
+        changed =
+          this.track(partPath, String(mtimeOf(partPath)), () => contributionOfLegacyFile(partPath, 'part'), seen) ||
+          changed
       }
     }
+    changed = this.prune(seen) || changed
     if (changed) {
       this.recompute()
       this.onDirty()
     }
   }
 
-  /** Track one file; returns true when it is new or changed */
-  private track(file: string, kind: 'msg' | 'part', seen: Set<string>): boolean {
-    seen.add(file)
-    const mtime = mtimeOf(file)
-    const old = this.contrib.get(file)
-    if (old && old.mtimeMs === mtime) return false
-    const c = contributionOf(file, kind)
+  /** Track one source; returns true when it is new or changed */
+  private track(key: string, stamp: string, make: () => Contribution | null, seen: Set<string>): boolean {
+    seen.add(key)
+    const old = this.contrib.get(key)
+    if (old && old.stamp === stamp) return false
+    const c = make()
     if (!c) return false
-    this.contrib.set(file, c)
+    c.stamp = stamp
+    this.contrib.set(key, c)
     this.status.lastActivity = Date.now()
     return true
+  }
+
+  /** Drop contributions whose source disappeared (rows deleted / files removed) */
+  private prune(seen: Set<string>): boolean {
+    if (seen.size === this.contrib.size) return false
+    let changed = false
+    for (const key of [...this.contrib.keys()]) {
+      if (!seen.has(key)) {
+        this.contrib.delete(key)
+        changed = true
+      }
+    }
+    return changed
   }
 
   private recompute(): void {
@@ -378,6 +600,8 @@ export class OpenCodeTailer {
     let turns = 0
     let eventCount = 0
     let model = ''
+    let toolCalls = 0
+    const counts: Record<string, number> = {}
     for (const c of this.contrib.values()) {
       tokensIn += c.tokensIn
       tokensOut += c.tokensOut
@@ -388,8 +612,13 @@ export class OpenCodeTailer {
       if (c.isUserTurn) turns++
       eventCount += c.eventCount
       if (c.model) model = c.model
+      if (c.tool) {
+        counts[c.tool] = (counts[c.tool] ?? 0) + 1
+        toolCalls++
+        this.lastTool = c.tool
+        this.lastToolDetail = c.toolDetail ?? ''
+      }
     }
-    const counts = this.collectTools()
     this.status = {
       ...this.status,
       model,
@@ -400,40 +629,26 @@ export class OpenCodeTailer {
       costUsd,
       durationMs,
       turns,
-      toolCalls: counts.total,
-      toolCounts: counts.counts,
+      toolCalls,
+      toolCounts: counts,
       tool: this.lastTool,
       toolDetail: this.lastToolDetail,
       eventCount
     }
   }
-
-  /** Tool calls live in part files; scan contributions for type:'tool' parts */
-  private collectTools(): { total: number; counts: Record<string, number> } {
-    const counts: Record<string, number> = {}
-    let total = 0
-    let last: { tool: string; detail: string } | null = null
-    for (const key of this.contrib.keys()) {
-      if (!key.includes(`${path.sep}part${path.sep}`)) continue
-      const doc = readJson<{ type?: string; tool?: string; state?: { input?: unknown } }>(key)
-      if (doc?.type !== 'tool' || !doc.tool) continue
-      counts[doc.tool] = (counts[doc.tool] ?? 0) + 1
-      total++
-      last = { tool: doc.tool, detail: toolDetailOf(doc.state?.input) }
-    }
-    if (last) {
-      this.lastTool = last.tool
-      this.lastToolDetail = last.detail
-    }
-    return { total, counts }
-  }
 }
 
-function toolDetailOf(input: unknown): string {
-  if (!input || typeof input !== 'object') return ''
-  const o = input as Record<string, unknown>
-  const raw = o.command ?? o.file_path ?? o.filePath ?? o.path ?? o.pattern ?? o.url ?? o.query ?? ''
-  const s = typeof raw === 'string' ? raw : JSON.stringify(raw)
-  const s1 = s.replace(/\s+/g, ' ').trim()
-  return s1.length > 80 ? s1.slice(0, 80) + '…' : s1
+function contributionOfLegacyFile(file: string, kind: 'msg' | 'part'): Contribution | null {
+  const doc = readJson<MessageDoc>(file)
+  if (!doc) return null
+  const data = JSON.stringify(doc)
+  return kind === 'part' ? contributionOfPart(data) : contributionOfMessage(data)
+}
+
+function mtimeOf(file: string): number {
+  try {
+    return fs.statSync(file).mtimeMs
+  } catch {
+    return -1
+  }
 }
