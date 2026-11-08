@@ -216,7 +216,12 @@ export default function SettingsModal({
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal settings-modal">
-        <h3>{t('settings.title')}</h3>
+        <div className="settings-head">
+          <h3>{t('settings.title')}</h3>
+          <span className="settings-close" onClick={onClose} title={t('common.close')}>
+            ×
+          </span>
+        </div>
 
         <div className="settings-tabs">
           {tabItems.map((item) => (
