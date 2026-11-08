@@ -10,6 +10,8 @@ export interface SessionState {
   title: string
   /** PTY produced output within the last 3 seconds */
   busy: boolean
+  /** Background shells the agent launched and that have not finished yet */
+  bgTasks: number
   /** Model flag passed to the CLI ('' = follow CLI default; claude only) */
   model?: string
   /** Owning engine */

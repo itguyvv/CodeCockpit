@@ -297,8 +297,15 @@ export default function Sidebar({
             </div>
             {activeSessions.map((s, i) => {
               const size = s.claudeSessionId ? sizeBySid.get(s.claudeSessionId) : undefined
-              const badge = s.status === 'exited' ? t('badge.exited') : s.busy ? t('badge.busy') : t('badge.idle')
-              const badgeCls = s.status === 'exited' ? 'exited' : s.busy ? 'busy' : 'idle'
+              const badge =
+                s.status === 'exited'
+                  ? t('badge.exited')
+                  : s.busy
+                    ? t('badge.busy')
+                    : s.bgTasks > 0
+                      ? t('badge.bg')
+                      : t('badge.idle')
+              const badgeCls = s.status === 'exited' ? 'exited' : s.busy ? 'busy' : s.bgTasks > 0 ? 'bg' : 'idle'
               return (
                 <div
                   key={s.id}
@@ -329,7 +336,11 @@ export default function Sidebar({
                     size ? `\n${t('item.sizeTip', { size: formatSize(size) })}` : ''
                   }\n${t('item.dragTip')}`}
                 >
-                  <span className={`dot ${s.status === 'exited' ? 'exited' : s.busy ? 'running' : 'idle'}`} />
+                  <span
+                    className={`dot ${
+                      s.status === 'exited' ? 'exited' : s.busy ? 'running' : s.bgTasks > 0 ? 'bg' : 'idle'
+                    }`}
+                  />
                   <span className="item-title">{s.title || `${basename(s.cwd)} · ${s.id.slice(0, 6)}`}</span>
                   <span className={`item-badge ${badgeCls}`}>{badge}</span>
                 </div>
@@ -430,7 +441,9 @@ export default function Sidebar({
                     ns.sizeBytes ? `\n${t('item.sizeTip', { size: formatSize(ns.sizeBytes) })}` : ''
                   }`}
                 >
-                  <span className={`dot ${live ? (live.busy ? 'running' : 'idle') : 'off'}`} />
+                  <span
+                    className={`dot ${live ? (live.busy ? 'running' : live.bgTasks > 0 ? 'bg' : 'idle') : 'off'}`}
+                  />
                   <span className="item-title">
                     {customTitles[ns.sessionId] || ns.title}
                     {ns.custom ? ' ✏' : ''}

@@ -58,6 +58,7 @@ const ja: Translation = {
   'badge.exited': '終了',
   'badge.busy': '処理中',
   'badge.idle': 'アイドル',
+  'badge.bg': 'バックグラウンド',
   'sidebar.empty': 'セッション履歴が見つかりません',
   'sidebar.groupExpand': 'クリックでグループを展開',
   'sidebar.groupCollapse': 'クリックでグループを折りたたむ',

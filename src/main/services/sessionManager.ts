@@ -76,11 +76,14 @@ const busyTimer = setInterval(() => {
   const now = Date.now()
   for (const [id] of procs) {
     const last = lastDataAt.get(id) ?? 0
-    const busy = now - last < BUSY_WINDOW_MS
+    const ptyActive = now - last < BUSY_WINDOW_MS
+    // Background shells keep a session active even while the TUI waits silently for input
+    const bg = statusBySession.get(id)?.backgroundTasks ?? 0
+    const busy = ptyActive || bg > 0
     if (busyStates.get(id) !== busy) {
       const prev = busyStates.get(id)
       busyStates.set(id, busy)
-      broadcast('pty:busy', { id, busy })
+      broadcast('pty:busy', { id, busy: ptyActive, bg })
       // busy → idle while the window is unfocused: system notification (only after 30s of busyness to avoid typing false alarms)
       if (prev === true && !busy) {
         const startedAt = busyStartAt.get(id) ?? 0

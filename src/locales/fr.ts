@@ -63,6 +63,7 @@ const fr: Translation = {
   'badge.exited': 'Terminée',
   'badge.busy': 'En cours',
   'badge.idle': 'Inactive',
+  'badge.bg': 'Arrière-plan',
   'sidebar.empty': 'Aucune session trouvée',
   'sidebar.groupExpand': 'Cliquer pour déplier le groupe',
   'sidebar.groupCollapse': 'Cliquer pour replier le groupe',

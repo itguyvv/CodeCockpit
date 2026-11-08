@@ -56,6 +56,7 @@ export interface SessionStatus {
   durationMs: number
   lastActivity: number
   eventCount: number
+  backgroundTasks: number
 }
 
 export interface McpServerInfo {
@@ -155,7 +156,7 @@ export interface WorkbenchApi {
   onData: (cb: (id: string, data: string) => void) => () => void
   onExit: (cb: (id: string, exitCode: number) => void) => () => void
   onSessionId: (cb: (id: string, claudeSessionId: string) => void) => () => void
-  onBusy: (cb: (id: string, busy: boolean) => void) => () => void
+  onBusy: (cb: (id: string, busy: boolean, bg: number) => void) => () => void
   onStatus: (cb: (id: string, status: SessionStatus) => void) => () => void
 }
 

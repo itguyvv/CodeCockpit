@@ -62,6 +62,7 @@ const es: Translation = {
   'badge.exited': 'Terminada',
   'badge.busy': 'Ocupada',
   'badge.idle': 'Inactiva',
+  'badge.bg': 'En segundo plano',
   'sidebar.empty': 'No se encontró historial de sesiones',
   'sidebar.groupExpand': 'Clic para expandir el grupo',
   'sidebar.groupCollapse': 'Clic para contraer el grupo',

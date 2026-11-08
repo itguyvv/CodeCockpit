@@ -57,6 +57,7 @@ const ko: Translation = {
   'badge.exited': '종료됨',
   'badge.busy': '처리 중',
   'badge.idle': '대기',
+  'badge.bg': '백그라운드',
   'sidebar.empty': '세션 기록이 없습니다',
   'sidebar.groupExpand': '클릭하여 그룹 펼치기',
   'sidebar.groupCollapse': '클릭하여 그룹 접기',

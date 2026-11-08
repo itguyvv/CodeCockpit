@@ -55,6 +55,7 @@ const zhCN: Translation = {
   'badge.exited': '已退出',
   'badge.busy': '处理中',
   'badge.idle': '空闲',
+  'badge.bg': '后台任务',
   'sidebar.empty': '没有找到会话历史',
   'sidebar.groupExpand': '点击展开分组',
   'sidebar.groupCollapse': '点击收起分组',

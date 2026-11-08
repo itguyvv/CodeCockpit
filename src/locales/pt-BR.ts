@@ -62,6 +62,7 @@ const ptBR: Translation = {
   'badge.exited': 'Encerrada',
   'badge.busy': 'Ocupada',
   'badge.idle': 'Ociosa',
+  'badge.bg': 'Em segundo plano',
   'sidebar.empty': 'Nenhum histórico de sessões encontrado',
   'sidebar.groupExpand': 'Clique para expandir o grupo',
   'sidebar.groupCollapse': 'Clique para recolher o grupo',

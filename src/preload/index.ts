@@ -181,10 +181,10 @@ const api = {
       const { id, claudeSessionId } = p as { id: string; claudeSessionId: string }
       cb(id, claudeSessionId)
     }),
-  onBusy: (cb: (id: string, busy: boolean) => void): Unsubscribe =>
+  onBusy: (cb: (id: string, busy: boolean, bg: number) => void): Unsubscribe =>
     on('pty:busy', (p) => {
-      const { id, busy } = p as { id: string; busy: boolean }
-      cb(id, busy)
+      const { id, busy, bg } = p as { id: string; busy: boolean; bg: number }
+      cb(id, busy, bg ?? 0)
     }),
   onStatus: (cb: (id: string, status: unknown) => void): Unsubscribe =>
     on('pty:status', (p) => {

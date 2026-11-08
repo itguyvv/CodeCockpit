@@ -49,6 +49,8 @@ export class SessionTailer {
   private dirty = true
   private stopped = false
   private timer: NodeJS.Timeout
+  /** Background bash task ids announced as running and not yet observed finished/stopped */
+  private bgTasks = new Set<string>()
 
   constructor(
     public readonly filePath: string,
@@ -147,13 +149,57 @@ export class SessionTailer {
         isTurn = c.some(
           (b) => b && typeof b === 'object' && (b as { type?: string }).type === 'text'
         )
+        for (const b of c) {
+          if (b && typeof b === 'object' && (b as { type?: string }).type === 'tool_result') {
+            this.trackBgResult(b as { content?: unknown })
+          }
+        }
       }
       if (isTurn) this.status.turns++
+      return
+    }
+    if (type === 'queue-operation' || type === 'attachment') {
+      // Completion notices wake the agent through the queue: <task-notification> payloads
+      const raw =
+        typeof ev.content === 'string'
+          ? ev.content
+          : String((ev.attachment as { prompt?: unknown } | undefined)?.prompt ?? '')
+      this.trackBgNotice(raw)
       return
     }
     if (type === 'system' && ev.subtype === 'turn_duration') {
       const d = ev.durationMs
       if (typeof d === 'number') this.status.durationMs += d
+    }
+  }
+
+  /** Register / finish background shells from tool_result texts (launch confirmation, TaskOutput, stop) */
+  private trackBgResult(b: { content?: unknown }): void {
+    const txt = typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '')
+    const launch = txt.match(/Command running in background with ID: (\w+)/)
+    if (launch) {
+      this.bgTasks.add(launch[1])
+      this.status.backgroundTasks = this.bgTasks.size
+      this.dirty = true
+      return
+    }
+    const stop = txt.match(/Successfully stopped task: (\w+)/)
+    if (stop && this.bgTasks.delete(stop[1])) {
+      this.status.backgroundTasks = this.bgTasks.size
+      this.dirty = true
+      return
+    }
+    this.trackBgNotice(txt)
+  }
+
+  /** <task-notification> / TaskOutput payloads: a status other than "running" ends the shell */
+  private trackBgNotice(txt: string): void {
+    const tid = txt.match(/<(?:task-id|task_id)>(\w+)<\/(?:task-id|task_id)>/)
+    if (!tid) return
+    const status = txt.match(/<status>(\w+)<\/status>/)
+    if (status && status[1] !== 'running' && this.bgTasks.delete(tid[1])) {
+      this.dirty = true
+      this.status.backgroundTasks = this.bgTasks.size
     }
   }
 }

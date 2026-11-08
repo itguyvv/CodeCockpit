@@ -85,6 +85,7 @@ function AppInner(): JSX.Element {
             status: 'exited' as const,
             title: r.title,
             busy: false,
+            bgTasks: 0,
             model: r.model ?? '',
             engine: r.engine ?? 'claude',
             providerId: r.providerId ?? ''
@@ -133,7 +134,7 @@ function AppInner(): JSX.Element {
       // new session shows up in its project group without a manual refresh
       setHistoryVer((v) => v + 1)
     })
-    const offBusy = window.api.onBusy((id, busy) => updateSession(id, { busy }))
+    const offBusy = window.api.onBusy((id, busy, bg) => updateSession(id, { busy, bgTasks: bg }))
     const offStatus = window.api.onStatus((id, st) =>
       setStatuses((prev) => ({ ...prev, [id]: st }))
     )
@@ -193,6 +194,7 @@ function AppInner(): JSX.Element {
                 status: 'running',
                 title: opts.title ?? '',
                 busy: false,
+                bgTasks: 0,
                 model: opts.model ?? '',
                 engine: opts.engine,
                 providerId: opts.providerId ?? ''

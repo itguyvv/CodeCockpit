@@ -55,6 +55,7 @@ const zhTW: Translation = {
   'badge.exited': '已結束',
   'badge.busy': '處理中',
   'badge.idle': '閒置',
+  'badge.bg': '背景任務',
   'sidebar.empty': '找不到工作階段歷史',
   'sidebar.groupExpand': '點擊展開分組',
   'sidebar.groupCollapse': '點擊收起分組',

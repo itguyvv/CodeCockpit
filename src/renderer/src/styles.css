@@ -279,6 +279,12 @@ input:focus {
   background: rgba(87, 171, 90, 0.1);
 }
 
+.item-badge.bg {
+  color: var(--accent2);
+  border-color: rgba(76, 194, 255, 0.4);
+  background: rgba(76, 194, 255, 0.08);
+}
+
 .item-badge.exited {
   color: var(--danger);
   border-color: rgba(229, 83, 75, 0.45);
@@ -504,6 +510,10 @@ input:focus {
 .dot.running {
   background: var(--ok);
   animation: breathe 1.6s ease-in-out infinite;
+}
+
+.dot.bg {
+  background: var(--accent2);
 }
 
 @keyframes breathe {

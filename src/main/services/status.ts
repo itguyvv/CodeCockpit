@@ -17,6 +17,8 @@ export interface SessionStatus {
   durationMs: number
   lastActivity: number
   eventCount: number
+  /** Background shells the agent launched and that have not finished yet (claude only) */
+  backgroundTasks: number
 }
 
 export function emptyStatus(): SessionStatus {
@@ -34,6 +36,7 @@ export function emptyStatus(): SessionStatus {
     toolCounts: {},
     durationMs: 0,
     lastActivity: 0,
-    eventCount: 0
+    eventCount: 0,
+    backgroundTasks: 0
   }
 }

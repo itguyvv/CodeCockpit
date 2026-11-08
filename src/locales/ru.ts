@@ -61,6 +61,7 @@ const ru: Translation = {
   'badge.exited': 'Завершена',
   'badge.busy': 'Работает',
   'badge.idle': 'Простой',
+  'badge.bg': 'Фоновая задача',
   'sidebar.empty': 'История сессий не найдена',
   'sidebar.groupExpand': 'Нажмите, чтобы развернуть группу',
   'sidebar.groupCollapse': 'Нажмите, чтобы свернуть группу',

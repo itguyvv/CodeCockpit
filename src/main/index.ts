@@ -354,6 +354,17 @@ function createWindow(): void {
   } else {
     void win.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
+  // External links (GitHub etc.) always open in the OS default browser, never inside the app
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (e, url) => {
+    if (/^https?:\/\//i.test(url)) {
+      e.preventDefault()
+      void shell.openExternal(url)
+    }
+  })
   // Diagnostics: renderer console + startup self-check, written to the temp dir to debug packaged builds
   const diagLog = (line: string): void => {
     try {

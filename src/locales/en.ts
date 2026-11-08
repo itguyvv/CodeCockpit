@@ -59,6 +59,7 @@ const en = {
   'badge.exited': 'Exited',
   'badge.busy': 'Working',
   'badge.idle': 'Idle',
+  'badge.bg': 'Background',
   'sidebar.empty': 'No session history found',
   'sidebar.groupExpand': 'Click to expand group',
   'sidebar.groupCollapse': 'Click to collapse group',
