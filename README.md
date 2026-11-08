@@ -28,6 +28,14 @@ Driving several AI coding agents means juggling raw terminal windows, losing tra
 - History and workspace state survive restarts; resume any past session with one click.
 - Bring your own API relay — provider profiles route any session through a custom endpoint (cc-switch style).
 
+## Screenshots
+
+| ![Welcome](docs/screenshots/en/welcome.png) | ![Live session](docs/screenshots/en/session.png) |
+| --- | --- |
+| *Welcome & session launcher* | *Live session with the telemetry dashboard* |
+| ![Settings](docs/screenshots/en/settings.png) | ![History](docs/screenshots/en/history.png) |
+| *Tabbed settings center* | *History center (OpenCode engine)* |
+
 ## Features
 
 - **Two engines, one cockpit** — Claude Code and OpenCode side by side, each with its own history center; engines you don't use can be disabled in Settings.

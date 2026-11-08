@@ -28,6 +28,14 @@
 - 历史与工作区状态在重启后完整保留；任何历史会话一键续聊。
 - 自带 API 中转——服务商配置可让任意会话走自定义端点（cc-switch 风格）。
 
+## 界面预览
+
+| ![欢迎页](docs/screenshots/zh/welcome.png) | ![会话与仪表盘](docs/screenshots/zh/session.png) |
+| --- | --- |
+| *欢迎页与会话启动* | *活跃会话与遥测仪表盘* |
+| ![设置中心](docs/screenshots/zh/settings.png) | ![历史中心](docs/screenshots/zh/history.png) |
+| *页签式设置中心* | *历史中心（OpenCode 引擎）* |
+
 ## 特性
 
 - **双引擎驾驶舱** — Claude Code 与 OpenCode 并行使用，各自独立的历史中心；用不到的引擎可在设置中停用。

@@ -5,6 +5,14 @@
   "main": "out/main/index.js",
   "author": "ITGuyVV",
   "license": "MIT",
+  "homepage": "https://github.com/itguyvv/CodeCockpit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itguyvv/CodeCockpit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itguyvv/CodeCockpit/issues"
+  },
   "private": true,
   "keywords": [
     "claude-code",
