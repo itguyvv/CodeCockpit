@@ -12,6 +12,7 @@ import type {
 } from '../api'
 import { useT } from '../i18n'
 import { LOCALE_LIST, type LocaleCode } from '../../../locales'
+import logoUrl from '../assets/logo.png'
 
 interface Props {
   appInfo: AppInfo | null
@@ -25,7 +26,7 @@ interface Props {
 
 const BUILTIN_ID = 'builtin-default'
 
-type SettingsTab = 'general' | 'engines' | 'providers' | 'claude'
+type SettingsTab = 'general' | 'engines' | 'providers' | 'claude' | 'about'
 
 type Draft = Omit<ProviderProfile, 'id'> & { id?: string }
 
@@ -210,7 +211,8 @@ export default function SettingsModal({
     { id: 'general', label: t('settings.tabGeneral') },
     { id: 'engines', label: t('settings.tabEngines') },
     { id: 'providers', label: t('settings.tabProviders') },
-    { id: 'claude', label: t('settings.tabClaude') }
+    { id: 'claude', label: t('settings.tabClaude') },
+    { id: 'about', label: t('settings.tabAbout') }
   ]
 
   return (
@@ -561,6 +563,27 @@ export default function SettingsModal({
               )}
             </div>
           </>
+        )}
+
+        {tab === 'about' && (
+          <div className="settings-section">
+            <div className="about-head">
+              <img src={logoUrl} alt="CodeCockpit" className="about-logo" />
+              <div className="about-name">
+                CodeCockpit
+                <span className="about-version">v{appInfo?.appVersion ?? '?'}</span>
+              </div>
+            </div>
+            <div className="about-links">
+              <a href="https://github.com/itguyvv/CodeCockpit" target="_blank" rel="noreferrer">
+                github.com/itguyvv/CodeCockpit
+              </a>
+              <a href="https://github.com/itguyvv/CodeCockpit/issues" target="_blank" rel="noreferrer">
+                {t('about.reportIssue')}
+              </a>
+            </div>
+            <p className="settings-hint">{t('about.license')}</p>
+          </div>
         )}
 
         <div className="settings-actions end">

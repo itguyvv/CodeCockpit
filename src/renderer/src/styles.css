@@ -1321,3 +1321,51 @@ input:focus {
   color: #e5484d;
 }
 
+
+/* ── About tab ── */
+.about-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0 4px;
+}
+
+.about-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+}
+
+.about-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.about-version {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--fg-dim);
+  font-family: Consolas, monospace;
+}
+
+.about-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.about-links a {
+  color: var(--accent2);
+  text-decoration: none;
+  font-size: 12px;
+  width: fit-content;
+}
+
+.about-links a:hover {
+  text-decoration: underline;
+}
