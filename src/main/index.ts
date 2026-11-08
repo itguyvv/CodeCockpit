@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
 import { execFile } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
@@ -414,6 +414,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // Drop Electron's implicit default menu: its Edit→Paste accelerator (Ctrl+V) pastes into
+  // xterm's hidden helper textarea a second time, duplicating what the renderer pasted.
+  // Dev keeps the default menu for the DevTools shortcuts.
+  if (app.isPackaged) Menu.setApplicationMenu(null)
   registerIpc()
   createWindow()
   app.on('activate', () => {
