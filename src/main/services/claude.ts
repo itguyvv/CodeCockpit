@@ -94,23 +94,43 @@ export function findGitBash(): Promise<string> {
         return resolve(c)
       }
     }
-    execFile('where', ['bash'], (err, stdout) => {
-      if (!err && stdout.trim()) {
-        const lines = stdout
+    // Git installs on any drive; PATH normally carries <root>\cmd\git.exe, so derive
+    // bash.exe from the git.exe location instead of hardcoding per-drive paths
+    execFile('where', ['git'], (gErr, gOut) => {
+      if (!gErr && gOut.trim()) {
+        const gitLines = gOut
           .split(/\r?\n/)
           .map((s) => s.trim())
           .filter(Boolean)
-        const picked =
-          lines.find((l) => /\\git\\bin\\bash\.exe$/i.test(l)) ||
-          lines.find((l) => /\\git\\usr\\bin\\bash\.exe$/i.test(l)) ||
-          ''
-        if (picked) {
-          cachedBash = picked
-          return resolve(picked)
+        for (const git of gitLines) {
+          const root = path.dirname(path.dirname(git)) // <root>\cmd\git.exe → <root>
+          for (const rel of ['bin', 'usr\\bin']) {
+            const p = path.join(root, rel, 'bash.exe')
+            if (fs.existsSync(p)) {
+              cachedBash = p
+              return resolve(p)
+            }
+          }
         }
       }
-      cachedBash = ''
-      resolve('')
+      execFile('where', ['bash'], (err, stdout) => {
+        if (!err && stdout.trim()) {
+          const lines = stdout
+            .split(/\r?\n/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+          const picked =
+            lines.find((l) => /\\git\\bin\\bash\.exe$/i.test(l)) ||
+            lines.find((l) => /\\git\\usr\\bin\\bash\.exe$/i.test(l)) ||
+            ''
+          if (picked) {
+            cachedBash = picked
+            return resolve(picked)
+          }
+        }
+        cachedBash = ''
+        resolve('')
+      })
     })
   })
 }
