@@ -64,6 +64,19 @@ function dropReadDb(): void {
   readDb = null
 }
 
+/**
+ * Whether the installed engine writes to the SQLite DB (a `session` table exists).
+ * One generation only is listed per engine: once the DB era begins the legacy JSON tree
+ * is abandoned by the CLI itself (its sessions fail to resume with "Session not found"),
+ * so mixing both sources would show dead entries.
+ */
+function hasSessionTable(): boolean {
+  const rows = query<{ name: string }>(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'session'"
+  )
+  return !!rows && rows.length > 0
+}
+
 /** Run a read query against the shared connection; null on any error (caller falls back) */
 function query<T>(sql: string, ...params: (string | number)[]): T[] | null {
   const db = dbRead()
@@ -111,10 +124,20 @@ interface DbSessionRow {
   bytes: number | bigint
 }
 
-/** List openCode sessions across all projects, newest first (DB + legacy JSON, deduped) */
+/** List openCode sessions across all projects, newest first (DB or legacy JSON — one generation) */
 export function scanOpenCodeSessions(limit = 60): OpenCodeSessionInfo[] {
+  if (hasSessionTable()) {
+    const dbRows = scanDbSessions(limit)
+    if (dbRows.length) return dbRows
+    // DB era but no rows yet: show legacy only if the DB genuinely has nothing AND the
+    // frozen tree does (a migrated engine normally leaves the tree behind unread)
+    if (!scanLegacySessions(1).length) return []
+  }
+  return scanLegacySessions(limit)
+}
+
+function scanDbSessions(limit: number): OpenCodeSessionInfo[] {
   const found: OpenCodeSessionInfo[] = []
-  const seen = new Set<string>()
   const rows = query<DbSessionRow>(
     `SELECT s.id, s.title, s.directory, s.project_id, s.time_updated,
        (SELECT COALESCE(SUM(LENGTH(m.data)), 0) FROM message m WHERE m.session_id = s.id)
@@ -124,8 +147,7 @@ export function scanOpenCodeSessions(limit = 60): OpenCodeSessionInfo[] {
     limit
   )
   for (const r of rows ?? []) {
-    if (!r.id || seen.has(r.id)) continue
-    seen.add(r.id)
+    if (!r.id) continue
     found.push({
       sessionId: r.id,
       cwd: r.directory || projectWorktree(r.project_id || ''),
@@ -135,13 +157,7 @@ export function scanOpenCodeSessions(limit = 60): OpenCodeSessionInfo[] {
       sizeBytes: Number(r.bytes) || 0
     })
   }
-  for (const legacy of scanLegacySessions(Number.MAX_SAFE_INTEGER)) {
-    if (seen.has(legacy.sessionId)) continue
-    seen.add(legacy.sessionId)
-    found.push(legacy)
-  }
-  found.sort((a, b) => b.lastTs - a.lastTs)
-  return found.slice(0, limit)
+  return found
 }
 
 function scanLegacySessions(limit: number): OpenCodeSessionInfo[] {
@@ -231,18 +247,22 @@ export function sniffNewOpenCodeSession(
       stop()
       return
     }
-    // Current generation: session rows appear in the DB
-    const rows = query<{ id: string; directory: string | null; parent_id: string | null }>(
-      'SELECT id, directory, parent_id FROM session ORDER BY time_created DESC LIMIT 30'
-    )
-    for (const row of rows ?? []) {
-      if (!row.id || knownIds.has(row.id) || row.parent_id) continue
-      if (row.directory && sameDir(row.directory, cwd)) {
-        stopped = true
-        clearInterval(timer)
-        onFound(row.id)
-        return
+    // One generation per install, re-evaluated per tick so a fresh DB-era install
+    // (db created on CLI startup) is picked up even if the DB lagged at spawn time
+    if (hasSessionTable()) {
+      const rows = query<{ id: string; directory: string | null; parent_id: string | null }>(
+        'SELECT id, directory, parent_id FROM session ORDER BY time_created DESC LIMIT 30'
+      )
+      for (const row of rows ?? []) {
+        if (!row.id || knownIds.has(row.id) || row.parent_id) continue
+        if (row.directory && sameDir(row.directory, cwd)) {
+          stopped = true
+          clearInterval(timer)
+          onFound(row.id)
+          return
+        }
       }
+      return // DB era: never sniff the frozen legacy tree
     }
     // Legacy generation: JSON files under storage/session
     const sessionRoot = path.join(storageRoot(), 'session')
@@ -478,8 +498,8 @@ export class OpenCodeTailer {
   constructor(sessionId: string, onDirty: () => void) {
     this.sessionId = sessionId
     this.onDirty = onDirty
-    // Prefer the DB whenever it exists; the legacy tree is frozen after migration
-    this.useDb = fs.existsSync(dbFile())
+    // One generation per install: the engine either writes the DB or the legacy tree
+    this.useDb = hasSessionTable()
     this.timer = setInterval(() => this.poll(), POLL_MS)
   }
 
