@@ -511,27 +511,20 @@ function AppInner(): JSX.Element {
 
       <div className="statusbar">
         <span className="status-version">v{appInfo?.appVersion ?? '…'}</span>
-        {(enginesOn.claude ?? true) && (
-          <span
-            className={appInfo?.claudeBin ? '' : 'status-error'}
-            title={appInfo?.claudeBin}
-          >
+        {engineTab === 'claude' ? (
+          <span className={appInfo?.claudeBin ? '' : 'status-error'} title={appInfo?.claudeBin}>
             {appInfo?.claudeBin
               ? t('statusbar.cli', { bin: `claude ${appInfo.claudeVersion || ''}` })
               : t('statusbar.cliMissing')}
           </span>
-        )}
-        {(enginesOn.opencode ?? true) && (
-          <span
-            className={appInfo?.opencodeBin ? '' : 'status-error'}
-            title={appInfo?.opencodeBin}
-          >
+        ) : (
+          <span className={appInfo?.opencodeBin ? '' : 'status-error'} title={appInfo?.opencodeBin}>
             {appInfo?.opencodeBin
               ? t('statusbar.opencodeCli', { ver: appInfo.opencodeVersion || '?' })
               : t('statusbar.opencodeMissing')}
           </span>
         )}
-        {appInfo && !appInfo.gitBash && (enginesOn.claude ?? true) && (
+        {engineTab === 'claude' && appInfo && !appInfo.gitBash && (enginesOn.claude ?? true) && (
           <span className="status-error" title={t('statusbar.gitBashMissingTip')}>
             ⚠ {t('statusbar.gitBashMissing')}
           </span>

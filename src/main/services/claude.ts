@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { exec, execFile } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -17,6 +17,12 @@ const COMMON_PATHS = (): string[] => {
 let cachedBin: string | null = null
 let cachedVersion: string | null = null
 
+/** Rank a candidate: real .exe > npm .cmd shim > anything else (sh scripts cannot run under CreateProcess) */
+function claudeBinRank(p: string): number {
+  const lower = p.toLowerCase()
+  return lower.endsWith('.exe') ? 2 : lower.endsWith('.cmd') ? 1 : 0
+}
+
 export function findClaudeBin(): Promise<string> {
   if (cachedBin) return Promise.resolve(cachedBin)
   return new Promise((resolve) => {
@@ -25,33 +31,41 @@ export function findClaudeBin(): Promise<string> {
       cachedBin = envBin
       return resolve(envBin)
     }
-    for (const p of COMMON_PATHS()) {
-      if (p && fs.existsSync(p)) {
-        cachedBin = p
-        return resolve(p)
-      }
-    }
-    execFile('where', ['claude'], (err, stdout) => {
-      if (!err && stdout.trim()) {
-        const first = stdout.split(/\r?\n/)[0].trim()
-        if (first && fs.existsSync(first)) {
-          cachedBin = first
-          return resolve(first)
-        }
-      }
-      resolve('')
+    const common = COMMON_PATHS().filter((p) => p && fs.existsSync(p))
+    execFile('where', ['claude'], { timeout: 5000 }, (err, stdout) => {
+      // `where` may list an extension-less sh shim first; rank so the spawnable binary wins
+      const whereLines = err
+        ? []
+        : stdout
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter((l) => l && fs.existsSync(l))
+      const all = [...common, ...whereLines]
+      const best =
+        all.find((p) => claudeBinRank(p) === 2) ||
+        all.find((p) => claudeBinRank(p) === 1) ||
+        all[0] ||
+        ''
+      if (best) cachedBin = best
+      resolve(best)
     })
   })
 }
 
 export function getClaudeVersion(bin: string): Promise<string> {
   if (cachedVersion) return Promise.resolve(cachedVersion)
+  const isCmd = bin.toLowerCase().endsWith('.cmd')
   return new Promise((resolve) => {
-    execFile(bin, ['--version'], { timeout: 8000 }, (err, stdout) => {
-      const v = err ? '' : stdout.trim()
+    const done = (v: string) => {
       if (v) cachedVersion = v
       resolve(v)
-    })
+    }
+    if (isCmd) {
+      // .cmd shims can only run through cmd.exe
+      exec(`"${bin}" --version`, { timeout: 15000 }, (err, stdout) => done(err ? '' : stdout.trim()))
+    } else {
+      execFile(bin, ['--version'], { timeout: 15000 }, (err, stdout) => done(err ? '' : stdout.trim()))
+    }
   })
 }
 

@@ -906,8 +906,18 @@ input:focus {
 /* ── Settings ── */
 .settings-modal {
   width: 620px;
-  max-height: 82vh;
+  height: min(620px, 86vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settings-body {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
 }
 
 .settings-section {

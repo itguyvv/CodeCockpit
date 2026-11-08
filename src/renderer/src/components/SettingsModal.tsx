@@ -230,6 +230,7 @@ export default function SettingsModal({
           ))}
         </div>
 
+        <div className="settings-body">
         {tab === 'general' && (
           <>
             <div className="settings-section">
@@ -563,6 +564,7 @@ export default function SettingsModal({
           </button>
         </div>
         {busy && <p className="settings-hint">{busy}</p>}
+        </div>
       </div>
 
       {confirmBox && (
