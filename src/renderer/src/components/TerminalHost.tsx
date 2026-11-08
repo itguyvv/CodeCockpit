@@ -81,12 +81,21 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
         if (window.api) void window.api.copyText(text)
         else void navigator.clipboard?.writeText(text)
       }
+      let lastPasteAt = 0
+      let lastPasteText = ''
       const pasteText = (): void => {
         const read = window.api
           ? window.api.readText()
           : (navigator.clipboard?.readText() ?? Promise.resolve(''))
         void read.then((text) => {
-          if (text) entry.term.paste(text)
+          if (!text) return
+          const now = Date.now()
+          // An identical paste within 150 ms can only be a duplicate key event, never a human
+          // action — without this guard a double-dispatched Ctrl+V pastes the text twice
+          if (text === lastPasteText && now - lastPasteAt < 150) return
+          lastPasteText = text
+          lastPasteAt = now
+          entry.term.paste(text)
         })
       }
       // Image paste: send the Alt+V key sequence (ESC v) — the claude CLI on Windows reads clipboard images via Alt+V

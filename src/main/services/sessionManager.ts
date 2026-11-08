@@ -2,6 +2,7 @@ import { BrowserWindow, Notification } from 'electron'
 import * as pty from '@lydell/node-pty'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { dataFile } from './dataDir'
 import { t } from './i18n'
@@ -284,9 +285,29 @@ function assignSessionId(record: SessionRecord, sessionId: string, live: LivePro
   ensureTailer(live)
 }
 
+const lastInputAt = new Map<string, { data: string; at: number }>()
+
+/** Duplicate-paste diagnostics: an identical paste-sized write twice within 150 ms means a
+ *  double-dispatched key event. Log-only (to the packaged-build debug log), never drops input. */
+function logDupInput(id: string, data: string): void {
+  try {
+    fs.appendFileSync(
+      path.join(os.tmpdir(), 'codecockpit-renderer.log'),
+      `[${new Date().toISOString()}] [dup-input] id=${id} bytes=${data.length}\n`
+    )
+  } catch {
+    // Ignore
+  }
+}
+
 export function writeInput(id: string, data: string): void {
   const live = procs.get(id)
-  if (live) live.pty.write(data)
+  if (!live) return
+  const now = Date.now()
+  const prev = lastInputAt.get(id)
+  if (prev && prev.data === data && data.length > 8 && now - prev.at < 150) logDupInput(id, data)
+  lastInputAt.set(id, { data, at: now })
+  live.pty.write(data)
 }
 
 export function resizeSession(id: string, cols: number, rows: number): void {
