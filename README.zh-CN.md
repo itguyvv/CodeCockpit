@@ -30,11 +30,21 @@
 
 ## 界面预览
 
-| ![欢迎页](docs/screenshots/zh/welcome.png) | ![会话与仪表盘](docs/screenshots/zh/session.png) |
-| --- | --- |
-| *欢迎页与会话启动* | *活跃会话与遥测仪表盘* |
-| ![设置中心](docs/screenshots/zh/settings.png) | ![历史中心](docs/screenshots/zh/history.png) |
-| *页签式设置中心* | *历史中心（OpenCode 引擎）* |
+![欢迎页与会话启动](docs/screenshots/zh/welcome.png)
+
+*欢迎页与会话启动*
+
+![活跃会话与遥测仪表盘](docs/screenshots/zh/session.png)
+
+*活跃会话与遥测仪表盘*
+
+![页签式设置中心](docs/screenshots/zh/settings.png)
+
+*页签式设置中心*
+
+![历史中心（OpenCode 引擎）](docs/screenshots/zh/history.png)
+
+*历史中心（OpenCode 引擎）*
 
 ## 特性
 

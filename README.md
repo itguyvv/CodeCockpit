@@ -30,11 +30,21 @@ Driving several AI coding agents means juggling raw terminal windows, losing tra
 
 ## Screenshots
 
-| ![Welcome](docs/screenshots/en/welcome.png) | ![Live session](docs/screenshots/en/session.png) |
-| --- | --- |
-| *Welcome & session launcher* | *Live session with the telemetry dashboard* |
-| ![Settings](docs/screenshots/en/settings.png) | ![History](docs/screenshots/en/history.png) |
-| *Tabbed settings center* | *History center (OpenCode engine)* |
+![Welcome & session launcher](docs/screenshots/en/welcome.png)
+
+*Welcome & session launcher*
+
+![Live session with the telemetry dashboard](docs/screenshots/en/session.png)
+
+*Live session with the telemetry dashboard*
+
+![Tabbed settings center](docs/screenshots/en/settings.png)
+
+*Tabbed settings center*
+
+![History center (OpenCode engine)](docs/screenshots/en/history.png)
+
+*History center (OpenCode engine)*
 
 ## Features
 
