@@ -68,9 +68,14 @@
 
 | 平台 | 产物 | 安装方式 |
 | --- | --- | --- |
-| Windows 10/11 | `CodeCockpit-<版本>-win-x64.zip` | 解压到任意目录运行 `CodeCockpit.exe`（便携式——升级直接覆盖目录） |
+| Windows 10/11（x64） | `CodeCockpit-<版本>-win-x64.zip` | 解压到任意目录运行 `CodeCockpit.exe`（便携式——升级直接覆盖目录） |
+| Windows 11（arm64） | `CodeCockpit-<版本>-win-arm64.zip` | 同样的便携 zip，ARM64 架构专用 |
 | macOS 12+（Apple Silicon / Intel） | `CodeCockpit-<版本>-mac-arm64.zip` / `...-mac-x64.zip` | 解压后将 `CodeCockpit.app` 移到「应用程序」，然后在终端执行 `xattr -cr /Applications/CodeCockpit.app`（构建未签名，不解除会被 Gatekeeper 拦截）。也可以右键 App 选「打开」一次。 |
 | Linux x64 / arm64 | `CodeCockpit-<版本>-linux-<arch>.AppImage` | `chmod +x` 后直接运行。需要 FUSE（libfuse2）；没有的系统可用 `--appimage-extract-and-run` 运行。 |
+| Debian / Ubuntu（x64 / arm64） | `CodeCockpit-<版本>-linux-<arch>.deb` | `sudo dpkg -i <文件>.deb`（或 `sudo apt install ./<文件>.deb`） |
+| Fedora / RHEL / openSUSE（x64 / arm64） | `CodeCockpit-<版本>-linux-<arch>.rpm` | `sudo rpm -i <文件>.rpm` 或用系统包管理器安装 |
+
+每个版本同时附带 `SHA256SUMS` 校验文件——把下载的文件放到同一目录后用 `sha256sum -c SHA256SUMS` 验证。
 
 macOS 与 Linux 构建是首次发布——如在你的机器上遇到问题，欢迎[提 issue](../../issues)，并附上：系统版本、CLI 是否被找到（看状态栏）、`/tmp/codecockpit-renderer.log`（Windows 为 `%TEMP%` 下同名文件）。
 
@@ -99,7 +104,7 @@ npm run typecheck   # tsc 项目引用构建
 npm run build       # 编译 main/preload/renderer 到 out/
 npm run dist        # 构建 + 打包 Windows 便携目录 + 带版本 zip 到 dist/
 npm run dist:mac    # 构建 + 打包未签名 mac zip（x64 + arm64）
-npm run dist:linux  # 构建 + 打包 Linux AppImage（按目标架构加 --x64 / --arm64）
+npm run dist:linux  # 构建 + 打包 Linux AppImage + deb + rpm（按目标架构加 --x64 / --arm64）
 ```
 
 Windows 的 `dist` 步骤产出：

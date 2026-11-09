@@ -24,10 +24,10 @@ Packaging for the other platforms (or cross-checking a change locally):
 
 ```bash
 npm run dist:mac    # unsigned mac zips (x64 + arm64)
-npm run dist:linux  # linux AppImage (add --x64 / --arm64 per target)
+npm run dist:linux  # linux AppImage + deb + rpm (add --x64 / --arm64 per target)
 ```
 
-CI builds all artifacts on pushes to `main` (see `.github/workflows/ci.yml`). Releases are tag-driven: pushing a `v<version>` tag (e.g. `git tag v1.1.1 && git push origin v1.1.1`) makes CI build every platform, sync the package version to the tag, and attach the artifacts to a **draft** release — the maintainer reviews it on GitHub and clicks *Publish* to make it public. Deleting the tag and pushing it again rebuilds and overwrites the draft.
+CI builds all artifacts on pushes to `main` (see `.github/workflows/ci.yml`). Releases are tag-driven: pushing a `v<version>` tag (e.g. `git tag v1.1.1 && git push origin v1.1.1`) makes CI build every platform, sync the package version to the tag, and attach the artifacts to a **draft** release — the maintainer reviews it on GitHub and clicks *Publish* to make it public. Deleting the tag and pushing it again rebuilds and overwrites the draft. The full release runbook (artifact matrix, flaky-build handling, publish checklist) lives in [docs/RELEASING.md](docs/RELEASING.md).
 
 > Note: `npm run typecheck` runs `node node_modules/typescript/lib/tsc.js -b`. On some systems `npx tsc -b` fails with `ERR_UNKNOWN_FILE_EXTENSION` when an older Node is first on PATH — the script form avoids that.
 

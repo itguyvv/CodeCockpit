@@ -68,9 +68,14 @@ Grab the latest build from [Releases](../../releases):
 
 | Platform | Artifact | Install |
 | --- | --- | --- |
-| Windows 10/11 | `CodeCockpit-<version>-win-x64.zip` | Unzip anywhere and run `CodeCockpit.exe` (portable — upgrades overwrite the folder) |
+| Windows 10/11 (x64) | `CodeCockpit-<version>-win-x64.zip` | Unzip anywhere and run `CodeCockpit.exe` (portable — upgrades overwrite the folder) |
+| Windows 11 (arm64) | `CodeCockpit-<version>-win-arm64.zip` | Same portable zip, built for ARM64 |
 | macOS 12+ (Apple Silicon / Intel) | `CodeCockpit-<version>-mac-arm64.zip` / `...-mac-x64.zip` | Unzip, move `CodeCockpit.app` to `/Applications`, then run `xattr -cr /Applications/CodeCockpit.app` in a terminal (the build is unsigned, so macOS Gatekeeper would otherwise block it). Alternatively right-click the app and choose **Open** once. |
 | Linux x64 / arm64 | `CodeCockpit-<version>-linux-<arch>.AppImage` | `chmod +x` the file and run it. Needs FUSE (libfuse2); on systems without it, run with `--appimage-extract-and-run`. |
+| Debian / Ubuntu (x64 / arm64) | `CodeCockpit-<version>-linux-<arch>.deb` | `sudo dpkg -i <file>.deb` (or `sudo apt install ./<file>.deb`) |
+| Fedora / RHEL / openSUSE (x64 / arm64) | `CodeCockpit-<version>-linux-<arch>.rpm` | `sudo rpm -i <file>.rpm` or your package manager's installer |
+
+Every release also ships a `SHA256SUMS` file — verify your download with `sha256sum -c SHA256SUMS` (put the files in the same directory first).
 
 The macOS and Linux builds are fresh — if something does not work on your machine, please [open an issue](../../issues) and include your OS version, whether the CLIs were found (status bar), and `%TEMP%/codecockpit-renderer.log` (Windows) or `/tmp/codecockpit-renderer.log` (macOS/Linux).
 
@@ -99,7 +104,7 @@ npm run typecheck   # tsc project references build
 npm run build       # compile main/preload/renderer to out/
 npm run dist        # build + package the Windows portable dir + versioned zip into dist/
 npm run dist:mac    # build + package unsigned mac zips (x64 + arm64)
-npm run dist:linux  # build + package a linux AppImage (pass --x64 / --arm64 per target)
+npm run dist:linux  # build + package linux AppImage + deb + rpm (pass --x64 / --arm64 per target)
 ```
 
 The Windows `dist` step produces:
