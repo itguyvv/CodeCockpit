@@ -18,12 +18,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      # npm ci follows the lockfile literally, and that lockfile only materializes the
-      # Windows variants of platform-specific optionalDependencies (typescript 7, rolldown
-      # and esbuild native binaries, node-pty prebuilds). Plain npm install re-resolves
-      # optionals for the current platform at install time.
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: Typecheck
         run: npm run typecheck
@@ -65,14 +61,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      # npm install, not npm ci: the committed lockfile only materializes Windows variants
-      # of platform-specific optionalDependencies (typescript 7 / rolldown / esbuild native
-      # binaries, node-pty prebuilds). npm install re-resolves optionals per platform.
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
-      # npm install only provides the current platform's node-pty prebuild, but the mac
-      # leg packages x64 and arm64 zips in one run. node-pty ships N-API prebuilds
+      # npm ci installs only the current platform's node-pty prebuild, but the mac leg
+      # packages x64 and arm64 zips in one run. node-pty ships N-API prebuilds
       # (ABI-stable), so the extra prebuild needs no rebuild step.
       - name: Install darwin-x64 node-pty prebuild
         if: matrix.os == 'macos-latest'
