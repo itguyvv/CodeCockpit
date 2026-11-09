@@ -30,7 +30,7 @@
     "start": "electron-vite preview",
     "typecheck": "node node_modules/typescript/lib/tsc.js -b",
     "icons": "node scripts/build-icns.js",
-    "dist": "electron-vite build && electron-builder --dir && node scripts/rename-dist.cjs",
+    "dist": "electron-vite build && electron-builder --dir --publish never && node scripts/rename-dist.cjs",
     "dist:mac": "electron-vite build && electron-builder --mac --publish never",
     "dist:linux": "electron-vite build && electron-builder --linux --publish never",
     "postinstall": "electron-builder install-app-deps"

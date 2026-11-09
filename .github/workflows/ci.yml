@@ -69,7 +69,7 @@ jobs:
       # (ABI-stable), so the extra prebuild needs no rebuild step.
       - name: Install darwin-x64 node-pty prebuild
         if: matrix.os == 'macos-latest'
-        run: npm i --no-save @lydell/node-pty-darwin-x64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
+        run: npm i --no-save --force @lydell/node-pty-darwin-x64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
 
       - name: Package
         run: ${{ matrix.package-cmd }}
