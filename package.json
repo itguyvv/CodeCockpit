@@ -29,7 +29,10 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "node node_modules/typescript/lib/tsc.js -b",
+    "icons": "node scripts/build-icns.js",
     "dist": "electron-vite build && electron-builder --dir && node scripts/rename-dist.cjs",
+    "dist:mac": "electron-vite build && electron-builder --mac --publish never",
+    "dist:linux": "electron-vite build && electron-builder --linux --publish never",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
@@ -66,6 +69,10 @@
         "to": "."
       }
     ],
+    "npmRebuild": false,
+    "asarUnpack": [
+      "**/*.node"
+    ],
     "win": {
       "icon": "resources/icon.ico",
       "target": [
@@ -76,6 +83,29 @@
           ]
         }
       ]
+    },
+    "mac": {
+      "icon": "resources/icon.icns",
+      "identity": null,
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "category": "Development",
+      "target": [
+        "appimage"
+      ],
+      "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     }
   }
 }
