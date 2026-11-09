@@ -47,28 +47,34 @@ function createTerm(scrollback: number): { term: Terminal; fit: FitAddon } {
   return { term, fit }
 }
 
-/** Whether the clipboard contains an image (sync query via the Electron main process; false on browser debug pages without the api bridge) */
-function clipboardHasImage(): boolean {
+/** Whether the clipboard contains an image (async query via the Electron main process; false on browser debug pages without the api bridge) */
+function clipboardHasImage(): Promise<boolean> {
   try {
-    return !!window.api?.clipboardHasImage()
+    return window.api ? window.api.clipboardHasImage() : Promise.resolve(false)
   } catch {
-    return false
+    return Promise.resolve(false)
   }
 }
 
-// Engine-specific image paste. claude's CLI reads the clipboard itself when it receives Alt+V
-// (ESC v). openCode's TUI ignores key bridges entirely — it only attaches images from file paths
-// arriving inside bracketed paste, so the main process saves the clipboard PNG and we paste the
-// path (xterm auto-wraps term.paste in DECSET 2004 bracket markers).
+// Engine-specific image paste. openCode's TUI ignores key bridges entirely — it only attaches
+// images from file paths arriving inside bracketed paste, so we paste the path (xterm auto-wraps
+// term.paste in DECSET 2004 bracket markers). claude's CLI reads bitmap clipboard data itself
+// via Alt+V (ESC v), but a copied image FILE (Explorer Ctrl+C, file list) is invisible to it —
+// a bracketed paste of the path attaches it just the same (verified: shows [Image #1]).
 function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) => EngineId): void {
-  if (engineOf(id) === 'opencode') {
-    const saved = window.api ? window.api.saveClipboardImage() : Promise.resolve('')
-    void saved.then((file) => {
-      if (file) entry.term.paste(file)
-    })
-    return
-  }
-  entry.term.input('\x1bv')
+  const engine = engineOf(id)
+  // Diagnostics: paste failures are silent by design; this line lands in %TEMP%/codecockpit-renderer.log
+  console.info(`[img-paste] engine=${engine} id=${id}`)
+  const saved = window.api ? window.api.saveClipboardImage() : Promise.resolve(null)
+  void saved.then((r) => {
+    console.info(`[img-paste] got=${r ? r.kind + ':' + r.path : '(none)'}`)
+    if (!r?.path) {
+      if (engine !== 'opencode') entry.term.input('\x1bv') // let the CLI read the clipboard itself
+      return
+    }
+    if (engine === 'opencode' || r.kind === 'file') entry.term.paste(r.path)
+    else entry.term.input('\x1bv')
+  })
 }
 
 const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: (id: string) => EngineId }>((props, ref) => {
@@ -144,18 +150,20 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
         }
         if (evt.ctrlKey && !evt.shiftKey && key === 'v') {
           evt.preventDefault()
-          if (clipboardHasImage()) {
-            pasteImage()
-            return false
-          }
-          // Fallback when no image format is detected: with no text, still let the engine read the clipboard itself
-          const read =
-            window.api
-              ? window.api.readText()
-              : (navigator.clipboard?.readText() ?? Promise.resolve(''))
-          void read.then((text) => {
-            if (text) entry.term.paste(text)
-            else pasteImage()
+          void clipboardHasImage().then((has) => {
+            if (has) {
+              pasteImage()
+              return
+            }
+            // No image detected: paste text when present, otherwise let the engine read the clipboard itself
+            const read =
+              window.api
+                ? window.api.readText()
+                : (navigator.clipboard?.readText() ?? Promise.resolve(''))
+            void read.then((text) => {
+              if (text) entry.term.paste(text)
+              else pasteImage()
+            })
           })
           return false
         }
@@ -287,14 +295,18 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       if (sel) {
         copy(sel)
         entry.term.clearSelection()
-      } else if (clipboardHasImage()) {
-        pasteClipboardImage(entry, id, engineOfRef.current)
-      } else {
+        return
+      }
+      void clipboardHasImage().then((has) => {
+        if (has) {
+          pasteClipboardImage(entry, id, engineOfRef.current)
+          return
+        }
         void read().then((text) => {
           if (text) entry.term.paste(text)
           else pasteClipboardImage(entry, id, engineOfRef.current) // Fallback: with no text, still let the engine read the clipboard itself
         })
-      }
+      })
     }
     host.addEventListener('contextmenu', onContextMenu)
     const onMouseDown = (): void => {

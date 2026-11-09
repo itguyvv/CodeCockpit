@@ -151,8 +151,9 @@ export interface WorkbenchApi {
   importData: () => Promise<string>
   copyText: (text: string) => void
   readText: () => Promise<string>
-  clipboardHasImage: () => boolean
-  saveClipboardImage: () => Promise<string>
+  clipboardHasImage: () => Promise<boolean>
+  /** Clipboard image → { kind: 'image', path: saved temp PNG } or { kind: 'file', path: copied file } or null */
+  saveClipboardImage: () => Promise<{ kind: 'image' | 'file'; path: string } | null>
   debugInfo: () => string
   onData: (cb: (id: string, data: string) => void) => () => void
   onExit: (cb: (id: string, exitCode: number) => void) => () => void

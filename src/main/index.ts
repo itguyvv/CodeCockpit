@@ -197,22 +197,59 @@ function registerIpc(): void {
     clipboard.writeText(String(text ?? ''))
   })
   ipcMain.handle('clip:read', () => clipboard.readText())
-  ipcMain.on('clip:has-image', (e) => {
-    // availableFormats is missing in some Electron binaries (crashes on 45.2.3); readImage().isEmpty() is reliable
-    try {
-      const img = (clipboard as unknown as { readImage(): { isEmpty(): boolean } }).readImage()
-      e.returnValue = !img.isEmpty()
-    } catch {
-      e.returnValue = false
-    }
+  ipcMain.handle('clip:has-image', () => {
+    // Electron 45 replaced the sync clipboard module with the W3C-style async API: no readImage,
+    // only mime-typed reads. DIB-only sources that skip image/png fall back inside clip:save-image
+    return clipboard.has('image/png')
   })
-  // Clipboard image → PNG file for engines that attach images by path (the openCode TUI ignores
-  // keystroke bridges but detects image paths inside bracketed pastes). Files age out after 24h.
-  ipcMain.handle('clip:save-image', () => {
+  // Clipboard → attachment payload for engines that attach images by path (the openCode TUI
+  // ignores keystroke bridges but detects image paths inside bracketed pastes). Files age out
+  // after 24h. Electron 45's async clipboard.read() exposes image bytes natively and file
+  // copies as a text/uri-list, so both resolve in-process; PowerShell only covers exotic
+  // DIB-only sources the new API cannot convert.
+  const readClipboardImagePs = (
+    target: string
+  ): Promise<{ kind: 'image' | 'file'; path: string } | null> =>
+    new Promise((resolve) => {
+      const t = target.replace(/'/g, "''")
+      const script = [
+        "$ErrorActionPreference='SilentlyContinue'",
+        'Add-Type -AssemblyName System.Windows.Forms',
+        'Add-Type -AssemblyName System.Drawing',
+        'if ([System.Windows.Forms.Clipboard]::ContainsImage()) {',
+        '  $i = [System.Windows.Forms.Clipboard]::GetImage()',
+        `  if ($i) { $i.Save('${t}', [System.Drawing.Imaging.ImageFormat]::Png); Write-Output 'PNG' }`,
+        '} elseif ([System.Windows.Forms.Clipboard]::ContainsFileDropList()) {',
+        '  $f = [System.Windows.Forms.Clipboard]::GetFileDropList()',
+        '  if ($f.Count -gt 0) { $p = $f[0]; Write-Output ("FILE:" + [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($p))) }',
+        '}'
+      ].join('; ')
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-Command', script],
+        { timeout: 5000, windowsHide: true },
+        (err, stdout) => {
+          const out = String(stdout ?? '').trim()
+          if (!err && out === 'PNG') return resolve({ kind: 'image', path: target })
+          // The path arrives Base64-encoded: PowerShell 5.1 writes stdout in the legacy OEM
+          // code page (GBK etc.), which would mojibake non-ASCII paths if decoded as UTF-8
+          if (!err && out.startsWith('FILE:')) {
+            try {
+              return resolve({
+                kind: 'file',
+                path: Buffer.from(out.slice(5), 'base64').toString('utf8')
+              })
+            } catch {
+              return resolve(null)
+            }
+          }
+          resolve(null)
+        }
+      )
+    })
+  ipcMain.handle('clip:save-image', async () => {
+    const dir = path.join(os.tmpdir(), 'codecockpit-images')
     try {
-      const img = (clipboard as unknown as { readImage(): { isEmpty(): boolean; toPNG(): Buffer } }).readImage()
-      if (img.isEmpty()) return ''
-      const dir = path.join(os.tmpdir(), 'codecockpit-images')
       fs.mkdirSync(dir, { recursive: true })
       const cutoff = Date.now() - 24 * 60 * 60 * 1000
       for (const f of fs.readdirSync(dir)) {
@@ -223,12 +260,37 @@ function registerIpc(): void {
           // Skip
         }
       }
-      const file = path.join(dir, `paste-${Date.now()}.png`)
-      fs.writeFileSync(file, img.toPNG())
-      return file
     } catch {
-      return ''
+      // Ignore
     }
+    const file = path.join(dir, `paste-${Date.now()}.png`)
+    try {
+      const items = await clipboard.read()
+      for (const item of items) {
+        if (!item.types.includes('image/png')) continue
+        const blob = await item.getType('image/png')
+        fs.writeFileSync(file, Buffer.from(await blob.arrayBuffer()))
+        return { kind: 'image', path: file }
+      }
+      // Copied files arrive as a file:// URI list (UTF-8 percent-encoded, quoted)
+      for (const item of items) {
+        if (!item.types.includes('text/uri-list')) continue
+        const blob = await item.getType('text/uri-list')
+        const list = Buffer.from(await blob.arrayBuffer()).toString('utf8')
+        const line = list.split(/\r?\n/).find((l) => {
+          const s = l.trim().replace(/^"|"$/g, '')
+          return s && !s.startsWith('#') && s.startsWith('file://')
+        })
+        if (!line) continue
+        let p = decodeURIComponent(line.trim().replace(/^"|"$/g, ''))
+        p = p.slice('file://'.length)
+        if (p.startsWith('/')) p = p.replace(/^\/+/, '') // file:///C:/ → C:/
+        if (p) return { kind: 'file', path: p.replace(/\//g, '\\') }
+      }
+    } catch {
+      // Fall through to the PowerShell bridge
+    }
+    return await readClipboardImagePs(file)
   })
 
   // View user-level Claude configuration: MCP server list

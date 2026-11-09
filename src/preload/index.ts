@@ -163,8 +163,9 @@ const api = {
   importData: (): Promise<string> => ipcRenderer.invoke('data:import'),
   copyText: (text: string): void => ipcRenderer.send('clip:write', text),
   readText: (): Promise<string> => ipcRenderer.invoke('clip:read'),
-  clipboardHasImage: (): boolean => ipcRenderer.sendSync('clip:has-image'),
-  saveClipboardImage: (): Promise<string> => ipcRenderer.invoke('clip:save-image'),
+  clipboardHasImage: (): Promise<boolean> => ipcRenderer.invoke('clip:has-image'),
+  saveClipboardImage: (): Promise<{ kind: 'image' | 'file'; path: string } | null> =>
+    ipcRenderer.invoke('clip:save-image'),
   debugInfo: (): string =>
     JSON.stringify({ sandboxed: process.sandboxed, hasClipboard: !!clipboard }),
   onData: (cb: (id: string, data: string) => void): Unsubscribe =>
