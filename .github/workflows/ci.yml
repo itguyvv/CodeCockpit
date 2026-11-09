@@ -38,17 +38,21 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            platform: windows
             package-cmd: npm run dist
             artifact: CodeCockpit-win
             paths: |
               dist/*.zip
-          # Pinned image: the macos-latest label pool has repeatedly left jobs queued
-          # with no runner assigned until GitHub cancels them
-          - os: macos-15
+          # The mac zips (unsigned, zip-only targets) are built on Linux: GitHub's macOS
+          # runner pool has repeatedly left jobs queued with no runner assigned until they
+          # get cancelled. electron-builder supports unsigned mac zip targets on Linux.
+          - os: ubuntu-latest
+            platform: mac
             package-cmd: npm run dist:mac
             artifact: CodeCockpit-mac
             paths: dist/*.zip
           - os: ubuntu-latest
+            platform: linux-x64
             package-cmd: npm run dist:linux -- --x64
             artifact: CodeCockpit-linux-x64
             paths: |
@@ -56,6 +60,7 @@ jobs:
               dist/*.deb
               dist/*.rpm
           - os: ubuntu-24.04-arm
+            platform: linux-arm64
             package-cmd: npm run dist:linux -- --arm64
             artifact: CodeCockpit-linux-arm64
             paths: |
@@ -84,12 +89,14 @@ jobs:
       # npm ci installs only the current platform's node-pty prebuild, but legs that
       # package a second arch in one run need that prebuild too. node-pty ships N-API
       # prebuilds (ABI-stable), so the extra prebuild needs no rebuild step.
-      - name: Install darwin-x64 node-pty prebuild
-        if: matrix.os == 'macos-15'
-        run: npm i --no-save --force @lydell/node-pty-darwin-x64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
+      - name: Install darwin node-pty prebuilds
+        if: matrix.platform == 'mac'
+        run: |
+          V=$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
+          npm i --no-save --force @lydell/node-pty-darwin-x64@$V @lydell/node-pty-darwin-arm64@$V
 
       - name: Install win32-arm64 node-pty prebuild
-        if: matrix.os == 'windows-latest'
+        if: matrix.platform == 'windows'
         run: npm i --no-save --force @lydell/node-pty-win32-arm64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
 
       # electron-builder pulls its packaging tooling from GitHub releases mid-build and
@@ -108,23 +115,23 @@ jobs:
         shell: bash
         run: |
           set -e
-          case "${{ matrix.os }}" in
-            windows-latest)
+          case "${{ matrix.platform }}" in
+            windows)
               find dist/CodeCockpit/resources/app.asar.unpacked -name '*.node' | grep -q node-pty-win32-x64
               # GNU tar from Git-bash cannot read zip; the runner's bsdtar can
               /c/Windows/System32/tar.exe -tf dist/*-win-arm64.zip | grep -q node-pty-win32-arm64
               ;;
-            macos-15)
+            mac)
               unzip -l dist/*-mac-arm64.zip | grep -q node-pty-darwin-arm64
               unzip -l dist/*-mac-x64.zip | grep -q node-pty-darwin-x64
               ;;
-            ubuntu-latest)
+            linux-x64)
               ls dist/*.deb dist/*.rpm >/dev/null
               ./dist/*.AppImage --appimage-extract >/dev/null
               find squashfs-root -name '*.node' | grep -q node-pty-linux-x64
               rm -rf squashfs-root
               ;;
-            ubuntu-24.04-arm)
+            linux-arm64)
               ls dist/*.deb dist/*.rpm >/dev/null
               ./dist/*.AppImage --appimage-extract >/dev/null
               find squashfs-root -name '*.node' | grep -q node-pty-linux-arm64
