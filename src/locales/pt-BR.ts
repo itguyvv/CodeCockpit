@@ -92,6 +92,7 @@ const ptBR: Translation = {
   'rules.notCreated': 'O arquivo ainda não existe — é criado ao salvar',
   'rules.emptyPlaceholder': 'O arquivo ainda não existe — digite o conteúdo e salve para criá-lo',
   'rules.preview': 'Visualizar',
+  'rules.maximize': 'Maximizar / Restaurar',
   'rules.dirty': 'Alterações não salvas — Ctrl+S para salvar',
   'rules.saved': 'Salvo',
   'rules.readFail': 'Falha ao ler: {err}',
@@ -139,7 +140,7 @@ const ptBR: Translation = {
   'settings.sectionNotifications': 'Notificações',
   'settings.notifyOnIdle': 'Avisar ao concluir uma tarefa',
   'settings.notifyOnIdleHint':
-    'Mostra uma notificação do sistema quando uma sessão fica ociosa e a janela do CodeCockpit não está em foco. Desativado por padrão.',
+    'Mostra uma notificação do sistema quando uma sessão fica ociosa após 30 segundos de atividade contínua. Desativado por padrão.',
   'settings.notifyOnFocusSession': 'Ir para a sessão ao notificar',
   'settings.notifyOnFocusSessionHint':
     'Quando a notificação é disparada, traz a janela para a frente e muda para essa sessão.',

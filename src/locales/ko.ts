@@ -87,6 +87,7 @@ const ko: Translation = {
   'rules.notCreated': '아직 파일이 없습니다 — 저장할 때 생성됩니다',
   'rules.emptyPlaceholder': '아직 파일이 없습니다 — 입력 후 저장하면 생성됩니다',
   'rules.preview': '미리보기',
+  'rules.maximize': '최대화 / 복원',
   'rules.dirty': '저장되지 않은 변경 사항 — Ctrl+S로 저장',
   'rules.saved': '저장됨',
   'rules.readFail': '읽기 실패: {err}',
@@ -133,7 +134,7 @@ const ko: Translation = {
   'settings.sectionNotifications': '알림',
   'settings.notifyOnIdle': '작업 완료 시 알림',
   'settings.notifyOnIdleHint':
-    '세션이 유휴 상태가 되고 CodeCockpit 창이 포커스를 잃었을 때 시스템 알림을 표시합니다. 기본값은 꺼짐입니다.',
+    '세션이 30초 이상 활동한 후 유휴 상태가 되면 시스템 알림을 표시합니다. 기본값은 꺼짐입니다.',
   'settings.notifyOnFocusSession': '알림 시 해당 세션으로 이동',
   'settings.notifyOnFocusSessionHint': '알림이 발생하면 창을 앞으로 가져와 해당 세션으로 전환합니다.',
   'settings.sectionData': '데이터 및 마이그레이션',

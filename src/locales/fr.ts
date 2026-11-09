@@ -93,6 +93,7 @@ const fr: Translation = {
   'rules.notCreated': 'Le fichier n’existe pas encore — il sera créé à l’enregistrement',
   'rules.emptyPlaceholder': 'Le fichier n’existe pas encore — saisissez du texte et enregistrez pour le créer',
   'rules.preview': 'Aperçu',
+  'rules.maximize': 'Agrandir / Restaurer',
   'rules.dirty': 'Modifications non enregistrées — Ctrl+S pour enregistrer',
   'rules.saved': 'Enregistré',
   'rules.readFail': 'Échec de la lecture : {err}',
@@ -140,7 +141,7 @@ const fr: Translation = {
   'settings.sectionNotifications': 'Notifications',
   'settings.notifyOnIdle': 'Notifier à la fin d’une tâche',
   'settings.notifyOnIdleHint':
-    'Affiche une notification système quand une session passe en inactif alors que la fenêtre CodeCockpit n’a pas le focus. Désactivé par défaut.',
+    'Affiche une notification système quand une session passe en inactif après 30 secondes d’activité continue. Désactivé par défaut.',
   'settings.notifyOnFocusSession': 'Aller à la session lors de la notification',
   'settings.notifyOnFocusSessionHint':
     'Au déclenchement de la notification, ramène la fenêtre au premier plan et bascule vers cette session.',

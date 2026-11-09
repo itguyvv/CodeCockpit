@@ -85,6 +85,7 @@ const zhCN: Translation = {
   'rules.notCreated': '文件尚不存在——保存时自动创建',
   'rules.emptyPlaceholder': '文件尚不存在——输入内容后保存即可创建',
   'rules.preview': '预览',
+  'rules.maximize': '最大化 / 还原',
   'rules.dirty': '有未保存的修改——Ctrl+S 保存',
   'rules.saved': '已保存',
   'rules.readFail': '读取失败：{err}',
@@ -131,7 +132,7 @@ const zhCN: Translation = {
   'settings.sectionNotifications': '通知',
   'settings.notifyOnIdle': '任务完成后系统通知',
   'settings.notifyOnIdleHint':
-    '会话转为空闲且 CodeCockpit 窗口不在前台时，弹出系统通知。默认关闭。',
+    '会话持续活动超过 30 秒后转为空闲时，弹出系统通知。默认关闭。',
   'settings.notifyOnFocusSession': '通知时跳转到该会话',
   'settings.notifyOnFocusSessionHint': '通知触发时，把窗口带到前台并切换到该会话。',
   'settings.sectionData': '数据与迁移',

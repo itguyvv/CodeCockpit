@@ -85,6 +85,7 @@ const zhTW: Translation = {
   'rules.notCreated': '檔案尚不存在——儲存時自動建立',
   'rules.emptyPlaceholder': '檔案尚不存在——輸入內容後儲存即可建立',
   'rules.preview': '預覽',
+  'rules.maximize': '最大化 / 還原',
   'rules.dirty': '有未儲存的修改——Ctrl+S 儲存',
   'rules.saved': '已儲存',
   'rules.readFail': '讀取失敗：{err}',
@@ -131,7 +132,7 @@ const zhTW: Translation = {
   'settings.sectionNotifications': '通知',
   'settings.notifyOnIdle': '工作完成後系統通知',
   'settings.notifyOnIdleHint':
-    '工作階段轉為閒置且 CodeCockpit 視窗不在前景時，彈出系統通知。預設關閉。',
+    '工作階段持續活動超過 30 秒後轉為閒置時，彈出系統通知。預設關閉。',
   'settings.notifyOnFocusSession': '通知時跳至該工作階段',
   'settings.notifyOnFocusSessionHint': '通知觸發時，把視窗帶到前景並切換到該工作階段。',
   'settings.sectionData': '資料與遷移',

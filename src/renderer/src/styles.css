@@ -923,6 +923,12 @@ input:focus {
 .rules-modal.with-preview {
   width: min(1100px, 94vw);
 }
+.rules-modal.maximized {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  border-radius: 0;
+}
 
 .rules-head {
   display: flex;

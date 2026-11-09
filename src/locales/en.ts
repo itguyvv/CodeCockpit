@@ -89,6 +89,7 @@ const en = {
   'rules.notCreated': 'File does not exist yet — it is created on save',
   'rules.emptyPlaceholder': 'File does not exist yet — start typing to create it on save',
   'rules.preview': 'Preview',
+  'rules.maximize': 'Maximize / restore',
   'rules.dirty': 'Unsaved changes — Ctrl+S to save',
   'rules.saved': 'Saved',
   'rules.readFail': 'Failed to read: {err}',
@@ -136,7 +137,7 @@ const en = {
   'settings.sectionNotifications': 'Notifications',
   'settings.notifyOnIdle': 'Notify when a task finishes',
   'settings.notifyOnIdleHint':
-    'Shows a system notification when a session goes idle while the CodeCockpit window is not focused. Off by default.',
+    'Shows a system notification when a session goes idle after 30 seconds of continuous activity. Off by default.',
   'settings.notifyOnFocusSession': 'Jump to the session when notifying',
   'settings.notifyOnFocusSessionHint':
     'When the notification fires, raise the window and switch to that session.',

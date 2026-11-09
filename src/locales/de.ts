@@ -91,6 +91,7 @@ const de: Translation = {
   'rules.notCreated': 'Datei existiert noch nicht — wird beim Speichern angelegt',
   'rules.emptyPlaceholder': 'Datei existiert noch nicht — beim Speichern mit Inhalt angelegt',
   'rules.preview': 'Vorschau',
+  'rules.maximize': 'Maximieren / Wiederherstellen',
   'rules.dirty': 'Ungespeicherte Änderungen — Strg+S zum Speichern',
   'rules.saved': 'Gespeichert',
   'rules.readFail': 'Lesen fehlgeschlagen: {err}',
@@ -138,7 +139,7 @@ const de: Translation = {
   'settings.sectionNotifications': 'Benachrichtigungen',
   'settings.notifyOnIdle': 'Bei abgeschlossener Aufgabe benachrichtigen',
   'settings.notifyOnIdleHint':
-    'Zeigt eine Systembenachrichtigung, wenn eine Sitzung inaktiv wird und das CodeCockpit-Fenster nicht im Fokus ist. Standardmäßig aus.',
+    'Zeigt eine Systembenachrichtigung, wenn eine Sitzung nach 30 Sekunden durchgehender Aktivität inaktiv wird. Standardmäßig aus.',
   'settings.notifyOnFocusSession': 'Bei Benachrichtigung zur Sitzung wechseln',
   'settings.notifyOnFocusSessionHint':
     'Bringt bei Auslösen der Benachrichtigung das Fenster nach vorn und wechselt zu dieser Sitzung.',

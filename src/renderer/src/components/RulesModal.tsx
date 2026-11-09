@@ -62,6 +62,7 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
   const [active, setActive] = useState<TabId>(projectCwd ? 'project' : 'global')
   const [files, setFiles] = useState<Partial<Record<TabId, LoadedRule>>>({})
   const [previewOn, setPreviewOn] = useState(true)
+  const [maximized, setMaximized] = useState(false)
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
 
@@ -181,7 +182,7 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
 
   return (
     <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal rules-modal ${previewOn ? 'with-preview' : ''}`}>
+      <div className={`modal rules-modal ${previewOn ? 'with-preview' : ''} ${maximized ? 'maximized' : ''}`}>
         <div className="rules-head">
           <h3>{t('rules.title')}</h3>
           <div className="rules-head-actions">
@@ -191,6 +192,13 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
               title={t('rules.preview')}
             >
               👁 {t('rules.preview')}
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setMaximized((v) => !v)}
+              title={t('rules.maximize')}
+            >
+              {maximized ? '❐' : '▢'}
             </button>
             <button className="icon-btn" onClick={onClose} title={t('common.close')}>
               ✕
@@ -217,7 +225,7 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
                   {file.path}
                   {!file.exists && <span className="rules-new-hint"> · {t('rules.notCreated')}</span>}
                 </div>
-                <div className="rules-editor-host" />
+                <div className="rules-editor-host" ref={hostRef} />
               </div>
               {previewOn && (
                 <div className="md-preview" dangerouslySetInnerHTML={{ __html: previewHtml }} />

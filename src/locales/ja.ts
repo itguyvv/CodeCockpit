@@ -88,6 +88,7 @@ const ja: Translation = {
   'rules.notCreated': 'ファイルはまだ存在しません — 保存時に作成されます',
   'rules.emptyPlaceholder': 'ファイルはまだ存在しません — 入力して保存すると作成されます',
   'rules.preview': 'プレビュー',
+  'rules.maximize': '最大化 / 元に戻す',
   'rules.dirty': '未保存の変更があります — Ctrl+S で保存',
   'rules.saved': '保存しました',
   'rules.readFail': '読み込み失敗：{err}',
@@ -134,7 +135,7 @@ const ja: Translation = {
   'settings.sectionNotifications': '通知',
   'settings.notifyOnIdle': 'タスク完了時に通知する',
   'settings.notifyOnIdleHint':
-    'セッションがアイドルになり、CodeCockpit のウィンドウが前面にないときにシステム通知を表示します。既定はオフです。',
+    'セッションが 30 秒以上活動した後にアイドルになったときにシステム通知を表示します。既定はオフです。',
   'settings.notifyOnFocusSession': '通知時にそのセッションへ移動',
   'settings.notifyOnFocusSessionHint':
     '通知の発火時にウィンドウを前面に出し、そのセッションへ切り替えます。',

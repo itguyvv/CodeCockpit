@@ -109,13 +109,12 @@ const busyTimer = setInterval(() => {
       const prev = busyStates.get(id)
       busyStates.set(id, busy)
       broadcast('pty:busy', { id, busy: ptyActive, bg })
-      // busy → idle while the window is unfocused: system notification (opt-in;
-      // only after 30s of busyness to avoid typing false alarms)
+      // busy → idle: system notification (opt-in; only after 30s of continuous
+      // busyness so typing pauses and short commands don't fire false alarms)
       if (prev === true && !busy) {
         const startedAt = busyStartAt.get(id) ?? 0
-        const focused = BrowserWindow.getAllWindows().some((w) => w.isFocused())
         const prefs = notifyPrefs()
-        if (!focused && now - startedAt > 30_000 && Notification.isSupported() && prefs.notifyOnIdle) {
+        if (now - startedAt > 30_000 && Notification.isSupported() && prefs.notifyOnIdle) {
           const rec = registry.get(id)
           const notification = new Notification({
             title: t('main.notifyTitle'),
