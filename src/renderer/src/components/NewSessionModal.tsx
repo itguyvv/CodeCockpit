@@ -1,8 +1,23 @@
 import { useEffect, useState, type JSX } from 'react'
 import { modesForEngine } from '../types'
-import type { EngineId, EngineInfo, ProviderProfile } from '../api'
+import type { EngineId, EngineInfo, NativeSessionInfo, ProjectEntry, ProviderProfile } from '../api'
 import { useT } from '../i18n'
 import { normalizeCwd } from '../paths'
+
+function basename(p: string): string {
+  const norm = p.replace(/[\\/]+$/, '')
+  const i = Math.max(norm.lastIndexOf('\\'), norm.lastIndexOf('/'))
+  return i >= 0 ? norm.slice(i + 1) : norm
+}
+
+function relativeTime(ts: number): string {
+  const diff = Date.now() - ts
+  if (diff < 60_000) return '<1m'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`
+  if (diff < 30 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d`
+  return new Date(ts).toLocaleDateString()
+}
 
 export interface NewSessionOpts {
   cwd: string
@@ -19,9 +34,20 @@ interface Props {
   isWin: boolean
   onClose: () => void
   onStart: (opts: NewSessionOpts) => void
+  /** Resume a history session of a pinned project (closes the modal) */
+  onResume?: (ns: NativeSessionInfo) => void
+  onPinProject: (cwd: string, pinned: boolean) => void
 }
 
-export default function NewSessionModal({ engines, aliases, isWin, onClose, onStart }: Props): JSX.Element {
+export default function NewSessionModal({
+  engines,
+  aliases,
+  isWin,
+  onClose,
+  onStart,
+  onResume,
+  onPinProject
+}: Props): JSX.Element {
   const t = useT()
   const [cwd, setCwd] = useState('')
   const [mode, setMode] = useState('default')
@@ -31,6 +57,9 @@ export default function NewSessionModal({ engines, aliases, isWin, onClose, onSt
   const [activeByEngine, setActiveByEngine] = useState<Record<string, string>>({})
   const [providerId, setProviderId] = useState('')
   const [recents, setRecents] = useState<string[]>([])
+  const [projects, setProjects] = useState<ProjectEntry[]>([])
+  const [expandedCwd, setExpandedCwd] = useState('')
+  const [projectSessions, setProjectSessions] = useState<Record<string, NativeSessionInfo[]>>({})
   const [err, setErr] = useState('')
 
   useEffect(() => {
@@ -44,15 +73,52 @@ export default function NewSessionModal({ engines, aliases, isWin, onClose, onSt
       setProviders(r.profiles)
       setActiveByEngine(r.activeByEngine)
     })
+    void window.api.projectsLoad().then(setProjects)
   }, [])
 
   const engineProviders = providers.filter((p) => p.engine === engine)
   const activeId = activeByEngine[engine] || 'builtin-default'
 
+  const pinnedProjects = projects.filter((p) => p.pinned).sort((a, b) => b.lastUsedAt - a.lastUsedAt)
+  const currentPinned = cwd.trim()
+    ? projects.find((p) => p.cwd === normalizeCwd(cwd, isWin))?.pinned ?? false
+    : false
+
   const pickEngine = (e: EngineId): void => {
     setEngine(e)
     setProviderId('')
     setMode('default')
+    setExpandedCwd('')
+    setProjectSessions({})
+  }
+
+  const toggleProject = (p: ProjectEntry): void => {
+    if (expandedCwd === p.cwd) {
+      setExpandedCwd('')
+      return
+    }
+    setExpandedCwd(p.cwd)
+    void window.api
+      .listNativeSessions(engine)
+      .then((list) =>
+        setProjectSessions((prev) => ({
+          ...prev,
+          [p.cwd]: list.filter((s) => normalizeCwd(s.cwd, isWin) === p.cwd)
+        }))
+      )
+  }
+
+  const unpin = (key: string): void => {
+    void window.api.projectsSetPinned(key, false).then((list) => {
+      setProjects(list)
+      if (expandedCwd === key) setExpandedCwd('')
+    })
+  }
+
+  const pinCurrent = (): void => {
+    const dir = cwd.trim()
+    if (!dir) return
+    void window.api.projectsSetPinned(dir, !currentPinned).then(setProjects)
   }
 
   const browse = (): void => {
@@ -116,7 +182,70 @@ export default function NewSessionModal({ engines, aliases, isWin, onClose, onSt
               onKeyDown={(e) => e.key === 'Enter' && submit()}
             />
             <button onClick={browse}>{t('new.browse')}</button>
+            <button
+              className={`star-btn ${currentPinned ? 'on' : ''}`}
+              onClick={pinCurrent}
+              disabled={!cwd.trim()}
+              title={currentPinned ? t('ctx.unpinProject') : t('ctx.pinProject')}
+            >
+              {currentPinned ? '★' : '☆'}
+            </button>
           </div>
+          {pinnedProjects.length > 0 && (
+            <div className="projects">
+              <div className="projects-head">{t('new.projectsTitle')}</div>
+              {pinnedProjects.map((p) => {
+                const alias = aliases[p.cwd] ?? ''
+                const name = alias || basename(p.path)
+                return (
+                  <div key={p.cwd} className="project-wrap">
+                    <div className={`project-row ${normalizeCwd(cwd, isWin) === p.cwd ? 'sel' : ''}`}>
+                      <button
+                        className="project-expand"
+                        onClick={() => toggleProject(p)}
+                        title={t('new.projectHistory')}
+                      >
+                        {expandedCwd === p.cwd ? '▾' : '▸'}
+                      </button>
+                      <button className="project-main" onClick={() => setCwd(p.path)} title={p.path}>
+                        {name}
+                        {alias && <span className="project-orig">{basename(p.path)}</span>}
+                      </button>
+                      <button
+                        className="project-unpin"
+                        onClick={() => unpin(p.cwd)}
+                        title={t('ctx.unpinProject')}
+                      >
+                        ★
+                      </button>
+                    </div>
+                    {expandedCwd === p.cwd && (
+                      <div className="project-sessions">
+                        {(projectSessions[p.cwd] ?? []).map((ns) => (
+                          <button
+                            key={ns.sessionId}
+                            className="project-session"
+                            onClick={() => {
+                              onResume?.(ns)
+                              onClose()
+                            }}
+                          >
+                            <span className="ps-title">
+                              {ns.title} · {ns.sessionId.slice(0, 8)}
+                            </span>
+                            <span className="ps-time">{relativeTime(ns.lastTs)}</span>
+                          </button>
+                        ))}
+                        {(projectSessions[p.cwd] ?? []).length === 0 && (
+                          <div className="project-none">{t('new.projectNoSessions')}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
           {recents.length > 0 && (
             <div className="recents">
               {recents.map((r) => {

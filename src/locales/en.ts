@@ -75,6 +75,8 @@ const en = {
   'ctx.delete': '🗑 Delete session…',
   'ctx.setAlias': '🏷 Set project alias…',
   'ctx.clearAlias': '🏷 Clear project alias',
+  'ctx.pinProject': '📌 Pin project',
+  'ctx.unpinProject': '📌 Unpin project',
   'alias.title': '🏷 Project alias',
   'alias.placeholder': 'Display note for this directory (blank = none)',
   'rename.title': '✏ Rename session',
@@ -83,6 +85,9 @@ const en = {
   'new.cwd': 'Working directory',
   'new.cwdPlaceholder': 'claude will run in this directory',
   'new.browse': 'Browse…',
+  'new.projectsTitle': 'Projects',
+  'new.projectHistory': 'Show history sessions of this project',
+  'new.projectNoSessions': 'No sessions for this project yet',
   'new.mode': 'Permission mode',
   'new.bypassWarn':
     '⚠ Bypass permissions: skips all permission checks. Claude can run any command directly.',

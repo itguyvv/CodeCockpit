@@ -119,6 +119,14 @@ const api = {
   aliasesLoad: (): Promise<Record<string, string>> => ipcRenderer.invoke('aliases:load'),
   aliasesSet: (cwd: string, alias: string): Promise<Record<string, string>> =>
     ipcRenderer.invoke('aliases:set', { cwd, alias }),
+  projectsLoad: (): Promise<
+    Array<{ cwd: string; path: string; addedAt: number; lastUsedAt: number; pinned: boolean }>
+  > => ipcRenderer.invoke('projects:load'),
+  projectsSetPinned: (
+    cwd: string,
+    pinned: boolean
+  ): Promise<Array<{ cwd: string; path: string; addedAt: number; lastUsedAt: number; pinned: boolean }>> =>
+    ipcRenderer.invoke('projects:setPinned', { cwd, pinned }),
   providersList: (): Promise<{
     profiles: Array<{
       id: string

@@ -77,6 +77,8 @@ const ru: Translation = {
   'ctx.delete': '🗑 Удалить сессию…',
   'ctx.setAlias': '🏷 Задать псевдоним проекта…',
   'ctx.clearAlias': '🏷 Убрать псевдоним проекта',
+  'ctx.pinProject': '📌 Закрепить проект',
+  'ctx.unpinProject': '📌 Открепить проект',
   'alias.title': '🏷 Псевдоним проекта',
   'alias.placeholder': 'Отображаемое имя для этого каталога (пусто = нет)',
   'rename.title': '✏ Переименовать сессию',
@@ -85,6 +87,9 @@ const ru: Translation = {
   'new.cwd': 'Рабочий каталог',
   'new.cwdPlaceholder': 'claude будет запущен в этом каталоге',
   'new.browse': 'Обзор…',
+  'new.projectsTitle': 'Проекты',
+  'new.projectHistory': 'Показать прошлые сессии этого проекта',
+  'new.projectNoSessions': 'Для этого проекта пока нет сессий',
   'new.mode': 'Режим разрешений',
   'new.bypassWarn':
     '⚠ Разрешить всё: пропускает все проверки разрешений. Claude сможет выполнять любые команды напрямую.',

@@ -34,3 +34,69 @@ export function setAlias(cwd: string, alias: string): Record<string, string> {
   fs.writeFileSync(dataFile('aliases.json'), JSON.stringify(aliases, null, 2), 'utf-8')
   return aliases
 }
+
+export interface ProjectEntry {
+  /** Normalized key (case-folded on Windows) */
+  cwd: string
+  /** Original spelling as last used (what the UI fills back into inputs) */
+  path: string
+  addedAt: number
+  lastUsedAt: number
+  pinned: boolean
+}
+
+export function loadProjects(): ProjectEntry[] {
+  try {
+    const raw = JSON.parse(fs.readFileSync(dataFile('projects.json'), 'utf-8')) as { projects?: unknown }
+    const arr = Array.isArray(raw.projects) ? raw.projects : []
+    return arr.filter(
+      (p): p is ProjectEntry =>
+        !!p && typeof (p as ProjectEntry).cwd === 'string' && typeof (p as ProjectEntry).path === 'string'
+    )
+  } catch {
+    return []
+  }
+}
+
+function saveProjects(list: ProjectEntry[]): void {
+  fs.writeFileSync(dataFile('projects.json'), JSON.stringify({ projects: list }, null, 2), 'utf-8')
+}
+
+/** Register/refresh a project when a session is created (keeps its pinned state) */
+export function touchProject(cwd: string): ProjectEntry[] {
+  const key = normalizeCwd(cwd)
+  if (!key) return loadProjects()
+  const list = loadProjects()
+  const now = Date.now()
+  const found = list.find((p) => p.cwd === key)
+  if (found) {
+    found.path = cwd.trim().replace(/[\\/]+$/, '')
+    found.lastUsedAt = now
+  } else {
+    list.push({ cwd: key, path: cwd.trim().replace(/[\\/]+$/, ''), addedAt: now, lastUsedAt: now, pinned: false })
+  }
+  saveProjects(list)
+  return list
+}
+
+export function setProjectPinned(cwd: string, pinned: boolean): ProjectEntry[] {
+  const key = normalizeCwd(cwd)
+  if (!key) return loadProjects()
+  const list = loadProjects()
+  const found = list.find((p) => p.cwd === key)
+  if (found) {
+    found.pinned = pinned
+  } else {
+    // Pinning a directory that never had a session registers it
+    if (!pinned) return list
+    list.push({
+      cwd: key,
+      path: cwd.trim().replace(/[\\/]+$/, ''),
+      addedAt: Date.now(),
+      lastUsedAt: Date.now(),
+      pinned: true
+    })
+  }
+  saveProjects(list)
+  return list
+}

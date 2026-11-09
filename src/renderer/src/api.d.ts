@@ -96,6 +96,16 @@ export interface ProviderListResult {
   configFiles: { claude: string; opencode: string }
 }
 
+export interface ProjectEntry {
+  /** Normalized key (case-folded on Windows) */
+  cwd: string
+  /** Original spelling as last used */
+  path: string
+  addedAt: number
+  lastUsedAt: number
+  pinned: boolean
+}
+
 export interface AppSettings {
   lastCwd?: string
   recentCwds?: string[]
@@ -141,6 +151,8 @@ export interface WorkbenchApi {
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }) => Promise<boolean>
   aliasesLoad: () => Promise<Record<string, string>>
   aliasesSet: (cwd: string, alias: string) => Promise<Record<string, string>>
+  projectsLoad: () => Promise<ProjectEntry[]>
+  projectsSetPinned: (cwd: string, pinned: boolean) => Promise<ProjectEntry[]>
   providersList: () => Promise<ProviderListResult>
   providersSave: (profile: ProviderProfile) => Promise<ProviderListResult>
   providersTest: (profile: Partial<ProviderProfile> & Pick<ProviderProfile, 'engine' | 'baseUrl' | 'apiKey'>) => Promise<ProviderTestResult>

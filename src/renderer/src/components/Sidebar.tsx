@@ -66,6 +66,10 @@ interface Props {
   onRename: (claudeSessionId: string, title: string) => void
   /** Set (or clear, when blank) the display note of a history group's directory */
   onSetAlias: (cwd: string, alias: string) => void
+  /** Pin/unpin a project directory for the new-session project list */
+  onPinProject: (cwd: string, pinned: boolean) => void
+  /** Normalized cwd → pinned state (for the group menu label) */
+  pinnedProjects: Record<string, boolean>
   onDelete: (claudeSessionId: string) => void
   onRemoveActive: (id: string) => void
   onReorderActive: (from: number, to: number) => void
@@ -88,6 +92,8 @@ export default function Sidebar({
   onResume,
   onRename,
   onSetAlias,
+  onPinProject,
+  pinnedProjects,
   onDelete,
   onRemoveActive,
   onReorderActive,
@@ -514,6 +520,14 @@ export default function Sidebar({
                   {t('ctx.clearAlias')}
                 </button>
               )}
+              <button
+                onClick={() => {
+                  onPinProject(menu.cwd, !pinnedProjects[normalizeCwd(menu.cwd, isWin)])
+                  setMenu(null)
+                }}
+              >
+                {pinnedProjects[normalizeCwd(menu.cwd, isWin)] ? t('ctx.unpinProject') : t('ctx.pinProject')}
+              </button>
             </>
           ) : (
             <button

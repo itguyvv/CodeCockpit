@@ -764,6 +764,136 @@ input:focus {
   font-family: Consolas, monospace;
 }
 
+/* Pinned-project list in the new-session modal */
+.star-btn {
+  flex: none;
+  min-width: 34px;
+}
+.star-btn.on {
+  color: #f5c542;
+}
+
+.projects {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.projects-head {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  padding: 2px 4px 6px;
+}
+
+.project-wrap + .project-wrap {
+  border-top: 1px solid var(--border);
+}
+
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 4px;
+}
+.project-row.sel {
+  background: rgba(76, 194, 255, 0.1);
+}
+
+.project-expand {
+  border: none;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 11px;
+  flex: none;
+}
+.project-expand:hover {
+  color: var(--fg);
+}
+
+.project-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  padding: 5px 4px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-main:hover {
+  color: var(--accent, #4cc2ff);
+}
+
+.project-orig {
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  margin-left: 6px;
+}
+
+.project-unpin {
+  border: none;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  flex: none;
+}
+.project-unpin:hover {
+  color: #f5c542;
+}
+
+.project-sessions {
+  padding: 0 4px 6px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-session {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  text-align: left;
+}
+.project-session:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.project-session .ps-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-session .ps-time {
+  color: var(--fg-dim);
+  flex: none;
+  font-size: 10.5px;
+}
+
+.project-none {
+  color: var(--fg-dim);
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
 .recents {
   display: flex;
   flex-wrap: wrap;

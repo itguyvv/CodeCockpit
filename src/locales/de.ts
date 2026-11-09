@@ -77,6 +77,8 @@ const de: Translation = {
   'ctx.delete': '🗑 Sitzung löschen…',
   'ctx.setAlias': '🏷 Projekt-Alias festlegen…',
   'ctx.clearAlias': '🏷 Projekt-Alias entfernen',
+  'ctx.pinProject': '📌 Projekt anheften',
+  'ctx.unpinProject': '📌 Projekt lösen',
   'alias.title': '🏷 Projekt-Alias',
   'alias.placeholder': 'Anzeigename für dieses Verzeichnis (leer = keiner)',
   'rename.title': '✏ Sitzung umbenennen',
@@ -85,6 +87,9 @@ const de: Translation = {
   'new.cwd': 'Arbeitsverzeichnis',
   'new.cwdPlaceholder': 'claude wird in diesem Verzeichnis ausgeführt',
   'new.browse': 'Durchsuchen…',
+  'new.projectsTitle': 'Projekte',
+  'new.projectHistory': 'Frühere Sitzungen dieses Projekts anzeigen',
+  'new.projectNoSessions': 'Für dieses Projekt gibt es noch keine Sitzungen',
   'new.mode': 'Berechtigungsmodus',
   'new.bypassWarn':
     '⚠ Alle erlauben: überspringt alle Berechtigungsprüfungen. Claude kann beliebige Befehle direkt ausführen.',

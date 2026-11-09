@@ -78,6 +78,8 @@ const es: Translation = {
   'ctx.delete': '🗑 Eliminar sesión…',
   'ctx.setAlias': '🏷 Fijar alias del proyecto…',
   'ctx.clearAlias': '🏷 Quitar alias del proyecto',
+  'ctx.pinProject': '📌 Fijar proyecto',
+  'ctx.unpinProject': '📌 Quitarlo de fijados',
   'alias.title': '🏷 Alias del proyecto',
   'alias.placeholder': 'Nombre visible para este directorio (vacío = ninguno)',
   'rename.title': '✏ Renombrar sesión',
@@ -86,6 +88,9 @@ const es: Translation = {
   'new.cwd': 'Directorio de trabajo',
   'new.cwdPlaceholder': 'claude se ejecutará en este directorio',
   'new.browse': 'Examinar…',
+  'new.projectsTitle': 'Proyectos',
+  'new.projectHistory': 'Ver sesiones anteriores de este proyecto',
+  'new.projectNoSessions': 'Aún no hay sesiones para este proyecto',
   'new.mode': 'Modo de permisos',
   'new.bypassWarn':
     '⚠ Permitir todo: omite todas las comprobaciones de permisos. Claude puede ejecutar cualquier comando directamente.',

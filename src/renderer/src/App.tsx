@@ -31,6 +31,7 @@ function AppInner(): JSX.Element {
   const [toast, setToast] = useState('')
   const [customTitles, setCustomTitles] = useState<Record<string, string>>({})
   const [aliases, setAliases] = useState<Record<string, string>>({})
+  const [projectPins, setProjectPins] = useState<Record<string, boolean>>({})
   const [historyVer, setHistoryVer] = useState(0)
   const [wsLoaded, setWsLoaded] = useState(false)
   const [engineTab, setEngineTab] = useState<EngineId>('claude')
@@ -74,6 +75,9 @@ function AppInner(): JSX.Element {
     })
     void window.api.getTitles().then(setCustomTitles)
     void window.api.aliasesLoad().then(setAliases)
+    void window.api.projectsLoad().then((list) => {
+      setProjectPins(Object.fromEntries(list.map((p) => [p.cwd, p.pinned])))
+    })
     // Restore the active session list from the previous window (processes are gone; a click relaunches with --resume)
     void window.api
       .loadWorkspace()
@@ -309,6 +313,13 @@ function AppInner(): JSX.Element {
     void window.api.aliasesSet(cwd, alias).then(setAliases)
   }, [])
 
+  // Pinned-project list for the new-session modal
+  const handlePinProject = useCallback((cwd: string, pinned: boolean) => {
+    void window.api.projectsSetPinned(cwd, pinned).then((list) => {
+      setProjectPins(Object.fromEntries(list.map((p) => [p.cwd, p.pinned])))
+    })
+  }, [])
+
   // Rename (active sessions by internal id; history sessions by claudeSessionId) — same as /rename, persisted to titles.json
   const handleRename = useCallback(
     (key: string, title: string) => {
@@ -441,10 +452,12 @@ function AppInner(): JSX.Element {
             onResume={handleResume}
             onRename={handleRename}
             onSetAlias={handleSetAlias}
+            onPinProject={handlePinProject}
             onDelete={handleDelete}
             onRemoveActive={handleRemoveActive}
             onReorderActive={handleReorderActive}
             onChangeDir={handleChangeDir}
+            pinnedProjects={projectPins}
             onToggle={() => setSidebarOpen(false)}
           />
         )}
@@ -581,6 +594,8 @@ function AppInner(): JSX.Element {
           isWin={appInfo?.platform === 'win32'}
           onClose={() => setShowNew(false)}
           onStart={handleNew}
+          onResume={handleResume}
+          onPinProject={handlePinProject}
         />
       )}
 
