@@ -531,16 +531,16 @@ export default function SettingsModal({
             <div className="settings-section">
               <div className="settings-title">{t('settings.sectionClaude')}</div>
               <div className="settings-actions">
-                <button onClick={() => open(home + '\\.claude', t('label.claudeFolder'))}>
+                <button onClick={() => open(home + '/.claude', t('label.claudeFolder'))}>
                   {t('settings.openClaudeFolder')}
                 </button>
-                <button onClick={() => open(home + '\\.claude\\CLAUDE.md', t('label.globalMd'))}>
+                <button onClick={() => open(home + '/.claude/CLAUDE.md', t('label.globalMd'))}>
                   {t('settings.openGlobalMd')}
                 </button>
-                <button onClick={() => open(home + '\\.claude\\skills', t('label.skills'))}>
+                <button onClick={() => open(home + '/.claude/skills', t('label.skills'))}>
                   {t('settings.openSkills')}
                 </button>
-                <button onClick={() => open(home + '\\.claude\\settings.json', t('label.claudeSettings'))}>
+                <button onClick={() => open(home + '/.claude/settings.json', t('label.claudeSettings'))}>
                   {t('settings.openClaudeSettings')}
                 </button>
               </div>

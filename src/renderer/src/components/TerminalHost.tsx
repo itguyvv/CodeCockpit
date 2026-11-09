@@ -27,7 +27,9 @@ export interface TerminalHandle {
 
 function createTerm(scrollback: number): { term: Terminal; fit: FitAddon } {
   const term = new Terminal({
-    fontFamily: '"Cascadia Mono", Consolas, "Microsoft YaHei Mono", "Noto Sans Mono CJK SC", monospace',
+    // mac fonts first; they simply don't resolve on Windows/Linux and the stack falls through
+    fontFamily:
+      'Menlo, "SF Mono", Monaco, "Cascadia Mono", Consolas, "Microsoft YaHei Mono", "Noto Sans Mono CJK SC", monospace',
     fontSize: 14,
     scrollback,
     cursorBlink: true,
@@ -76,6 +78,9 @@ function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) =
     else entry.term.input('\x1bv')
   })
 }
+
+/** macOS uses Cmd where Windows/Linux use Ctrl for terminal copy/paste shortcuts */
+const IS_MAC = /Mac/i.test(navigator.platform)
 
 const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: (id: string) => EngineId }>((props, ref) => {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -126,10 +131,11 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       entry.term.attachCustomKeyEventHandler((evt) => {
         if (evt.type !== 'keydown') return true
         const key = evt.key.toLowerCase()
+        const mod = evt.ctrlKey || (IS_MAC && evt.metaKey)
         // Every handled branch must preventDefault: returning false only stops xterm's own
         // handling — without it the browser still fires its native paste/copy on the hidden
         // helper textarea, which would duplicate what we do here
-        if (evt.ctrlKey && evt.shiftKey && key === 'c') {
+        if (mod && evt.shiftKey && key === 'c') {
           if (entry.term.hasSelection()) {
             copyClip(entry.term.getSelection())
             entry.term.clearSelection()
@@ -137,18 +143,18 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
           evt.preventDefault()
           return false
         }
-        if (evt.ctrlKey && evt.shiftKey && key === 'v') {
+        if (mod && evt.shiftKey && key === 'v') {
           evt.preventDefault()
           pasteText()
           return false
         }
-        if (evt.ctrlKey && !evt.shiftKey && key === 'c' && entry.term.hasSelection()) {
+        if (mod && !evt.shiftKey && key === 'c' && entry.term.hasSelection()) {
           evt.preventDefault()
           copyClip(entry.term.getSelection())
           entry.term.clearSelection()
           return false
         }
-        if (evt.ctrlKey && !evt.shiftKey && key === 'v') {
+        if (mod && !evt.shiftKey && key === 'v') {
           evt.preventDefault()
           void clipboardHasImage().then((has) => {
             if (has) {
@@ -167,7 +173,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
           })
           return false
         }
-        if (evt.ctrlKey && evt.shiftKey && key === 'a') {
+        if (mod && evt.shiftKey && key === 'a') {
           evt.preventDefault()
           entry.term.selectAll()
           return false

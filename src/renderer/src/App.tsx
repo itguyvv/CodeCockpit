@@ -533,15 +533,20 @@ function AppInner(): JSX.Element {
               : t('statusbar.opencodeMissing')}
           </span>
         )}
-        {engineTab === 'claude' && appInfo && !appInfo.gitBash && (enginesOn.claude ?? true) && (
-          <span className="status-error" title={t('statusbar.gitBashMissingTip')}>
-            ⚠ {t('statusbar.gitBashMissing')}
-          </span>
-        )}
+        {engineTab === 'claude' &&
+          appInfo?.platform === 'win32' &&
+          !appInfo.gitBash &&
+          (enginesOn.claude ?? true) && (
+            <span className="status-error" title={t('statusbar.gitBashMissingTip')}>
+              ⚠ {t('statusbar.gitBashMissing')}
+            </span>
+          )}
         <span title={appInfo?.dataDir}>{t('statusbar.data', { dir: appInfo?.dataDir ?? '' })}</span>
         <span>{t('statusbar.sessions', { n: sessions.length })}</span>
         {active && <span>{t('statusbar.mode', { mode: modeLabel(active.mode, t) })}</span>}
-        <span className="status-hint">{t('statusbar.hint')}</span>
+        <span className="status-hint">
+          {appInfo?.platform === 'darwin' ? t('statusbar.hint').replace(/Ctrl\+/g, 'Cmd+') : t('statusbar.hint')}
+        </span>
         {error && <span className="status-error">{error}</span>}
       </div>
 
