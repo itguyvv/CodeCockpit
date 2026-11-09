@@ -16,8 +16,8 @@ Workflow: [.github/workflows/ci.yml](../.github/workflows/ci.yml). A tag push (`
 | --- | --- | --- |
 | `CodeCockpit-<v>-win-x64.zip` | windows-latest | Portable folder zip, produced by `scripts/rename-dist.cjs` |
 | `CodeCockpit-<v>-win-arm64.zip` | windows-latest | Cross-arch: the win32-arm64 node-pty prebuild is force-installed before packaging |
-| `CodeCockpit-<v>-mac-arm64.zip` | macos-latest | Unsigned; native arch |
-| `CodeCockpit-<v>-mac-x64.zip` | macos-latest | Cross-arch: the darwin-x64 node-pty prebuild is force-installed |
+| `CodeCockpit-<v>-mac-arm64.zip` | ubuntu-latest | Unsigned; darwin-arm64 node-pty prebuild force-installed. Built on Linux because the GitHub macOS runner pool is unreliable (jobs queue until cancelled) |
+| `CodeCockpit-<v>-mac-x64.zip` | ubuntu-latest | Unsigned; cross-arch: both darwin node-pty prebuilds are force-installed |
 | `CodeCockpit-<v>-linux-x86_64.AppImage` | ubuntu-latest | |
 | `CodeCockpit-<v>-linux-x86_64.deb` | ubuntu-latest | |
 | `CodeCockpit-<v>-linux-x86_64.rpm` | ubuntu-latest | |
