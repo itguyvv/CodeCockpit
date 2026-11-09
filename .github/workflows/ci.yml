@@ -71,8 +71,17 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: npm i --no-save --force @lydell/node-pty-darwin-x64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
 
+      # electron-builder pulls its packaging tooling from GitHub releases mid-build and
+      # those downloads intermittently fail with 504; retry the whole step a few times
       - name: Package
-        run: ${{ matrix.package-cmd }}
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if ${{ matrix.package-cmd }}; then exit 0; fi
+            echo "::warning::Package attempt $attempt failed, retrying in 30s"
+            sleep 30
+          done
+          exit 1
 
       - name: Smoke test (node-pty prebuild unpacked)
         shell: bash
