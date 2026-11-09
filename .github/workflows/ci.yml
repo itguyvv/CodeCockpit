@@ -109,7 +109,8 @@ jobs:
           case "${{ matrix.os }}" in
             windows-latest)
               find dist/CodeCockpit/resources/app.asar.unpacked -name '*.node' | grep -q node-pty-win32-x64
-              tar -tf dist/*-win-arm64.zip | grep -q node-pty-win32-arm64
+              # GNU tar from Git-bash cannot read zip; the runner's bsdtar can
+              /c/Windows/System32/tar.exe -tf dist/*-win-arm64.zip | grep -q node-pty-win32-arm64
               ;;
             macos-latest)
               unzip -l dist/*-mac-arm64.zip | grep -q node-pty-darwin-arm64
