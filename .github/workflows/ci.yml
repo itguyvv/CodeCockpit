@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -64,6 +65,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Artifact names embed the package.json version; on a release tag, sync it so
+      # the produced files carry the tag's version (v1.2.3 → 1.2.3)
+      - name: Sync version with tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+
       # npm ci installs only the current platform's node-pty prebuild, but the mac leg
       # packages x64 and arm64 zips in one run. node-pty ships N-API prebuilds
       # (ABI-stable), so the extra prebuild needs no rebuild step.
@@ -113,3 +120,27 @@ jobs:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.paths }}
           if-no-files-found: error
+
+  release:
+    # Tag pushes (v*) produce a DRAFT release — invisible to everyone else until the
+    # maintainer reviews the assets on GitHub and clicks Publish. Deleting the tag and
+    # pushing it again rebuilds and overwrites the draft's files.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Attach artifacts to draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/*.zip
+            artifacts/*.AppImage
