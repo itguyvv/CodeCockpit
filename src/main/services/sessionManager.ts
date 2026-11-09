@@ -114,7 +114,12 @@ const busyTimer = setInterval(() => {
       if (prev === true && !busy) {
         const startedAt = busyStartAt.get(id) ?? 0
         const prefs = notifyPrefs()
-        if (now - startedAt > 5_000 && Notification.isSupported() && prefs.notifyOnIdle) {
+        if (
+          now - startedAt > 5_000 &&
+          !notifySuppressed.has(id) &&
+          Notification.isSupported() &&
+          prefs.notifyOnIdle
+        ) {
           const rec = registry.get(id)
           const notification = new Notification({
             title: t('main.notifyTitle'),
@@ -126,6 +131,9 @@ const busyTimer = setInterval(() => {
           })
           notification.on('click', () => presentWindow(id))
           notification.show()
+          // One notification per user request: re-armed by the next real input (writeInput).
+          // Without this, the auto-jump's attach/resize redraws read as new output and re-notify.
+          notifySuppressed.add(id)
           // Opt-in: at notification time also surface the window and switch to that session
           if (prefs.notifyOnFocusSession) presentWindow(id)
         }
@@ -139,6 +147,8 @@ const busyTimer = setInterval(() => {
 const statusBySession = new Map<string, SessionStatus>()
 const dirtyStatus = new Set<string>()
 const busyStartAt = new Map<string, number>()
+/** Sessions that already fired their idle notification; cleared on user input */
+const notifySuppressed = new Set<string>()
 
 const statusTimer = setInterval(() => {
   if (dirtyStatus.size === 0) return
@@ -345,6 +355,7 @@ export function writeInput(id: string, data: string): void {
   const prev = lastInputAt.get(id)
   if (prev && prev.data === data && data.length > 8 && now - prev.at < 150) logDupInput(id, data)
   lastInputAt.set(id, { data, at: now })
+  notifySuppressed.delete(id)
   live.pty.write(data)
 }
 
