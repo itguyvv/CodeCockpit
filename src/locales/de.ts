@@ -139,7 +139,7 @@ const de: Translation = {
   'settings.sectionNotifications': 'Benachrichtigungen',
   'settings.notifyOnIdle': 'Bei abgeschlossener Aufgabe benachrichtigen',
   'settings.notifyOnIdleHint':
-    'Zeigt eine Systembenachrichtigung, wenn eine Sitzung nach 30 Sekunden durchgehender Aktivität inaktiv wird. Standardmäßig aus.',
+    'Zeigt eine Systembenachrichtigung, wenn eine Sitzung nach 5 Sekunden durchgehender Aktivität inaktiv wird. Standardmäßig aus.',
   'settings.notifyOnFocusSession': 'Bei Benachrichtigung zur Sitzung wechseln',
   'settings.notifyOnFocusSessionHint':
     'Bringt bei Auslösen der Benachrichtigung das Fenster nach vorn und wechselt zu dieser Sitzung.',

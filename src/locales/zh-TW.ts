@@ -132,7 +132,7 @@ const zhTW: Translation = {
   'settings.sectionNotifications': '通知',
   'settings.notifyOnIdle': '工作完成後系統通知',
   'settings.notifyOnIdleHint':
-    '工作階段持續活動超過 30 秒後轉為閒置時，彈出系統通知。預設關閉。',
+    '工作階段持續活動超過 5 秒後轉為閒置時，彈出系統通知。預設關閉。',
   'settings.notifyOnFocusSession': '通知時跳至該工作階段',
   'settings.notifyOnFocusSessionHint': '通知觸發時，把視窗帶到前景並切換到該工作階段。',
   'settings.sectionData': '資料與遷移',

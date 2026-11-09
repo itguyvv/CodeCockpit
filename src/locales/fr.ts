@@ -141,7 +141,7 @@ const fr: Translation = {
   'settings.sectionNotifications': 'Notifications',
   'settings.notifyOnIdle': 'Notifier à la fin d’une tâche',
   'settings.notifyOnIdleHint':
-    'Affiche une notification système quand une session passe en inactif après 30 secondes d’activité continue. Désactivé par défaut.',
+    'Affiche une notification système quand une session passe en inactif après 5 secondes d’activité continue. Désactivé par défaut.',
   'settings.notifyOnFocusSession': 'Aller à la session lors de la notification',
   'settings.notifyOnFocusSessionHint':
     'Au déclenchement de la notification, ramène la fenêtre au premier plan et bascule vers cette session.',

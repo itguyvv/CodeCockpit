@@ -140,7 +140,7 @@ const es: Translation = {
   'settings.sectionNotifications': 'Notificaciones',
   'settings.notifyOnIdle': 'Avisar al terminar una tarea',
   'settings.notifyOnIdleHint':
-    'Muestra una notificación del sistema cuando una sesión queda inactiva tras 30 segundos de actividad continua. Desactivado por defecto.',
+    'Muestra una notificación del sistema cuando una sesión queda inactiva tras 5 segundos de actividad continua. Desactivado por defecto.',
   'settings.notifyOnFocusSession': 'Saltar a la sesión al notificar',
   'settings.notifyOnFocusSessionHint':
     'Cuando salta la notificación, trae la ventana al frente y cambia a esa sesión.',

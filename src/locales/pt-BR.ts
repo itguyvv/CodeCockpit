@@ -140,7 +140,7 @@ const ptBR: Translation = {
   'settings.sectionNotifications': 'Notificações',
   'settings.notifyOnIdle': 'Avisar ao concluir uma tarefa',
   'settings.notifyOnIdleHint':
-    'Mostra uma notificação do sistema quando uma sessão fica ociosa após 30 segundos de atividade contínua. Desativado por padrão.',
+    'Mostra uma notificação do sistema quando uma sessão fica ociosa após 5 segundos de atividade contínua. Desativado por padrão.',
   'settings.notifyOnFocusSession': 'Ir para a sessão ao notificar',
   'settings.notifyOnFocusSessionHint':
     'Quando a notificação é disparada, traz a janela para a frente e muda para essa sessão.',

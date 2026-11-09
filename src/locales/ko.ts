@@ -134,7 +134,7 @@ const ko: Translation = {
   'settings.sectionNotifications': '알림',
   'settings.notifyOnIdle': '작업 완료 시 알림',
   'settings.notifyOnIdleHint':
-    '세션이 30초 이상 활동한 후 유휴 상태가 되면 시스템 알림을 표시합니다. 기본값은 꺼짐입니다.',
+    '세션이 5초 이상 활동한 후 유휴 상태가 되면 시스템 알림을 표시합니다. 기본값은 꺼짐입니다.',
   'settings.notifyOnFocusSession': '알림 시 해당 세션으로 이동',
   'settings.notifyOnFocusSessionHint': '알림이 발생하면 창을 앞으로 가져와 해당 세션으로 전환합니다.',
   'settings.sectionData': '데이터 및 마이그레이션',

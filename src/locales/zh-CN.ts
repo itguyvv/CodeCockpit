@@ -132,7 +132,7 @@ const zhCN: Translation = {
   'settings.sectionNotifications': '通知',
   'settings.notifyOnIdle': '任务完成后系统通知',
   'settings.notifyOnIdleHint':
-    '会话持续活动超过 30 秒后转为空闲时，弹出系统通知。默认关闭。',
+    '会话持续活动超过 5 秒后转为空闲时，弹出系统通知。默认关闭。',
   'settings.notifyOnFocusSession': '通知时跳转到该会话',
   'settings.notifyOnFocusSessionHint': '通知触发时，把窗口带到前台并切换到该会话。',
   'settings.sectionData': '数据与迁移',

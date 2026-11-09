@@ -135,7 +135,7 @@ const ja: Translation = {
   'settings.sectionNotifications': '通知',
   'settings.notifyOnIdle': 'タスク完了時に通知する',
   'settings.notifyOnIdleHint':
-    'セッションが 30 秒以上活動した後にアイドルになったときにシステム通知を表示します。既定はオフです。',
+    'セッションが 5 秒以上活動した後にアイドルになったときにシステム通知を表示します。既定はオフです。',
   'settings.notifyOnFocusSession': '通知時にそのセッションへ移動',
   'settings.notifyOnFocusSessionHint':
     '通知の発火時にウィンドウを前面に出し、そのセッションへ切り替えます。',

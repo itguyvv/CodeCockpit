@@ -137,7 +137,7 @@ const en = {
   'settings.sectionNotifications': 'Notifications',
   'settings.notifyOnIdle': 'Notify when a task finishes',
   'settings.notifyOnIdleHint':
-    'Shows a system notification when a session goes idle after 30 seconds of continuous activity. Off by default.',
+    'Shows a system notification when a session goes idle after 5 seconds of continuous activity. Off by default.',
   'settings.notifyOnFocusSession': 'Jump to the session when notifying',
   'settings.notifyOnFocusSessionHint':
     'When the notification fires, raise the window and switch to that session.',
