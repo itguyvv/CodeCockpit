@@ -39,8 +39,9 @@ jobs:
         include:
           - os: windows-latest
             package-cmd: npm run dist
-            artifact: CodeCockpit-win-x64
-            paths: dist/*.zip
+            artifact: CodeCockpit-win
+            paths: |
+              dist/*.zip
           - os: macos-latest
             package-cmd: npm run dist:mac
             artifact: CodeCockpit-mac
@@ -48,11 +49,17 @@ jobs:
           - os: ubuntu-latest
             package-cmd: npm run dist:linux -- --x64
             artifact: CodeCockpit-linux-x64
-            paths: dist/*.AppImage
+            paths: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/*.rpm
           - os: ubuntu-24.04-arm
             package-cmd: npm run dist:linux -- --arm64
             artifact: CodeCockpit-linux-arm64
-            paths: dist/*.AppImage
+            paths: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/*.rpm
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -72,12 +79,16 @@ jobs:
         shell: bash
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
 
-      # npm ci installs only the current platform's node-pty prebuild, but the mac leg
-      # packages x64 and arm64 zips in one run. node-pty ships N-API prebuilds
-      # (ABI-stable), so the extra prebuild needs no rebuild step.
+      # npm ci installs only the current platform's node-pty prebuild, but legs that
+      # package a second arch in one run need that prebuild too. node-pty ships N-API
+      # prebuilds (ABI-stable), so the extra prebuild needs no rebuild step.
       - name: Install darwin-x64 node-pty prebuild
         if: matrix.os == 'macos-latest'
         run: npm i --no-save --force @lydell/node-pty-darwin-x64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
+
+      - name: Install win32-arm64 node-pty prebuild
+        if: matrix.os == 'windows-latest'
+        run: npm i --no-save --force @lydell/node-pty-win32-arm64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
 
       # electron-builder pulls its packaging tooling from GitHub releases mid-build and
       # those downloads intermittently fail with 504; retry the whole step a few times
@@ -98,17 +109,20 @@ jobs:
           case "${{ matrix.os }}" in
             windows-latest)
               find dist/CodeCockpit/resources/app.asar.unpacked -name '*.node' | grep -q node-pty-win32-x64
+              tar -tf dist/*-win-arm64.zip | grep -q node-pty-win32-arm64
               ;;
             macos-latest)
               unzip -l dist/*-mac-arm64.zip | grep -q node-pty-darwin-arm64
               unzip -l dist/*-mac-x64.zip | grep -q node-pty-darwin-x64
               ;;
             ubuntu-latest)
+              ls dist/*.deb dist/*.rpm >/dev/null
               ./dist/*.AppImage --appimage-extract >/dev/null
               find squashfs-root -name '*.node' | grep -q node-pty-linux-x64
               rm -rf squashfs-root
               ;;
             ubuntu-24.04-arm)
+              ls dist/*.deb dist/*.rpm >/dev/null
               ./dist/*.AppImage --appimage-extract >/dev/null
               find squashfs-root -name '*.node' | grep -q node-pty-linux-arm64
               rm -rf squashfs-root
@@ -137,11 +151,22 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          cd artifacts
+          sha256sum *.zip *.AppImage *.deb *.rpm > SHA256SUMS
+
       - name: Attach artifacts to draft release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           generate_release_notes: true
+          body: |
+            macOS builds are unsigned — after moving `CodeCockpit.app` to /Applications, run `xattr -cr /Applications/CodeCockpit.app` once (or right-click → Open). Verify downloads against `SHA256SUMS`.
           files: |
             artifacts/*.zip
             artifacts/*.AppImage
+            artifacts/*.deb
+            artifacts/*.rpm
+            artifacts/SHA256SUMS
