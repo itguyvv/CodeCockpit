@@ -124,7 +124,7 @@ const busyTimer = setInterval(() => {
                 })
               : t('main.notifyIdleBodyPlain')
           })
-          notification.on('click', () => presentWindow())
+          notification.on('click', () => presentWindow(id))
           notification.show()
           // Opt-in: at notification time also surface the window and switch to that session
           if (prefs.notifyOnFocusSession) presentWindow(id)

@@ -158,7 +158,10 @@ function AppInner(): JSX.Element {
   useEffect(() => {
     return window.api.onFocus((id) => {
       const s = sessions.find((x) => x.id === id)
-      if (s && s.status !== 'exited') setActiveId(id)
+      if (s && s.status !== 'exited') {
+        setActiveId(id)
+        termRef.current?.attach(id)
+      }
     })
   }, [sessions])
 
