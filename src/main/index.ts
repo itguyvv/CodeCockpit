@@ -3,6 +3,8 @@ import { execFile } from 'node:child_process'
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
+import { unzipSync, zipSync, type Zippable } from 'fflate'
+import { IS_LINUX, IS_MAC, IS_WIN } from './services/platform'
 import { getAppRoot, getDataDir, setDataDir, dataFile } from './services/dataDir'
 import { t, setLocale } from './services/i18n'
 import { findGitBash } from './services/claude'
@@ -92,7 +94,8 @@ function registerIpc(): void {
       appRoot: getAppRoot(),
       home: os.homedir(),
       appVersion: app.getVersion(),
-      lastCwd: readSettings().lastCwd || ''
+      lastCwd: readSettings().lastCwd || '',
+      platform: process.platform as 'darwin' | 'win32' | 'linux'
     }
   })
 
@@ -284,13 +287,17 @@ function registerIpc(): void {
         if (!line) continue
         let p = decodeURIComponent(line.trim().replace(/^"|"$/g, ''))
         p = p.slice('file://'.length)
-        if (p.startsWith('/')) p = p.replace(/^\/+/, '') // file:///C:/ → C:/
-        if (p) return { kind: 'file', path: p.replace(/\//g, '\\') }
+        if (IS_WIN) {
+          if (p.startsWith('/')) p = p.replace(/^\/+/, '') // file:///C:/ → C:/
+          if (p) return { kind: 'file', path: p.replace(/\//g, '\\') }
+        } else if (p) {
+          return { kind: 'file', path: p }
+        }
       }
     } catch {
-      // Fall through to the PowerShell bridge
+      // Fall through to the PowerShell bridge (Windows DIB-only sources)
     }
-    return await readClipboardImagePs(file)
+    return IS_WIN ? await readClipboardImagePs(file) : null
   })
 
   // View user-level Claude configuration: MCP server list
@@ -330,13 +337,18 @@ function registerIpc(): void {
       filters: [{ name: 'ZIP', extensions: ['zip'] }]
     })
     if (r.canceled || !r.filePath) return ''
-    await new Promise<void>((resolve, reject) => {
-      execFile(
-        'powershell.exe',
-        ['-NoProfile', '-Command', `Compress-Archive -Path (Join-Path '${dataDir.replace(/'/g, "''")}' '*') -DestinationPath '${r.filePath.replace(/'/g, "''")}' -Force`],
-        (err) => (err ? reject(err) : resolve())
-      )
-    })
+    // Pure-JS zip (no PowerShell): every data file is small, so in-memory is fine
+    const zipped: Zippable = {}
+    const walk = (dir: string, rel: string): void => {
+      for (const name of fs.readdirSync(dir)) {
+        const full = path.join(dir, name)
+        const key = rel ? `${rel}/${name}` : name
+        if (fs.statSync(full).isDirectory()) walk(full, key)
+        else zipped[key] = new Uint8Array(fs.readFileSync(full))
+      }
+    }
+    walk(dataDir, '')
+    fs.writeFileSync(r.filePath, zipSync(zipped))
     return r.filePath
   })
 
@@ -349,34 +361,29 @@ function registerIpc(): void {
       properties: ['openFile']
     })
     if (r.canceled || r.filePaths.length === 0) return t('main.cancelled')
-    const zip = r.filePaths[0]
+    const zipPath = r.filePaths[0]
     const dataDir = getDataDir()
-    const tmp = path.join(os.tmpdir(), 'codecockpit-import-' + Date.now())
-    try {
-      await new Promise<void>((resolve, reject) => {
-        execFile(
-          'powershell.exe',
-          ['-NoProfile', '-Command', `Expand-Archive -LiteralPath '${zip.replace(/'/g, "''")}' -DestinationPath '${tmp.replace(/'/g, "''")}' -Force`],
-          (err) => (err ? reject(err) : resolve())
-        )
-      })
-      // The zip root may hold bare files or a single wrapped directory
-      let srcDir = tmp
-      const entries = fs.readdirSync(tmp)
-      if (entries.length === 1 && fs.statSync(path.join(tmp, entries[0])).isDirectory()) {
-        srcDir = path.join(tmp, entries[0])
-      }
-      fs.mkdirSync(dataDir, { recursive: true })
-      for (const name of fs.readdirSync(srcDir)) {
-        const from = path.join(srcDir, name)
-        const to = path.join(dataDir, name)
-        fs.rmSync(to, { recursive: true, force: true })
-        fs.cpSync(from, to, { recursive: true })
-      }
-      return t('main.importDone')
-    } finally {
-      fs.rmSync(tmp, { recursive: true, force: true })
+    const entries = unzipSync(new Uint8Array(fs.readFileSync(zipPath)))
+    // Directory entries carry no data; drop them up front
+    const files = Object.entries(entries).filter(([name]) => name && !name.endsWith('/'))
+    // The zip root may hold bare files or a single wrapped directory
+    const tops = new Set(files.map(([name]) => name.split('/')[0]))
+    const wrapped = tops.size === 1 && files.every(([name]) => name.includes('/'))
+    const prefix = wrapped ? `${[...tops][0]}/` : ''
+    // Replace semantics per top-level entry, matching the previous extract-then-copy behavior
+    for (const top of tops) {
+      fs.rmSync(path.join(dataDir, top), { recursive: true, force: true })
     }
+    fs.mkdirSync(dataDir, { recursive: true })
+    for (const [name, data] of files) {
+      const rel = name.startsWith(prefix) ? name.slice(prefix.length) : name
+      const parts = rel.split('/')
+      // Zip-slip guard: never write outside the data directory
+      if (parts.length === 0 || parts.some((seg) => seg === '..' || seg === '')) continue
+      fs.mkdirSync(path.join(dataDir, ...parts.slice(0, -1)), { recursive: true })
+      fs.writeFileSync(path.join(dataDir, ...parts), data)
+    }
+    return t('main.importDone')
   })
 
   // Persistence for this window's active session list (restored as-is on restart until manually removed)
@@ -417,9 +424,12 @@ function registerIpc(): void {
 }
 
 function createWindow(): void {
-  const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'icon.ico')
-    : path.join(app.getAppPath(), 'resources', 'icon.ico')
+  // macOS takes the icon from the app bundle (Dock); the BrowserWindow icon option is ignored there
+  const iconPath = IS_MAC
+    ? undefined
+    : app.isPackaged
+      ? path.join(process.resourcesPath, IS_LINUX ? 'icon.png' : 'icon.ico')
+      : path.join(app.getAppPath(), 'resources', IS_LINUX ? 'icon.png' : 'icon.ico')
   win = new BrowserWindow({
     width: 1360,
     height: 880,
@@ -513,8 +523,15 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Drop Electron's implicit default menu: its Edit→Paste accelerator (Ctrl+V) pastes into
   // xterm's hidden helper textarea a second time, duplicating what the renderer pasted.
-  // Dev keeps the default menu for the DevTools shortcuts.
-  if (app.isPackaged) Menu.setApplicationMenu(null)
+  // macOS keeps app/window menus (Cmd+Q, Cmd+H) but deliberately gets no Edit role — same
+  // duplicate-paste problem. Dev keeps the default menu for the DevTools shortcuts.
+  if (app.isPackaged) {
+    if (IS_MAC) {
+      Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'windowMenu' }]))
+    } else {
+      Menu.setApplicationMenu(null)
+    }
+  }
   registerIpc()
   createWindow()
   app.on('activate', () => {
@@ -523,7 +540,8 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  app.quit()
+  // macOS convention: stay alive so clicking the Dock icon reopens a window (activate above)
+  if (!IS_MAC) app.quit()
 })
 
 // will-quit runs only after every window closed for real (a cancelled exit dialog must

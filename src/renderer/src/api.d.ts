@@ -17,6 +17,7 @@ export interface AppInfo {
   home: string
   appVersion: string
   lastCwd: string
+  platform: 'darwin' | 'win32' | 'linux'
 }
 
 export interface NativeSessionInfo {

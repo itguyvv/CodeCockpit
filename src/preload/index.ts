@@ -20,6 +20,7 @@ const api = {
     home: string
     appVersion: string
     lastCwd: string
+    platform: string
   }> => ipcRenderer.invoke('app:info'),
   enginesDiscover: (): Promise<Array<{ id: string; bin: string; version: string }>> =>
     ipcRenderer.invoke('engines:discover'),
