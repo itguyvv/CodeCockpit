@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { emptyStatus, type SessionStatus } from './status'
+import { IS_WIN } from './platform'
 
 // openCode storage, two generations:
 // - legacy (< 1.18): plain JSON under <root>/storage/ —
@@ -229,7 +230,11 @@ export function listOpenCodeSessionIds(): Set<string> {
 }
 
 function sameDir(a: string, b: string): boolean {
-  return a.replace(/[\\/]+/g, '\\').toLowerCase().endsWith(b.replace(/[\\/]+/g, '\\').toLowerCase())
+  if (IS_WIN) {
+    return a.replace(/[\\/]+/g, '\\').toLowerCase().endsWith(b.replace(/[\\/]+/g, '\\').toLowerCase())
+  }
+  const norm = (p: string): string => p.replace(/\/+$/, '').replace(/\\/g, '/')
+  return norm(a).endsWith(norm(b))
 }
 
 /** Poll storage for a newly created session started from cwd (excluding pre-spawn ids) */

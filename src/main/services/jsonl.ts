@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { t } from './i18n'
+import { IS_WIN } from './platform'
 
 export interface NativeSessionInfo {
   sessionId: string
@@ -126,7 +127,7 @@ export function scanNativeSessions(limit = 60): NativeSessionInfo[] {
 
 function decodeEncodedDir(encoded: string): string {
   // Lossy reconstruction, display fallback only; the real cwd comes from the jsonl cwd field
-  return encoded.replace(/-/g, '\\')
+  return encoded.replace(/-/g, IS_WIN ? '\\' : '/')
 }
 
 /** Permanently delete a session history (removes the jsonl under ~/.claude/projects) */

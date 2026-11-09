@@ -1,16 +1,24 @@
 import { exec, execFile } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
+import { IS_WIN, binRank, homePath, locateOnPath } from './platform'
 
 const COMMON_PATHS = (): string[] => {
-  const localAppData = process.env.LOCALAPPDATA || ''
-  const appData = process.env.APPDATA || ''
+  if (IS_WIN) {
+    const localAppData = process.env.LOCALAPPDATA || ''
+    const appData = process.env.APPDATA || ''
+    return [
+      path.join(localAppData, 'Microsoft', 'WinGet', 'Links', 'claude.exe'),
+      homePath('.local', 'bin', 'claude.exe'),
+      path.join(appData, 'npm', 'claude.cmd'),
+      'C:\\Program Files\\nodejs\\claude.cmd'
+    ]
+  }
   return [
-    path.join(localAppData, 'Microsoft', 'WinGet', 'Links', 'claude.exe'),
-    path.join(os.homedir(), '.local', 'bin', 'claude.exe'),
-    path.join(appData, 'npm', 'claude.cmd'),
-    'C:\\Program Files\\nodejs\\claude.cmd'
+    homePath('.local', 'bin', 'claude'),
+    '/usr/local/bin/claude',
+    '/opt/homebrew/bin/claude',
+    homePath('.npm-global', 'bin', 'claude')
   ]
 }
 
@@ -18,39 +26,24 @@ let cachedBin: string | null = null
 /** Version strings keyed by binary path (the resolved path can change after an upgrade) */
 const versionCache = new Map<string, string>()
 
-/** Rank a candidate: real .exe > npm .cmd shim > anything else (sh scripts cannot run under CreateProcess) */
-function claudeBinRank(p: string): number {
-  const lower = p.toLowerCase()
-  return lower.endsWith('.exe') ? 2 : lower.endsWith('.cmd') ? 1 : 0
-}
-
-export function findClaudeBin(): Promise<string> {
-  if (cachedBin) return Promise.resolve(cachedBin)
-  return new Promise((resolve) => {
-    const envBin = process.env.CLAUDE_BIN
-    if (envBin && fs.existsSync(envBin)) {
-      cachedBin = envBin
-      return resolve(envBin)
-    }
-    const common = COMMON_PATHS().filter((p) => p && fs.existsSync(p))
-    execFile('where', ['claude'], { timeout: 5000 }, (err, stdout) => {
-      // `where` may list an extension-less sh shim first; rank so the spawnable binary wins
-      const whereLines = err
-        ? []
-        : stdout
-            .split(/\r?\n/)
-            .map((l) => l.trim())
-            .filter((l) => l && fs.existsSync(l))
-      const all = [...common, ...whereLines]
-      const best =
-        all.find((p) => claudeBinRank(p) === 2) ||
-        all.find((p) => claudeBinRank(p) === 1) ||
-        all[0] ||
-        ''
-      if (best) cachedBin = best
-      resolve(best)
-    })
-  })
+export async function findClaudeBin(): Promise<string> {
+  if (cachedBin) return cachedBin
+  const envBin = process.env.CLAUDE_BIN
+  if (envBin && fs.existsSync(envBin)) {
+    cachedBin = envBin
+    return envBin
+  }
+  // Common paths come first so they win ties; `where`/`which` may list several
+  // candidates (e.g. an extension-less sh shim) and the rank picks the spawnable one
+  const common = COMMON_PATHS().filter((p) => p && fs.existsSync(p))
+  const found = await locateOnPath('claude')
+  const all = [...common, ...(found ? [found] : [])]
+  const best = all.reduce<null | string>(
+    (acc, p) => (!acc || binRank(p) > binRank(acc) ? p : acc),
+    null
+  )
+  if (best) cachedBin = best
+  return best ?? ''
 }
 
 export function getClaudeVersion(bin: string): Promise<string> {
@@ -73,8 +66,9 @@ export function getClaudeVersion(bin: string): Promise<string> {
 
 let cachedBash: string | null = null
 
-/** Locate git-bash (required by the claude CLI on Windows); returns '' if not found */
+/** Locate git-bash (required by the claude CLI on Windows only); returns '' if not found */
 export function findGitBash(): Promise<string> {
+  if (!IS_WIN) return Promise.resolve('')
   if (cachedBash !== null) return Promise.resolve(cachedBash)
   return new Promise((resolve) => {
     const envPath = process.env.CLAUDE_CODE_GIT_BASH_PATH

@@ -17,6 +17,7 @@ import {
 import { SessionTailer, resolveSessionFile, sessionFilePath, type SessionStatus } from './jsonlTail'
 import { buildEngineArgs, engineBin, isEngineId, type EngineId } from './engines'
 import { injectionEnv } from './providers'
+import { IS_WIN } from './platform'
 import {
   OpenCodeTailer,
   deleteOpenCodeSession,
@@ -173,9 +174,12 @@ async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, stri
   let env = spawnEnvCache
   if (!env) {
     env = { ...process.env } as Record<string, string>
-    // Resolved unconditionally: the first session may be openCode but later ones need bash too
-    const bash = await findGitBash()
-    if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
+    if (IS_WIN) {
+      // git-bash is only a claude CLI requirement on Windows. Resolved unconditionally
+      // there: the first session may be openCode but later claude ones need bash too
+      const bash = await findGitBash()
+      if (bash) env.CLAUDE_CODE_GIT_BASH_PATH = bash
+    }
     spawnEnvCache = env
   }
   // Provider injection is resolved per spawn (the active profile may change between sessions)

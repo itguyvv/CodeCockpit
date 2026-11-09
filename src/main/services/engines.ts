@@ -1,8 +1,8 @@
 import { exec, execFile } from 'node:child_process'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { findClaudeBin, getClaudeVersion } from './claude'
+import { IS_WIN, binRank, homePath, locateOnPath } from './platform'
 
 /** Supported coding-agent engines. Session data of different engines is never merged. */
 export type EngineId = 'claude' | 'opencode'
@@ -55,56 +55,55 @@ let cachedOpenCodeBin: string | null = null
 /** Version strings keyed by binary path (the resolved path can change after an upgrade) */
 const openCodeVersionCache = new Map<string, string>()
 
-const OPENCODE_COMMON_PATHS = (): string[] => [
-  process.env.OPENCODE_BIN || '',
-  path.join(os.homedir(), '.opencode', 'bin', 'opencode.exe'),
-  path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'opencode-ai', 'bin', 'opencode.exe'),
-  path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
-  'C:\\Program Files\\nodejs\\node_modules\\opencode-ai\\bin\\opencode.exe',
-  'C:\\Program Files\\nodejs\\opencode.cmd'
-]
-
-/** Rank a candidate: real .exe > npm .cmd shim > anything else (sh scripts cannot run under CreateProcess) */
-function openCodeBinRank(p: string): number {
-  const lower = p.toLowerCase()
-  return lower.endsWith('.exe') ? 2 : lower.endsWith('.cmd') ? 1 : 0
+const OPENCODE_COMMON_PATHS = (): string[] => {
+  if (IS_WIN) {
+    return [
+      process.env.OPENCODE_BIN || '',
+      homePath('.opencode', 'bin', 'opencode.exe'),
+      path.join(process.env.APPDATA || '', 'npm', 'node_modules', 'opencode-ai', 'bin', 'opencode.exe'),
+      path.join(process.env.APPDATA || '', 'npm', 'opencode.cmd'),
+      'C:\\Program Files\\nodejs\\node_modules\\opencode-ai\\bin\\opencode.exe',
+      'C:\\Program Files\\nodejs\\opencode.cmd'
+    ]
+  }
+  return [
+    process.env.OPENCODE_BIN || '',
+    homePath('.opencode', 'bin', 'opencode'),
+    '/usr/local/bin/opencode',
+    '/opt/homebrew/bin/opencode',
+    homePath('.local', 'bin', 'opencode')
+  ]
 }
 
 /**
- * Resolve the best spawnable binary among candidates. npm installs "opencode" as an
- * extension-less sh shim (first line of `where` output) which Windows cannot execute
- * (exit code 193); the real binary ships inside the opencode-ai package next to the shim.
+ * Resolve the best spawnable binary among candidates. On Windows npm installs
+ * "opencode" as an extension-less sh shim (first line of `where` output) which
+ * CreateProcess cannot execute (exit code 193); the real binary ships inside the
+ * opencode-ai package next to the shim.
  */
 function resolveOpenCodeBin(candidates: string[]): string {
   const existing = candidates.filter((p) => p && fs.existsSync(p))
   for (const p of existing) {
-    if (openCodeBinRank(p) === 2) return p
+    if (binRank(p) === 2) return p
+  }
+  if (IS_WIN) {
+    for (const p of existing) {
+      const sibling = path.join(path.dirname(p), 'node_modules', 'opencode-ai', 'bin', 'opencode.exe')
+      if (fs.existsSync(sibling)) return sibling
+    }
   }
   for (const p of existing) {
-    const sibling = path.join(path.dirname(p), 'node_modules', 'opencode-ai', 'bin', 'opencode.exe')
-    if (fs.existsSync(sibling)) return sibling
-  }
-  for (const p of existing) {
-    if (openCodeBinRank(p) === 1) return p
+    if (binRank(p) === 1) return p
   }
   return ''
 }
 
-export function findOpenCodeBin(): Promise<string> {
-  if (cachedOpenCodeBin) return Promise.resolve(cachedOpenCodeBin)
-  return new Promise((resolve) => {
-    execFile('where', ['opencode'], { timeout: 5000 }, (err, stdout) => {
-      const whereLines = err
-        ? []
-        : stdout
-            .split(/\r?\n/)
-            .map((l) => l.trim())
-            .filter(Boolean)
-      const bin = resolveOpenCodeBin([...OPENCODE_COMMON_PATHS(), ...whereLines])
-      if (bin) cachedOpenCodeBin = bin
-      resolve(bin)
-    })
-  })
+export async function findOpenCodeBin(): Promise<string> {
+  if (cachedOpenCodeBin) return cachedOpenCodeBin
+  const found = await locateOnPath('opencode')
+  const bin = resolveOpenCodeBin([...OPENCODE_COMMON_PATHS(), ...(found ? [found] : [])])
+  if (bin) cachedOpenCodeBin = bin
+  return bin
 }
 
 export function getOpenCodeVersion(bin: string): Promise<string> {
