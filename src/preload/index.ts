@@ -127,6 +127,17 @@ const api = {
     pinned: boolean
   ): Promise<Array<{ cwd: string; path: string; addedAt: number; lastUsedAt: number; pinned: boolean }>> =>
     ipcRenderer.invoke('projects:setPinned', { cwd, pinned }),
+  rulesPaths: (): Promise<{ claudeGlobal: string; opencodeGlobal: string }> =>
+    ipcRenderer.invoke('rules:paths'),
+  rulesRead: (
+    ref: { scope: string; engine?: string; cwd?: string }
+  ): Promise<{ path: string; exists: boolean; content: string; crlf: boolean }> =>
+    ipcRenderer.invoke('rules:read', ref),
+  rulesWrite: (
+    ref: { scope: string; engine?: string; cwd?: string },
+    content: string,
+    crlf: boolean
+  ): Promise<string> => ipcRenderer.invoke('rules:write', { ref, content, crlf }),
   providersList: (): Promise<{
     profiles: Array<{
       id: string

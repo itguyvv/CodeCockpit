@@ -96,6 +96,21 @@ export interface ProviderListResult {
   configFiles: { claude: string; opencode: string }
 }
 
+export type RuleScope = 'claude-global' | 'opencode-global' | 'project'
+
+export interface RuleRef {
+  scope: RuleScope
+  engine?: EngineId
+  cwd?: string
+}
+
+export interface RuleFile {
+  path: string
+  exists: boolean
+  content: string
+  crlf: boolean
+}
+
 export interface ProjectEntry {
   /** Normalized key (case-folded on Windows) */
   cwd: string
@@ -153,6 +168,9 @@ export interface WorkbenchApi {
   aliasesSet: (cwd: string, alias: string) => Promise<Record<string, string>>
   projectsLoad: () => Promise<ProjectEntry[]>
   projectsSetPinned: (cwd: string, pinned: boolean) => Promise<ProjectEntry[]>
+  rulesPaths: () => Promise<{ claudeGlobal: string; opencodeGlobal: string }>
+  rulesRead: (ref: RuleRef) => Promise<RuleFile>
+  rulesWrite: (ref: RuleRef, content: string, crlf: boolean) => Promise<string>
   providersList: () => Promise<ProviderListResult>
   providersSave: (profile: ProviderProfile) => Promise<ProviderListResult>
   providersTest: (profile: Partial<ProviderProfile> & Pick<ProviderProfile, 'engine' | 'baseUrl' | 'apiKey'>) => Promise<ProviderTestResult>

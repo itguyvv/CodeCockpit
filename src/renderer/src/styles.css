@@ -894,6 +894,109 @@ input:focus {
   padding: 4px 6px;
 }
 
+/* ── Rule file editor (CLAUDE.md / AGENTS.md) ── */
+.rules-modal {
+  width: min(760px, 92vw);
+  height: min(640px, 86vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.rules-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.rules-head h3 {
+  margin: 0;
+}
+
+.rules-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.rules-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg-dim);
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.rules-tab:hover {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.05);
+}
+.rules-tab.on {
+  color: var(--fg);
+  background: rgba(76, 194, 255, 0.12);
+  border-color: rgba(76, 194, 255, 0.35);
+}
+
+.rules-dirty {
+  color: #f5c542;
+  margin-right: 4px;
+  font-size: 10px;
+  vertical-align: 2px;
+}
+
+.rules-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rules-path {
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rules-new-hint {
+  color: #f5c542;
+}
+
+.rules-editor {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+
+.rules-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-dim);
+}
+
+.rules-actions {
+  margin-top: 8px;
+  align-items: center;
+}
+
+.rules-dirty-hint {
+  flex: 1;
+  color: #f5c542;
+  font-size: 11.5px;
+}
+
 .recents {
   display: flex;
   flex-wrap: wrap;

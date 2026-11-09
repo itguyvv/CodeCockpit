@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import NewSessionModal, { type NewSessionOpts } from './components/NewSessionModal'
 import Dashboard from './components/Dashboard'
 import SettingsModal from './components/SettingsModal'
+import RulesModal from './components/RulesModal'
 import { modeLabel, modelLabel, modesForEngine, type SessionState } from './types'
 import type { AppInfo, AppSettings, EngineId, EngineInfo, NativeSessionInfo, SessionStatus } from './api'
 import { I18nProvider, detectLocale, useI18n } from './i18n'
@@ -24,6 +25,7 @@ function AppInner(): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showRules, setShowRules] = useState<null | { projectCwd?: string }>(null)
   const [showDash, setShowDash] = useState(false)
   const [statuses, setStatuses] = useState<Record<string, SessionStatus>>({})
   const [confirm, setConfirm] = useState<null | { text: string; onOk: () => void }>(null)
@@ -430,6 +432,13 @@ function AppInner(): JSX.Element {
         <button className="primary" onClick={() => setShowNew(true)}>
           {t('toolbar.new')}
         </button>
+        <button
+          className="ghost"
+          onClick={() => setShowRules({})}
+          title={t('toolbar.rulesTip')}
+        >
+          {t('toolbar.rules')}
+        </button>
         <button className="ghost" onClick={() => setShowSettings(true)} title={t('settings.title')}>
           {t('toolbar.settings')}
         </button>
@@ -453,6 +462,7 @@ function AppInner(): JSX.Element {
             onRename={handleRename}
             onSetAlias={handleSetAlias}
             onPinProject={handlePinProject}
+            onProjectRules={(cwd) => setShowRules({ projectCwd: cwd })}
             onDelete={handleDelete}
             onRemoveActive={handleRemoveActive}
             onReorderActive={handleReorderActive}
@@ -606,6 +616,14 @@ function AppInner(): JSX.Element {
           onSetLocale={setLocale}
           onSettingsChanged={handleSettingsChanged}
           onClose={() => setShowSettings(false)}
+          onNotify={showToast}
+        />
+      )}
+
+      {showRules && (
+        <RulesModal
+          projectCwd={showRules.projectCwd}
+          onClose={() => setShowRules(null)}
           onNotify={showToast}
         />
       )}

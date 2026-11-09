@@ -7,6 +7,7 @@ import { unzipSync, zipSync, type Zippable } from 'fflate'
 import { IS_LINUX, IS_MAC, IS_WIN } from './services/platform'
 import { getAppRoot, getDataDir, setDataDir, dataFile } from './services/dataDir'
 import { loadAliases, setAlias, loadProjects, setProjectPinned, touchProject } from './services/projectMeta'
+import { resolveRuleFile, readRuleFile, writeRuleFile, type RuleRef } from './services/rules'
 import { t, setLocale } from './services/i18n'
 import { findGitBash } from './services/claude'
 import { discoverEngines, isEngineId, type EngineId } from './services/engines'
@@ -432,6 +433,17 @@ function registerIpc(): void {
   ipcMain.handle('projects:load', () => loadProjects())
   ipcMain.handle('projects:setPinned', (_e, p: { cwd: string; pinned: boolean }) =>
     setProjectPinned(p.cwd, !!p.pinned)
+  )
+
+  // Rule files (CLAUDE.md / AGENTS.md): the renderer sends scopes only — paths are resolved
+  // and allowlisted in services/rules.ts
+  ipcMain.handle('rules:paths', () => ({
+    claudeGlobal: resolveRuleFile({ scope: 'claude-global' }),
+    opencodeGlobal: resolveRuleFile({ scope: 'opencode-global' })
+  }))
+  ipcMain.handle('rules:read', (_e, ref: RuleRef) => readRuleFile(ref))
+  ipcMain.handle('rules:write', (_e, p: { ref: RuleRef; content: string; crlf: boolean }) =>
+    writeRuleFile(p.ref, String(p.content ?? ''), !!p.crlf)
   )
 }
 

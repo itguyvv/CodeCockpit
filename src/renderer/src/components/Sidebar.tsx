@@ -68,6 +68,8 @@ interface Props {
   onSetAlias: (cwd: string, alias: string) => void
   /** Pin/unpin a project directory for the new-session project list */
   onPinProject: (cwd: string, pinned: boolean) => void
+  /** Open the rule-file editor on this project's CLAUDE.md / AGENTS.md */
+  onProjectRules: (cwd: string) => void
   /** Normalized cwd → pinned state (for the group menu label) */
   pinnedProjects: Record<string, boolean>
   onDelete: (claudeSessionId: string) => void
@@ -93,6 +95,7 @@ export default function Sidebar({
   onRename,
   onSetAlias,
   onPinProject,
+  onProjectRules,
   pinnedProjects,
   onDelete,
   onRemoveActive,
@@ -527,6 +530,14 @@ export default function Sidebar({
                 }}
               >
                 {pinnedProjects[normalizeCwd(menu.cwd, isWin)] ? t('ctx.unpinProject') : t('ctx.pinProject')}
+              </button>
+              <button
+                onClick={() => {
+                  onProjectRules(menu.cwd)
+                  setMenu(null)
+                }}
+              >
+                {t('ctx.projectRules')}
               </button>
             </>
           ) : (
