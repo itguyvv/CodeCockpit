@@ -164,6 +164,7 @@ const api = {
   copyText: (text: string): void => ipcRenderer.send('clip:write', text),
   readText: (): Promise<string> => ipcRenderer.invoke('clip:read'),
   clipboardHasImage: (): boolean => ipcRenderer.sendSync('clip:has-image'),
+  saveClipboardImage: (): Promise<string> => ipcRenderer.invoke('clip:save-image'),
   debugInfo: (): string =>
     JSON.stringify({ sandboxed: process.sandboxed, hasClipboard: !!clipboard }),
   onData: (cb: (id: string, data: string) => void): Unsubscribe =>

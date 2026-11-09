@@ -206,6 +206,30 @@ function registerIpc(): void {
       e.returnValue = false
     }
   })
+  // Clipboard image → PNG file for engines that attach images by path (the openCode TUI ignores
+  // keystroke bridges but detects image paths inside bracketed pastes). Files age out after 24h.
+  ipcMain.handle('clip:save-image', () => {
+    try {
+      const img = (clipboard as unknown as { readImage(): { isEmpty(): boolean; toPNG(): Buffer } }).readImage()
+      if (img.isEmpty()) return ''
+      const dir = path.join(os.tmpdir(), 'codecockpit-images')
+      fs.mkdirSync(dir, { recursive: true })
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000
+      for (const f of fs.readdirSync(dir)) {
+        const full = path.join(dir, f)
+        try {
+          if (fs.statSync(full).mtimeMs < cutoff) fs.rmSync(full, { force: true })
+        } catch {
+          // Skip
+        }
+      }
+      const file = path.join(dir, `paste-${Date.now()}.png`)
+      fs.writeFileSync(file, img.toPNG())
+      return file
+    } catch {
+      return ''
+    }
+  })
 
   // View user-level Claude configuration: MCP server list
   ipcMain.handle('mcp:list', () => {

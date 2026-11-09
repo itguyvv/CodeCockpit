@@ -152,6 +152,7 @@ export interface WorkbenchApi {
   copyText: (text: string) => void
   readText: () => Promise<string>
   clipboardHasImage: () => boolean
+  saveClipboardImage: () => Promise<string>
   debugInfo: () => string
   onData: (cb: (id: string, data: string) => void) => () => void
   onExit: (cb: (id: string, exitCode: number) => void) => () => void

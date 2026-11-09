@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
+import type { EngineId } from '../api'
 
 interface Entry {
   term: Terminal
@@ -55,13 +56,30 @@ function clipboardHasImage(): boolean {
   }
 }
 
-const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, ref) => {
+// Engine-specific image paste. claude's CLI reads the clipboard itself when it receives Alt+V
+// (ESC v). openCode's TUI ignores key bridges entirely — it only attaches images from file paths
+// arriving inside bracketed paste, so the main process saves the clipboard PNG and we paste the
+// path (xterm auto-wraps term.paste in DECSET 2004 bracket markers).
+function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) => EngineId): void {
+  if (engineOf(id) === 'opencode') {
+    const saved = window.api ? window.api.saveClipboardImage() : Promise.resolve('')
+    void saved.then((file) => {
+      if (file) entry.term.paste(file)
+    })
+    return
+  }
+  entry.term.input('\x1bv')
+}
+
+const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: (id: string) => EngineId }>((props, ref) => {
   const hostRef = useRef<HTMLDivElement>(null)
   const entries = useRef<Map<string, Entry>>(new Map())
   const attachedId = useRef<string | null>(null)
   // Mirrored so the imperative handlers create new terminals with the latest setting
   const scrollbackRef = useRef(props.scrollback)
   scrollbackRef.current = props.scrollback
+  const engineOfRef = useRef(props.engineOf)
+  engineOfRef.current = props.engineOf
 
   useImperativeHandle(ref, () => {
     const PENDING = '__pending'
@@ -98,10 +116,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
           entry.term.paste(text)
         })
       }
-      // Image paste: send the Alt+V key sequence (ESC v) — the claude CLI on Windows reads clipboard images via Alt+V
-      const pasteImageKey = (): void => {
-        entry.term.input('\x1bv')
-      }
+      const pasteImage = (): void => pasteClipboardImage(entry, id, engineOfRef.current)
       entry.term.attachCustomKeyEventHandler((evt) => {
         if (evt.type !== 'keydown') return true
         const key = evt.key.toLowerCase()
@@ -130,17 +145,17 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
         if (evt.ctrlKey && !evt.shiftKey && key === 'v') {
           evt.preventDefault()
           if (clipboardHasImage()) {
-            pasteImageKey() // Forward as Alt+V; the CLI reads the clipboard image itself
+            pasteImage()
             return false
           }
-          // Fallback when no image format is detected: with no text, still try Alt+V (the CLI reads the clipboard itself)
+          // Fallback when no image format is detected: with no text, still let the engine read the clipboard itself
           const read =
             window.api
               ? window.api.readText()
               : (navigator.clipboard?.readText() ?? Promise.resolve(''))
           void read.then((text) => {
             if (text) entry.term.paste(text)
-            else pasteImageKey()
+            else pasteImage()
           })
           return false
         }
@@ -259,7 +274,8 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
     const onContextMenu = (e: MouseEvent): void => {
       e.preventDefault()
       const id = attachedId.current
-      const entry = id ? entries.current.get(id) : null
+      if (!id) return
+      const entry = entries.current.get(id)
       if (!entry) return
       const sel = entry.term.getSelection()
       const copy = (text: string): void => {
@@ -272,11 +288,11 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number }>((props, 
         copy(sel)
         entry.term.clearSelection()
       } else if (clipboardHasImage()) {
-        entry.term.input('\x1bv') // Forward as Alt+V; the CLI reads the clipboard image itself
+        pasteClipboardImage(entry, id, engineOfRef.current)
       } else {
         void read().then((text) => {
           if (text) entry.term.paste(text)
-          else entry.term.input('\x1bv') // Fallback: with no text, still let the CLI try reading the clipboard image
+          else pasteClipboardImage(entry, id, engineOfRef.current) // Fallback: with no text, still let the engine read the clipboard itself
         })
       }
     }

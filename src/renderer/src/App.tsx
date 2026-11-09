@@ -477,7 +477,11 @@ function AppInner(): JSX.Element {
             </div>
           )}
           <div className="term-area">
-            <TerminalHost ref={termRef} scrollback={scrollback} />
+            <TerminalHost
+              ref={termRef}
+              scrollback={scrollback}
+              engineOf={(id) => sessions.find((s) => s.id === id)?.engine ?? 'claude'}
+            />
             {!active && (
               <div className="welcome">
                 <img className="welcome-logo" src={logoUrl} alt="CodeCockpit logo" />
