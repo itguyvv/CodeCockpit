@@ -39,6 +39,7 @@ const fr: Translation = {
   'common.close': 'Fermer',
   'common.continue': 'Continuer',
   'toast.dirChanged': 'Répertoire de travail modifié — reconnexion avec --resume',
+  'toast.renameNotReady': "Le moteur n'a pas encore signalé d'identifiant de session — réessayez dans un instant",
   'sessionbar.statTip': 'Entrée {tin} / Sortie {tout} · Tours {turns}',
   'sessionbar.dash': 'Tableau de bord de session (tokens / coûts / stats outils)',
   'sessionbar.modeSelect':

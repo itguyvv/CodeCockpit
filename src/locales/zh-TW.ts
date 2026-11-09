@@ -32,6 +32,7 @@ const zhTW: Translation = {
   'common.close': '關閉',
   'common.continue': '繼續',
   'toast.dirChanged': '工作目錄已切換，嘗試 --resume 續接',
+  'toast.renameNotReady': '引擎尚未回報會話 id，請稍後再試',
   'sessionbar.statTip': '輸入 {tin} / 輸出 {tout} · 輪次 {turns}',
   'sessionbar.dash': '工作階段儀表板（token / 成本 / 工具統計）',
   'sessionbar.modeSelect': '切換本工作階段權限模式（即時生效，上下文保留）',

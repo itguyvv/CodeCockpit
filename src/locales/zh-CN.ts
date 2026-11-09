@@ -32,6 +32,7 @@ const zhCN: Translation = {
   'common.close': '关闭',
   'common.continue': '继续',
   'toast.dirChanged': '工作目录已切换，尝试 --resume 续接',
+  'toast.renameNotReady': '引擎尚未上报会话 id，请稍后再试',
   'sessionbar.statTip': '输入 {tin} / 输出 {tout} · 轮次 {turns}',
   'sessionbar.dash': '会话仪表盘（token / 成本 / 工具统计）',
   'sessionbar.modeSelect': '切换本会话权限模式（即时生效，上下文保留）',

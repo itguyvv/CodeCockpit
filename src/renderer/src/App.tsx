@@ -303,18 +303,32 @@ function AppInner(): JSX.Element {
   )
 
   // Rename (active sessions by internal id; history sessions by claudeSessionId) — same as /rename, persisted to titles.json
-  const handleRename = useCallback((claudeSessionId: string, title: string) => {
-    void window.api.renameSession(claudeSessionId, title)
-    setCustomTitles((prev) => {
-      const next = { ...prev }
-      if (title) next[claudeSessionId] = title
-      else delete next[claudeSessionId]
-      return next
-    })
-    setSessions((prev) =>
-      prev.map((s) => (s.claudeSessionId === claudeSessionId ? { ...s, title } : s))
-    )
-  }, [])
+  const handleRename = useCallback(
+    (key: string, title: string) => {
+      // Active rows pass the internal session id; resolve it to the engine-native id first
+      const active = sessions.find((x) => x.id === key)
+      const nativeId = active ? active.claudeSessionId : key
+      if (active && !nativeId) {
+        // The engine has not reported a native id yet (the openCode sniffer can lag) and
+        // titles.json only overlays native ids — nothing persists until it appears
+        showToast(t('toast.renameNotReady'))
+        return
+      }
+      void window.api.renameSession(nativeId!, title)
+      setCustomTitles((prev) => {
+        const next = { ...prev }
+        if (title) next[nativeId!] = title
+        else delete next[nativeId!]
+        return next
+      })
+      setSessions((prev) =>
+        prev.map((s) =>
+          (active ? s.id === active.id : s.claudeSessionId === key) ? { ...s, title } : s
+        )
+      )
+    },
+    [sessions, showToast, t]
+  )
 
   // Remove from this window: stop the process and drop it from the active list (history stays, restore from history later)
   const handleRemoveActive = useCallback((id: string) => {

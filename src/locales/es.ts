@@ -38,6 +38,7 @@ const es: Translation = {
   'common.close': 'Cerrar',
   'common.continue': 'Continuar',
   'toast.dirChanged': 'Directorio de trabajo cambiado — reconectando con --resume',
+  'toast.renameNotReady': 'El motor aún no ha informado el id de sesión — inténtalo de nuevo en un momento',
   'sessionbar.statTip': 'Entrada {tin} / Salida {tout} · Turnos {turns}',
   'sessionbar.dash': 'Panel de sesión (tokens / costes / estadísticas de herramientas)',
   'sessionbar.modeSelect':

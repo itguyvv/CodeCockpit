@@ -38,6 +38,7 @@ const ptBR: Translation = {
   'common.close': 'Fechar',
   'common.continue': 'Continuar',
   'toast.dirChanged': 'Diretório de trabalho alterado — reconectando com --resume',
+  'toast.renameNotReady': 'O engine ainda não reportou o id da sessão — tente novamente em instantes',
   'sessionbar.statTip': 'Entrada {tin} / Saída {tout} · Turnos {turns}',
   'sessionbar.dash': 'Painel da sessão (tokens / custo / estatísticas de ferramentas)',
   'sessionbar.modeSelect':

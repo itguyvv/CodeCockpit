@@ -37,6 +37,7 @@ const de: Translation = {
   'common.close': 'Schließen',
   'common.continue': 'Fortfahren',
   'toast.dirChanged': 'Arbeitsverzeichnis geändert — Verbindung mit --resume wird wiederhergestellt',
+  'toast.renameNotReady': 'Die Engine hat noch keine Sitzungs-ID gemeldet — bitte gleich erneut versuchen',
   'sessionbar.statTip': 'Eingabe {tin} / Ausgabe {tout} · Runden {turns}',
   'sessionbar.dash': 'Sitzungs-Dashboard (Token / Kosten / Tool-Statistiken)',
   'sessionbar.modeSelect':

@@ -37,6 +37,7 @@ const ru: Translation = {
   'common.close': 'Закрыть',
   'common.continue': 'Продолжить',
   'toast.dirChanged': 'Рабочий каталог изменён — переподключение через --resume',
+  'toast.renameNotReady': 'Движок ещё не сообщил id сессии — попробуйте снова чуть позже',
   'sessionbar.statTip': 'Вход {tin} / Выход {tout} · Ходы {turns}',
   'sessionbar.dash': 'Панель сессии (токены / затраты / статистика инструментов)',
   'sessionbar.modeSelect':

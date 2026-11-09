@@ -36,6 +36,7 @@ const en = {
   'common.close': 'Close',
   'common.continue': 'Continue',
   'toast.dirChanged': 'Working directory changed — reconnecting with --resume',
+  'toast.renameNotReady': 'The engine has not reported a session id yet — try again in a moment',
   'sessionbar.statTip': 'In {tin} / Out {tout} · Turns {turns}',
   'sessionbar.dash': 'Session dashboard (tokens / cost / tool stats)',
   'sessionbar.modeSelect': 'Switch permission mode for this session (instant, context preserved)',

@@ -34,6 +34,7 @@ const ko: Translation = {
   'common.close': '닫기',
   'common.continue': '계속',
   'toast.dirChanged': '작업 디렉터리 변경됨 — --resume으로 재접속 시도',
+  'toast.renameNotReady': '엔진이 아직 세션 ID를 보고하지 않았습니다 — 잠시 후 다시 시도하세요',
   'sessionbar.statTip': '입력 {tin} / 출력 {tout} · 턴 {turns}',
   'sessionbar.dash': '세션 대시보드 (토큰 / 비용 / 도구 통계)',
   'sessionbar.modeSelect': '이 세션의 권한 모드 전환 (즉시 적용, 컨텍스트 유지)',

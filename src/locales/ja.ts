@@ -35,6 +35,7 @@ const ja: Translation = {
   'common.close': '閉じる',
   'common.continue': '続行',
   'toast.dirChanged': '作業ディレクトリを変更しました --resume で再接続します',
+  'toast.renameNotReady': 'エンジンがまだセッションIDを報告していません — しばらくしてから再試行してください',
   'sessionbar.statTip': '入力 {tin} / 出力 {tout} · ターン {turns}',
   'sessionbar.dash': 'セッション ダッシュボード（トークン / コスト / ツール統計）',
   'sessionbar.modeSelect': 'このセッションの権限モードを切り替え（即時反映、コンテキストは保持）',
