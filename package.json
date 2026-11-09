@@ -113,27 +113,9 @@
       "icon": "resources/icon.png",
       "category": "Development",
       "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "AppImage",
+        "deb",
+        "rpm"
       ],
       "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
     }
