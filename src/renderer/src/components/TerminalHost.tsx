@@ -103,6 +103,9 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       )
       // Keyboard input → PTY
       const dataDisp = entry.term.onData((data) => {
+        // Drop focus reports (mode 1004): forwarding them makes the TUI redraw on every
+        // session switch, which the busy detector misreads as the AI working
+        if (data === '\x1b[I' || data === '\x1b[O') return
         if (window.api) window.api.input(id, data)
       })
       entry.offs.push(() => dataDisp.dispose())
