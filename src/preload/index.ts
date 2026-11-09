@@ -38,13 +38,14 @@ const api = {
   pickDir: (): Promise<string> => ipcRenderer.invoke('dialog:pickDir'),
   getSettings: (): Promise<{
     lastCwd?: string
-    recentCwds?: string[]
     defaultMode?: string
     defaultModel?: string
     locale?: string
     engines?: Record<string, boolean>
     confirmExit?: boolean
     scrollback?: number
+    notifyOnIdle?: boolean
+    notifyOnFocusSession?: boolean
   }> => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: {
     defaultMode?: string
@@ -55,13 +56,14 @@ const api = {
     scrollback?: number
   }): Promise<{
     lastCwd?: string
-    recentCwds?: string[]
     defaultMode?: string
     defaultModel?: string
     locale?: string
     engines?: Record<string, boolean>
     confirmExit?: boolean
     scrollback?: number
+    notifyOnIdle?: boolean
+    notifyOnFocusSession?: boolean
   }> => ipcRenderer.invoke('settings:set', patch),
   input: (id: string, data: string): void => ipcRenderer.send('session:input', { id, data }),
   resize: (id: string, cols: number, rows: number): Promise<void> =>

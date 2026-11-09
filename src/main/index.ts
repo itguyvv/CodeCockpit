@@ -39,7 +39,6 @@ import {
 
 interface AppSettings {
   lastCwd?: string
-  recentCwds?: string[]
   defaultMode?: PermissionMode
   defaultModel?: string
   locale?: string
@@ -72,11 +71,7 @@ function readSettings(): AppSettings {
 }
 
 function rememberCwd(cwd: string): void {
-  const s = readSettings()
-  const list = [cwd, ...(s.recentCwds ?? [])].filter(
-    (v, i, arr) => v && arr.indexOf(v) === i
-  )
-  writeSettings({ lastCwd: cwd, recentCwds: list.slice(0, 8) })
+  writeSettings({ lastCwd: cwd })
 }
 
 function writeSettings(patch: Record<string, unknown>): void {

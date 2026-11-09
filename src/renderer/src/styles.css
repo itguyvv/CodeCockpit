@@ -978,27 +978,6 @@ input:focus {
   font-size: 11.5px;
 }
 
-.recents {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.recent-chip {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: Consolas, monospace;
-  font-size: 11px;
-  padding: 3px 8px;
-}
-
-.recent-chip.sel {
-  border-color: var(--accent2);
-  color: var(--accent2);
-}
-
 .modal-actions {
   display: flex;
   justify-content: flex-end;

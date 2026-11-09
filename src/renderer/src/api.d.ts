@@ -123,7 +123,6 @@ export interface ProjectEntry {
 
 export interface AppSettings {
   lastCwd?: string
-  recentCwds?: string[]
   defaultMode?: string
   defaultModel?: string
   locale?: string

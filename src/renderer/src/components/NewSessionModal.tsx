@@ -55,7 +55,6 @@ export default function NewSessionModal({
   const [providers, setProviders] = useState<ProviderProfile[]>([])
   const [activeByEngine, setActiveByEngine] = useState<Record<string, string>>({})
   const [providerId, setProviderId] = useState('')
-  const [recents, setRecents] = useState<string[]>([])
   const [projects, setProjects] = useState<ProjectEntry[]>([])
   const [menu, setMenu] = useState<RowMenu | null>(null)
   const [aliasEdit, setAliasEdit] = useState<null | { cwd: string; text: string }>(null)
@@ -63,7 +62,6 @@ export default function NewSessionModal({
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
-      setRecents(s.recentCwds ?? [])
       if (s.lastCwd) setCwd(s.lastCwd)
       setMode(s.defaultMode || 'default')
       setModel(s.defaultModel || '')
@@ -238,23 +236,6 @@ export default function NewSessionModal({
                 )
               })}
               <div className="projects-tip">{t('new.projectTip')}</div>
-            </div>
-          )}
-          {recents.length > 0 && (
-            <div className="recents">
-              {recents.map((r) => {
-                const alias = aliases[normalizeCwd(r, isWin)] ?? ''
-                return (
-                  <button
-                    key={r}
-                    className={`recent-chip ${r === cwd ? 'sel' : ''}`}
-                    onClick={() => setCwd(r)}
-                    title={r}
-                  >
-                    {alias ? `${alias} — ${r}` : r}
-                  </button>
-                )
-              })}
             </div>
           )}
         </div>
