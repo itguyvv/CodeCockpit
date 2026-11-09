@@ -9,7 +9,7 @@
 在同一个原生窗口里运行、观测、管理多个 AI 编程 CLI 会话（当前支持 Claude Code 与 OpenCode，持续扩展中）——真实 PTY 终端、精确的 token/成本统计、完整的会话历史。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Electron](https://img.shields.io/badge/Electron-45-47848F)
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-339933)
 
@@ -62,12 +62,24 @@
 - **设置中心** — 页签式：默认项（模式/模型、终端回滚行数）、引擎开关、服务商配置、Claude 配置快捷入口 + MCP 服务器概览；数据目录可迁移，支持 zip 导出/导入。
 - **10 种语言** — English、简体中文、繁體中文、日本語、한국어、Deutsch、Français、Español、Português (Brasil)、Русский。设置里随时切换。
 
+## 下载与安装
+
+从 [Releases](../../releases) 获取最新构建：
+
+| 平台 | 产物 | 安装方式 |
+| --- | --- | --- |
+| Windows 10/11 | `CodeCockpit-<版本>-win-x64.zip` | 解压到任意目录运行 `CodeCockpit.exe`（便携式——升级直接覆盖目录） |
+| macOS 12+（Apple Silicon / Intel） | `CodeCockpit-<版本>-mac-arm64.zip` / `...-mac-x64.zip` | 解压后将 `CodeCockpit.app` 移到「应用程序」，然后在终端执行 `xattr -cr /Applications/CodeCockpit.app`（构建未签名，不解除会被 Gatekeeper 拦截）。也可以右键 App 选「打开」一次。 |
+| Linux x64 / arm64 | `CodeCockpit-<版本>-linux-<arch>.AppImage` | `chmod +x` 后直接运行。需要 FUSE（libfuse2）；没有的系统可用 `--appimage-extract-and-run` 运行。 |
+
+macOS 与 Linux 构建是首次发布——如在你的机器上遇到问题，欢迎[提 issue](../../issues)，并附上：系统版本、CLI 是否被找到（看状态栏）、`/tmp/codecockpit-renderer.log`（Windows 为 `%TEMP%` 下同名文件）。
+
 ## 环境要求
 
-- **操作系统**：Windows 10 (1809+) 或 Windows 11
+- **操作系统**：Windows 10 (1809+) / Windows 11、macOS 12+、主流 glibc 系 Linux
 - **Node.js** ≥ 20（仅源码构建需要；打包产物无需任何依赖）
 - 至少其一：
-  - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) — Windows 上该 CLI 依赖 Git Bash；CodeCockpit 自动探测常见安装路径
+  - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) — 仅 Windows 上该 CLI 依赖 Git Bash；CodeCockpit 自动探测常见安装路径
   - [OpenCode CLI](https://opencode.ai) — `npm i -g opencode-ai` 或官方安装器
 
 ## 开发
@@ -85,17 +97,19 @@ CodeCockpit 启动时自动定位 `claude` CLI（PATH、WinGet Links、npm 全�
 npm run dev         # 开发服务器 + electron
 npm run typecheck   # tsc 项目引用构建
 npm run build       # 编译 main/preload/renderer 到 out/
-npm run dist        # 构建 + 打包便携目录 + 带版本 zip 到 dist/
+npm run dist        # 构建 + 打包 Windows 便携目录 + 带版本 zip 到 dist/
+npm run dist:mac    # 构建 + 打包未签名 mac zip（x64 + arm64）
+npm run dist:linux  # 构建 + 打包 Linux AppImage（按目标架构加 --x64 / --arm64）
 ```
 
-`dist` 步骤产出：
+Windows 的 `dist` 步骤产出：
 
 - `dist/CodeCockpit/` — 固定名称的便携目录（升级时直接覆盖该目录即可；其中的 `data/` 会保留）
 - `dist/CodeCockpit-<版本>-win-x64.zip` — 用于分发的压缩包
 
 ## 数据位置
 
-- **应用数据**（会话列表、自定义命名、排序、服务商配置、设置）：便携模式下位于可执行文件旁边的 `data/`，或 `data-dir.txt` 指定的路径。可在设置中更改，或通过导出/导入 zip 迁移。
+- **应用数据**（会话列表、自定义命名、排序、服务商配置、设置）：Windows 便携模式下位于可执行文件旁边的 `data/`，macOS 为 `~/Library/Application Support/CodeCockpit/data`，Linux 为 `~/.config/CodeCockpit/data`——或 `data-dir.txt` 指定的路径（Windows 在 exe 旁，其他系统在系统配置目录）。可在设置中更改，或通过导出/导入 zip 迁移。
 - **聊天记录**：由引擎自身写入——Claude Code 位于 `~/.claude/projects/<项目目录编码>/<sessionId>.jsonl`，OpenCode 位于其自己的存储目录（Windows：`%USERPROFILE%\.local\share\opencode`）。CodeCockpit 只读取这些文件——绝不改写你的会话记录。
 
 > **API Key 说明**：服务商配置以明文保存在应用数据目录中（与各 CLI 自身配置文件的做法一致）。你在设置里填入的内容只留在本机；按会话注入环境变量，Key 不会进入项目文件。
@@ -124,7 +138,7 @@ CodeCockpit 内置 10 种语言，渲染进程与主进程（菜单、对话框�
 - [x] M8 — OpenCode 第二引擎（启动、遥测、历史、续聊）
 - [x] M9 — API 服务商配置（连通性测试、模型映射、全局应用）
 - [ ] Codex CLI 第三引擎接入
-- [ ] macOS / Linux 构建
+- [x] macOS / Linux 构建（beta——欢迎反馈）
 
 ## 参与贡献
 

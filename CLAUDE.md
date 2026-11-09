@@ -33,3 +33,4 @@ npm run typecheck   # must pass — this also proves all 10 locales are key-comp
   `PATH="/path/to/node-v22-win-x64:$PATH" npm run dist`
 - Close any running packaged exe before building (EBUSY).
 - `npm run dist` produces `dist/CodeCockpit/` (fixed folder name for overwrite upgrades) and `dist/CodeCockpit-<version>-win-x64.zip`.
+- macOS/Linux artifacts build via `npm run dist:mac` / `npm run dist:linux` or the CI matrix in `.github/workflows/ci.yml` (all `--publish never`; releasing is manual). Regenerate `resources/icon.icns` with `npm run icons` after changing the PNG icons.

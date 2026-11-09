@@ -7,8 +7,8 @@ Thank you for considering a contribution! Issues, bug reports, translations, and
 Requirements:
 
 - Node.js ≥ 20 (LTS recommended)
-- Windows 10 (1809+) or Windows 11
-- Git Bash (needed by the Claude Code CLI on Windows)
+- Any of the three supported platforms: Windows 10 (1809+)/11, macOS 12+, or a modern glibc Linux
+- Git Bash (only needed on Windows, by the Claude Code CLI)
 
 ```bash
 git clone <your fork>
@@ -17,8 +17,17 @@ npm install
 npm run dev        # run the app in dev mode
 npm run typecheck  # must pass before any PR
 npm run build      # compile without packaging
-npm run dist       # full package: dist/CodeCockpit/ + versioned zip
+npm run dist       # Windows full package: dist/CodeCockpit/ + versioned zip
 ```
+
+Packaging for the other platforms (or cross-checking a change locally):
+
+```bash
+npm run dist:mac    # unsigned mac zips (x64 + arm64)
+npm run dist:linux  # linux AppImage (add --x64 / --arm64 per target)
+```
+
+CI builds all artifacts on pushes to `main` (see `.github/workflows/ci.yml`); releases are published manually from those artifacts.
 
 > Note: `npm run typecheck` runs `node node_modules/typescript/lib/tsc.js -b`. On some systems `npx tsc -b` fails with `ERR_UNKNOWN_FILE_EXTENSION` when an older Node is first on PATH — the script form avoids that.
 

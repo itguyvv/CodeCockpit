@@ -9,7 +9,7 @@
 Run, observe, and manage multiple AI coding CLI sessions (Claude Code & OpenCode today, more coming) from one native window — real PTY terminals, exact token/cost accounting, and full session history.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-blue)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Electron](https://img.shields.io/badge/Electron-45-47848F)
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-339933)
 
@@ -62,12 +62,24 @@ Driving several AI coding agents means juggling raw terminal windows, losing tra
 - **Settings center** — tabbed: defaults (mode/model, terminal scrollback), engine toggles, provider profiles, and quick access to Claude config + MCP server overview; relocatable data directory with zip export/import.
 - **10 languages** — English, 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Français, Español, Português (Brasil), Русский. Switch any time in Settings.
 
+## Download & Install
+
+Grab the latest build from [Releases](../../releases):
+
+| Platform | Artifact | Install |
+| --- | --- | --- |
+| Windows 10/11 | `CodeCockpit-<version>-win-x64.zip` | Unzip anywhere and run `CodeCockpit.exe` (portable — upgrades overwrite the folder) |
+| macOS 12+ (Apple Silicon / Intel) | `CodeCockpit-<version>-mac-arm64.zip` / `...-mac-x64.zip` | Unzip, move `CodeCockpit.app` to `/Applications`, then run `xattr -cr /Applications/CodeCockpit.app` in a terminal (the build is unsigned, so macOS Gatekeeper would otherwise block it). Alternatively right-click the app and choose **Open** once. |
+| Linux x64 / arm64 | `CodeCockpit-<version>-linux-<arch>.AppImage` | `chmod +x` the file and run it. Needs FUSE (libfuse2); on systems without it, run with `--appimage-extract-and-run`. |
+
+The macOS and Linux builds are fresh — if something does not work on your machine, please [open an issue](../../issues) and include your OS version, whether the CLIs were found (status bar), and `%TEMP%/codecockpit-renderer.log` (Windows) or `/tmp/codecockpit-renderer.log` (macOS/Linux).
+
 ## Requirements
 
-- **OS**: Windows 10 (1809+) or Windows 11
+- **OS**: Windows 10 (1809+) / Windows 11, macOS 12+, or a modern Linux (glibc-based)
 - **Node.js** ≥ 20 (only for building from source; the packaged app needs nothing)
 - At least one of:
-  - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) — Git Bash is required by the CLI on Windows; CodeCockpit auto-detects common install paths
+  - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) — Git Bash is additionally required by the CLI on Windows only; CodeCockpit auto-detects common install paths
   - [OpenCode CLI](https://opencode.ai) — install via `npm i -g opencode-ai` or its installer
 
 ## Development
@@ -85,17 +97,19 @@ Useful scripts:
 npm run dev         # dev server + electron
 npm run typecheck   # tsc project references build
 npm run build       # compile main/preload/renderer to out/
-npm run dist        # build + package a portable dir + versioned zip into dist/
+npm run dist        # build + package the Windows portable dir + versioned zip into dist/
+npm run dist:mac    # build + package unsigned mac zips (x64 + arm64)
+npm run dist:linux  # build + package a linux AppImage (pass --x64 / --arm64 per target)
 ```
 
-The `dist` step produces:
+The Windows `dist` step produces:
 
 - `dist/CodeCockpit/` — fixed-name portable folder (overwrite this folder to upgrade; `data/` inside is preserved)
 - `dist/CodeCockpit-<version>-win-x64.zip` — the distributable you share with others
 
 ## Where data lives
 
-- **App data** (session list, custom names, ordering, provider profiles, settings): `data/` next to the executable in portable mode, or the path configured in `data-dir.txt`. Change or migrate it from Settings → export/import a zip.
+- **App data** (session list, custom names, ordering, provider profiles, settings): `data/` next to the executable in portable mode on Windows, `~/Library/Application Support/CodeCockpit/data` on macOS, `~/.config/CodeCockpit/data` on Linux — or the path configured in `data-dir.txt` (next to the executable on Windows, in the OS config dir elsewhere). Change or migrate it from Settings → export/import a zip.
 - **Chat history**: written by the engines themselves — `~/.claude/projects/<encoded-project>/<sessionId>.jsonl` for Claude Code, OpenCode's own storage under `~/.local/share/opencode` (Windows: `%USERPROFILE%\.local\share\opencode`). CodeCockpit only reads these files — it never rewrites your transcripts.
 
 > **Note on API keys**: provider profiles are stored in plain text inside the app data directory (like the CLIs' own config files). Anything you paste into Settings stays on your machine. Per-session injection keeps keys out of project files.
@@ -124,7 +138,7 @@ CodeCockpit ships 10 languages out of the box and uses a type-safe shared dictio
 - [x] M8 — OpenCode as a second engine (spawn, telemetry, history, resume)
 - [x] M9 — API provider profiles (connectivity test, model mapping, global apply)
 - [ ] Codex CLI as a third engine
-- [ ] macOS / Linux builds
+- [x] macOS / Linux builds (beta — feedback welcome)
 
 ## Contributing
 
