@@ -139,6 +139,8 @@ export interface WorkbenchApi {
   saveWorkspace: (list: RestoredSession[]) => Promise<boolean>
   getHistoryOrder: () => Promise<{ groups?: string[]; items?: Record<string, string[]> }>
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }) => Promise<boolean>
+  aliasesLoad: () => Promise<Record<string, string>>
+  aliasesSet: (cwd: string, alias: string) => Promise<Record<string, string>>
   providersList: () => Promise<ProviderListResult>
   providersSave: (profile: ProviderProfile) => Promise<ProviderListResult>
   providersTest: (profile: Partial<ProviderProfile> & Pick<ProviderProfile, 'engine' | 'baseUrl' | 'apiKey'>) => Promise<ProviderTestResult>

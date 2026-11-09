@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import { unzipSync, zipSync, type Zippable } from 'fflate'
 import { IS_LINUX, IS_MAC, IS_WIN } from './services/platform'
 import { getAppRoot, getDataDir, setDataDir, dataFile } from './services/dataDir'
+import { loadAliases, setAlias } from './services/projectMeta'
 import { t, setLocale } from './services/i18n'
 import { findGitBash } from './services/claude'
 import { discoverEngines, isEngineId, type EngineId } from './services/engines'
@@ -421,6 +422,10 @@ function registerIpc(): void {
       return false
     }
   })
+
+  // Display notes (aliases) per project directory, keyed by normalized cwd
+  ipcMain.handle('aliases:load', () => loadAliases())
+  ipcMain.handle('aliases:set', (_e, p: { cwd: string; alias: string }) => setAlias(p.cwd, String(p.alias ?? '')))
 }
 
 function createWindow(): void {

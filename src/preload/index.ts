@@ -116,6 +116,9 @@ const api = {
     ipcRenderer.invoke('history-order:load'),
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }): Promise<boolean> =>
     ipcRenderer.invoke('history-order:save', o),
+  aliasesLoad: (): Promise<Record<string, string>> => ipcRenderer.invoke('aliases:load'),
+  aliasesSet: (cwd: string, alias: string): Promise<Record<string, string>> =>
+    ipcRenderer.invoke('aliases:set', { cwd, alias }),
   providersList: (): Promise<{
     profiles: Array<{
       id: string

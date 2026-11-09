@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type JSX } from 'react'
 import type { EngineId, NativeSessionInfo } from '../api'
 import type { SessionState } from '../types'
 import { useT } from '../i18n'
+import { normalizeCwd } from '../paths'
 
 function relativeTime(ts: number): string {
   const diff = Date.now() - ts
@@ -41,9 +42,10 @@ interface HistoryOrder {
 interface MenuState {
   x: number
   y: number
-  kind: 'active' | 'history'
-  sessionKey: string // active: internal id; history: claudeSessionId
+  kind: 'active' | 'history' | 'group'
+  sessionKey: string // active: internal id; history: claudeSessionId; group: cwd
   title: string
+  cwd: string // group menus only: the directory the alias applies to
 }
 
 interface Props {
@@ -54,11 +56,16 @@ interface Props {
   activeSessions: SessionState[]
   activeId: string
   customTitles: Record<string, string>
+  /** Display notes per project directory, keyed by normalized cwd */
+  aliases: Record<string, string>
+  isWin: boolean
   /** Bump to rescan the history list (e.g. after a delete) */
   historyVersion: number
   onSelectActive: (id: string) => void
   onResume: (ns: NativeSessionInfo) => void
   onRename: (claudeSessionId: string, title: string) => void
+  /** Set (or clear, when blank) the display note of a history group's directory */
+  onSetAlias: (cwd: string, alias: string) => void
   onDelete: (claudeSessionId: string) => void
   onRemoveActive: (id: string) => void
   onReorderActive: (from: number, to: number) => void
@@ -74,10 +81,13 @@ export default function Sidebar({
   activeSessions,
   activeId,
   customTitles,
+  aliases,
+  isWin,
   historyVersion,
   onSelectActive,
   onResume,
   onRename,
+  onSetAlias,
   onDelete,
   onRemoveActive,
   onReorderActive,
@@ -91,6 +101,8 @@ export default function Sidebar({
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [renaming, setRenaming] = useState<null | { key: string; initial: string }>(null)
   const [renameText, setRenameText] = useState('')
+  const [aliasing, setAliasing] = useState<null | { cwd: string; initial: string }>(null)
+  const [aliasText, setAliasText] = useState('')
   // Manual ordering: groups = order of group keys; items = order of session ids within a group
   const [order, setOrder] = useState<HistoryOrder>({ groups: [], items: {} })
   const [dragActive, setDragActive] = useState<number | null>(null)
@@ -214,7 +226,14 @@ export default function Sidebar({
       kind === 'active'
         ? (s as SessionState).title || basename((s as SessionState).cwd)
         : customTitles[(s as NativeSessionInfo).sessionId] || (s as NativeSessionInfo).title
-    setMenu({ x: e.clientX, y: e.clientY, kind, sessionKey: key, title })
+    setMenu({ x: e.clientX, y: e.clientY, kind, sessionKey: key, title, cwd: '' })
+  }
+
+  const openGroupMenu = (e: React.MouseEvent, cwd: string, project: string): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    const alias = aliases[normalizeCwd(cwd, isWin)] ?? ''
+    setMenu({ x: e.clientX, y: e.clientY, kind: 'group', sessionKey: cwd, title: alias || project, cwd })
   }
 
   const submitRename = (): void => {
@@ -226,6 +245,11 @@ export default function Sidebar({
       )
     }
     setRenaming(null)
+  }
+
+  const submitAlias = (): void => {
+    if (aliasing) onSetAlias(aliasing.cwd, aliasText.trim())
+    setAliasing(null)
   }
 
   const clearActiveDrag = (): void => {
@@ -365,6 +389,7 @@ export default function Sidebar({
         </div>
         {groups.map((g) => {
           const open = searching || expanded.has(g.key)
+          const alias = g.cwd ? aliases[normalizeCwd(g.cwd, isWin)] ?? '' : ''
           return (
           <div
             key={g.key}
@@ -396,10 +421,12 @@ export default function Sidebar({
                 setDragGroup(g.key)
               }}
               onDragEnd={clearHistoryDrag}
+              onContextMenu={(e) => g.cwd && openGroupMenu(e, g.cwd, g.project)}
             >
               <span className="group-grip">⠿</span>
               <span className={`group-chevron ${open ? 'open' : ''}`}>▸</span>
-              📁 {g.project} · {g.items.length}
+              📁 {alias || g.project}
+              {alias && <span className="group-orig">{g.project}</span>} · {g.items.length}
             </div>
             {open &&
               g.items.map((ns) => {
@@ -466,15 +493,39 @@ export default function Sidebar({
           style={{ left: menu.x, top: menu.y }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={() => {
-              setRenaming({ key: menu.sessionKey, initial: menu.title })
-              setRenameText(menu.title)
-              setMenu(null)
-            }}
-          >
-            {t('ctx.rename')}
-          </button>
+          {menu.kind === 'group' ? (
+            <>
+              <button
+                onClick={() => {
+                  setAliasing({ cwd: menu.cwd, initial: aliases[normalizeCwd(menu.cwd, isWin)] ?? '' })
+                  setAliasText(aliases[normalizeCwd(menu.cwd, isWin)] ?? '')
+                  setMenu(null)
+                }}
+              >
+                {t('ctx.setAlias')}
+              </button>
+              {aliases[normalizeCwd(menu.cwd, isWin)] && (
+                <button
+                  onClick={() => {
+                    onSetAlias(menu.cwd, '')
+                    setMenu(null)
+                  }}
+                >
+                  {t('ctx.clearAlias')}
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                setRenaming({ key: menu.sessionKey, initial: menu.title })
+                setRenameText(menu.title)
+                setMenu(null)
+              }}
+            >
+              {t('ctx.rename')}
+            </button>
+          )}
           {menu.kind === 'active' && (
             <button
               onClick={() => {
@@ -530,6 +581,33 @@ export default function Sidebar({
                 {t('common.cancel')}
               </button>
               <button className="primary" onClick={submitRename}>
+                {t('common.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aliasing && (
+        <div className="modal-mask" onMouseDown={(e) => e.target === e.currentTarget && setAliasing(null)}>
+          <div className="modal rename-modal">
+            <h3>{t('alias.title')}</h3>
+            <p className="alias-cwd" title={aliasing.cwd}>
+              {aliasing.cwd}
+            </p>
+            <input
+              autoFocus
+              value={aliasText}
+              onChange={(e) => setAliasText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submitAlias()}
+              placeholder={t('alias.placeholder')}
+              spellCheck={false}
+            />
+            <div className="modal-actions">
+              <button className="ghost" onClick={() => setAliasing(null)}>
+                {t('common.cancel')}
+              </button>
+              <button className="primary" onClick={submitAlias}>
                 {t('common.save')}
               </button>
             </div>

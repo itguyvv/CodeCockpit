@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react'
 import { modesForEngine } from '../types'
 import type { EngineId, EngineInfo, ProviderProfile } from '../api'
 import { useT } from '../i18n'
+import { normalizeCwd } from '../paths'
 
 export interface NewSessionOpts {
   cwd: string
@@ -13,11 +14,14 @@ export interface NewSessionOpts {
 
 interface Props {
   engines: EngineInfo[]
+  /** Display notes per project directory, keyed by normalized cwd */
+  aliases: Record<string, string>
+  isWin: boolean
   onClose: () => void
   onStart: (opts: NewSessionOpts) => void
 }
 
-export default function NewSessionModal({ engines, onClose, onStart }: Props): JSX.Element {
+export default function NewSessionModal({ engines, aliases, isWin, onClose, onStart }: Props): JSX.Element {
   const t = useT()
   const [cwd, setCwd] = useState('')
   const [mode, setMode] = useState('default')
@@ -115,16 +119,19 @@ export default function NewSessionModal({ engines, onClose, onStart }: Props): J
           </div>
           {recents.length > 0 && (
             <div className="recents">
-              {recents.map((r) => (
-                <button
-                  key={r}
-                  className={`recent-chip ${r === cwd ? 'sel' : ''}`}
-                  onClick={() => setCwd(r)}
-                  title={r}
-                >
-                  {r}
-                </button>
-              ))}
+              {recents.map((r) => {
+                const alias = aliases[normalizeCwd(r, isWin)] ?? ''
+                return (
+                  <button
+                    key={r}
+                    className={`recent-chip ${r === cwd ? 'sel' : ''}`}
+                    onClick={() => setCwd(r)}
+                    title={r}
+                  >
+                    {alias ? `${alias} — ${r}` : r}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

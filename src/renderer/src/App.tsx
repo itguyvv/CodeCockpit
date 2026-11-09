@@ -30,6 +30,7 @@ function AppInner(): JSX.Element {
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [customTitles, setCustomTitles] = useState<Record<string, string>>({})
+  const [aliases, setAliases] = useState<Record<string, string>>({})
   const [historyVer, setHistoryVer] = useState(0)
   const [wsLoaded, setWsLoaded] = useState(false)
   const [engineTab, setEngineTab] = useState<EngineId>('claude')
@@ -72,6 +73,7 @@ function AppInner(): JSX.Element {
       setScrollback(Math.max(200, Math.min(50_000, s.scrollback ?? 2000)))
     })
     void window.api.getTitles().then(setCustomTitles)
+    void window.api.aliasesLoad().then(setAliases)
     // Restore the active session list from the previous window (processes are gone; a click relaunches with --resume)
     void window.api
       .loadWorkspace()
@@ -302,6 +304,11 @@ function AppInner(): JSX.Element {
     [sessions, engineTab]
   )
 
+  // Directory display note (alias): set/clear from the sidebar group menu
+  const handleSetAlias = useCallback((cwd: string, alias: string) => {
+    void window.api.aliasesSet(cwd, alias).then(setAliases)
+  }, [])
+
   // Rename (active sessions by internal id; history sessions by claudeSessionId) — same as /rename, persisted to titles.json
   const handleRename = useCallback(
     (key: string, title: string) => {
@@ -427,10 +434,13 @@ function AppInner(): JSX.Element {
             activeSessions={sessions.filter((s) => s.engine === engineTab)}
             activeId={activeId}
             customTitles={customTitles}
+            aliases={aliases}
+            isWin={appInfo?.platform === 'win32'}
             historyVersion={historyVer}
             onSelectActive={handleSelectActive}
             onResume={handleResume}
             onRename={handleRename}
+            onSetAlias={handleSetAlias}
             onDelete={handleDelete}
             onRemoveActive={handleRemoveActive}
             onReorderActive={handleReorderActive}
@@ -565,7 +575,13 @@ function AppInner(): JSX.Element {
       </div>
 
       {showNew && (
-        <NewSessionModal engines={enabledEngines} onClose={() => setShowNew(false)} onStart={handleNew} />
+        <NewSessionModal
+          engines={enabledEngines}
+          aliases={aliases}
+          isWin={appInfo?.platform === 'win32'}
+          onClose={() => setShowNew(false)}
+          onStart={handleNew}
+        />
       )}
 
       {showSettings && (

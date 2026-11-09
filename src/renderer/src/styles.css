@@ -437,6 +437,23 @@ input:focus {
   user-select: none;
 }
 
+/* Original directory name shown next to a user-set alias (alias + original always visible) */
+.group-orig {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--fg-dim);
+  margin-left: 5px;
+}
+
+.alias-cwd {
+  margin: 4px 0 10px;
+  font-size: 11px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .group-chevron {
   display: inline-block;
   margin-right: 2px;

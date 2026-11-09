@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { dataFile } from './dataDir'
+import { getAlias } from './projectMeta'
 import { t } from './i18n'
 import { findGitBash } from './claude'
 import {
@@ -94,7 +95,9 @@ const busyTimer = setInterval(() => {
           void new Notification({
             title: t('main.notifyTitle'),
             body: rec
-              ? t('main.notifyIdleBody', { name: rec.title || path.basename(rec.cwd) })
+              ? t('main.notifyIdleBody', {
+                  name: rec.title || getAlias(rec.cwd) || path.basename(rec.cwd)
+                })
               : t('main.notifyIdleBodyPlain')
           }).show()
         }
