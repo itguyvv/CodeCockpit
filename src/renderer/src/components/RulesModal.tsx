@@ -65,6 +65,9 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
   const [maximized, setMaximized] = useState(false)
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
+  /** While set, scroll events of the other pane (caused by our programmatic scroll) are ignored */
+  const scrollLock = useRef<'editor' | 'preview' | null>(null)
 
   const refFor = (tab: TabId): RuleRef =>
     tab === 'global'
@@ -133,7 +136,24 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
       parent: hostRef.current
     })
     viewRef.current = view
+    // Editor → preview: proportional scroll sync
+    const onEditorScroll = (): void => {
+      if (scrollLock.current === 'preview') return
+      scrollLock.current = 'editor'
+      const dst = previewRef.current
+      const src = view.scrollDOM
+      if (dst) {
+        const sMax = src.scrollHeight - src.clientHeight
+        const dMax = dst.scrollHeight - dst.clientHeight
+        if (sMax > 1 && dMax > 1) dst.scrollTop = (src.scrollTop / sMax) * dMax
+      }
+      window.setTimeout(() => {
+        if (scrollLock.current === 'editor') scrollLock.current = null
+      }, 100)
+    }
+    view.scrollDOM.addEventListener('scroll', onEditorScroll)
     return () => {
+      view.scrollDOM.removeEventListener('scroll', onEditorScroll)
       view.destroy()
       viewRef.current = null
     }
@@ -141,6 +161,26 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
   }, [active, fileReady])
 
   const dirty = !!file && file.content !== file.savedContent
+
+  // Preview → editor: the mirror direction, so scrolling either pane keeps both aligned
+  useEffect(() => {
+    const el = previewRef.current
+    if (!el) return
+    const onPreviewScroll = (): void => {
+      if (scrollLock.current === 'editor') return
+      const view = viewRef.current
+      if (!view) return
+      scrollLock.current = 'preview'
+      const sMax = el.scrollHeight - el.clientHeight
+      const dMax = view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight
+      if (sMax > 1 && dMax > 1) view.scrollDOM.scrollTop = (el.scrollTop / sMax) * dMax
+      window.setTimeout(() => {
+        if (scrollLock.current === 'preview') scrollLock.current = null
+      }, 100)
+    }
+    el.addEventListener('scroll', onPreviewScroll)
+    return () => el.removeEventListener('scroll', onPreviewScroll)
+  }, [previewOn, fileReady])
 
   const save = (): void => {
     const f = files[active]
@@ -228,7 +268,7 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
                 <div className="rules-editor-host" ref={hostRef} />
               </div>
               {previewOn && (
-                <div className="md-preview" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+                <div className="md-preview" ref={previewRef} dangerouslySetInnerHTML={{ __html: previewHtml }} />
               )}
             </>
           ) : (
