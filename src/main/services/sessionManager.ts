@@ -149,6 +149,9 @@ const dirtyStatus = new Set<string>()
 const busyStartAt = new Map<string, number>()
 /** Sessions that already fired their idle notification; cleared on user input */
 const notifySuppressed = new Set<string>()
+/** Until this timestamp PTY output is not counted as activity: after a resize the
+ *  TUI redraws its whole screen, which must not read as the AI working */
+const resizeGraceUntil = new Map<string, number>()
 
 const statusTimer = setInterval(() => {
   if (dirtyStatus.size === 0) return
@@ -247,7 +250,8 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
     env: await buildSpawnEnv(record)
   })
   p.onData((data) => {
-    lastDataAt.set(record.id, Date.now())
+    // Inside the resize grace window the TUI is merely redrawing — stay idle
+    if (Date.now() >= (resizeGraceUntil.get(record.id) ?? 0)) lastDataAt.set(record.id, Date.now())
     broadcast('pty:data', { id: record.id, data })
   })
   p.onExit(({ exitCode }) => {
@@ -373,6 +377,7 @@ export function resizeSession(id: string, cols: number, rows: number): void {
     // Remember the latest size: mode switches relaunch at the same size to avoid TUI corruption
     live.record.cols = c
     live.record.rows = r
+    resizeGraceUntil.set(id, Date.now() + 1500)
     try {
       live.pty.resize(c, r)
     } catch {
