@@ -1,11 +1,13 @@
 import { useEffect, useState, type JSX } from 'react'
-import type { RuleFile, RuleRef } from '../api'
+import type { EngineId, RuleFile, RuleRef } from '../api'
 import { useT } from '../i18n'
 
-type TabId = 'claude-global' | 'opencode-global' | 'project-claude' | 'project-opencode'
+type TabId = 'global' | 'project'
 
 interface Props {
-  /** When set, per-project tabs (CLAUDE.md / AGENTS.md of that directory) are shown */
+  /** Rule files follow the engine of the current context (claude → CLAUDE.md, opencode → AGENTS.md) */
+  engine: EngineId
+  /** When set, the per-project tab (rules file of that directory) is shown */
   projectCwd?: string
   onClose: () => void
   onNotify: (msg: string) => void
@@ -13,27 +15,29 @@ interface Props {
 
 type LoadedRule = RuleFile & { savedContent: string }
 
-export default function RulesModal({ projectCwd, onClose, onNotify }: Props): JSX.Element {
+export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Props): JSX.Element {
   const t = useT()
-  const [active, setActive] = useState<TabId>(projectCwd ? 'project-claude' : 'claude-global')
+  const [active, setActive] = useState<TabId>(projectCwd ? 'project' : 'global')
   const [files, setFiles] = useState<Partial<Record<TabId, LoadedRule>>>({})
 
   const refFor = (tab: TabId): RuleRef =>
-    tab === 'claude-global'
-      ? { scope: 'claude-global' }
-      : tab === 'opencode-global'
+    tab === 'global'
+      ? engine === 'opencode'
         ? { scope: 'opencode-global' }
-        : tab === 'project-claude'
-          ? { scope: 'project', engine: 'claude', cwd: projectCwd }
-          : { scope: 'project', engine: 'opencode', cwd: projectCwd }
+        : { scope: 'claude-global' }
+      : { scope: 'project', engine, cwd: projectCwd }
 
   const tabs: Array<{ id: TabId; label: string }> = [
-    { id: 'claude-global', label: `🌐 ${t('rules.tabGlobalClaude')}` },
-    { id: 'opencode-global', label: `🌐 ${t('rules.tabGlobalOpencode')}` },
+    {
+      id: 'global',
+      label: `🌐 ${engine === 'opencode' ? t('rules.tabGlobalOpencode') : t('rules.tabGlobalClaude')}`
+    },
     ...(projectCwd
       ? [
-          { id: 'project-claude' as TabId, label: `📁 ${t('rules.tabProjectClaude')}` },
-          { id: 'project-opencode' as TabId, label: `📁 ${t('rules.tabProjectOpencode')}` }
+          {
+            id: 'project' as TabId,
+            label: `📁 ${engine === 'opencode' ? t('rules.tabProjectOpencode') : t('rules.tabProjectClaude')}`
+          }
         ]
       : [])
   ]
@@ -110,8 +114,9 @@ export default function RulesModal({ projectCwd, onClose, onNotify }: Props): JS
                 {!file.exists && <span className="rules-new-hint"> · {t('rules.notCreated')}</span>}
               </div>
               <textarea
-                className="rules-editor"
+                className={`rules-editor ${file.exists ? '' : 'empty'}`}
                 value={file.content}
+                placeholder={file.exists ? '' : t('rules.emptyPlaceholder')}
                 onChange={(e) =>
                   setFiles((prev) =>
                     prev[active] ? { ...prev, [active]: { ...prev[active]!, content: e.target.value } } : prev

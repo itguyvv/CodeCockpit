@@ -429,6 +429,9 @@ function AppInner(): JSX.Element {
     )
   }
 
+  // Rule files follow the current engine context (claude → CLAUDE.md, opencode → AGENTS.md)
+  const rulesFileName = (active?.engine ?? engineTab) === 'opencode' ? 'AGENTS.md' : 'CLAUDE.md'
+
   return (
     <div className="app">
       <div className="toolbar">
@@ -440,12 +443,17 @@ function AppInner(): JSX.Element {
         <button className="primary" onClick={() => setShowNew(true)}>
           {t('toolbar.new')}
         </button>
+        <button className="ghost" onClick={() => setShowRules({})} title={t('toolbar.rulesTip')}>
+          🌐 {rulesFileName}
+        </button>
         <button
           className="ghost"
-          onClick={() => setShowRules({})}
-          title={t('toolbar.rulesTip')}
+          onClick={() =>
+            active ? setShowRules({ projectCwd: active.cwd }) : showToast(t('toolbar.projectRulesNone'))
+          }
+          title={active ? t('toolbar.projectRulesTip') : t('toolbar.projectRulesNone')}
         >
-          {t('toolbar.rules')}
+          📁 {rulesFileName}
         </button>
         <button className="ghost" onClick={() => setShowSettings(true)} title={t('settings.title')}>
           {t('toolbar.settings')}
@@ -610,10 +618,11 @@ function AppInner(): JSX.Element {
           engines={enabledEngines}
           aliases={aliases}
           isWin={appInfo?.platform === 'win32'}
+          defaultEngine={engineTab}
           onClose={() => setShowNew(false)}
           onStart={handleNew}
-          onResume={handleResume}
           onPinProject={handlePinProject}
+          onSetAlias={handleSetAlias}
         />
       )}
 
@@ -630,6 +639,7 @@ function AppInner(): JSX.Element {
 
       {showRules && (
         <RulesModal
+          engine={active?.engine ?? engineTab}
           projectCwd={showRules.projectCwd}
           onClose={() => setShowRules(null)}
           onNotify={showToast}

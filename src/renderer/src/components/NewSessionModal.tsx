@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react'
 import { modesForEngine } from '../types'
-import type { EngineId, EngineInfo, NativeSessionInfo, ProjectEntry, ProviderProfile } from '../api'
+import type { EngineId, EngineInfo, ProjectEntry, ProviderProfile } from '../api'
 import { useT } from '../i18n'
 import { normalizeCwd } from '../paths'
 
@@ -8,15 +8,6 @@ function basename(p: string): string {
   const norm = p.replace(/[\\/]+$/, '')
   const i = Math.max(norm.lastIndexOf('\\'), norm.lastIndexOf('/'))
   return i >= 0 ? norm.slice(i + 1) : norm
-}
-
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts
-  if (diff < 60_000) return '<1m'
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h`
-  if (diff < 30 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d`
-  return new Date(ts).toLocaleDateString()
 }
 
 export interface NewSessionOpts {
@@ -29,24 +20,32 @@ export interface NewSessionOpts {
 
 interface Props {
   engines: EngineInfo[]
-  /** Display notes per project directory, keyed by normalized cwd */
+  /** Display notes per project directory, keyed by normalized cwd (shared with the sidebar) */
   aliases: Record<string, string>
   isWin: boolean
+  /** Engine tab currently selected in the main window — the friendly default here */
+  defaultEngine: EngineId
   onClose: () => void
   onStart: (opts: NewSessionOpts) => void
-  /** Resume a history session of a pinned project (closes the modal) */
-  onResume?: (ns: NativeSessionInfo) => void
   onPinProject: (cwd: string, pinned: boolean) => void
+  onSetAlias: (cwd: string, alias: string) => void
+}
+
+interface RowMenu {
+  x: number
+  y: number
+  entry: ProjectEntry
 }
 
 export default function NewSessionModal({
   engines,
   aliases,
   isWin,
+  defaultEngine,
   onClose,
   onStart,
-  onResume,
-  onPinProject
+  onPinProject,
+  onSetAlias
 }: Props): JSX.Element {
   const t = useT()
   const [cwd, setCwd] = useState('')
@@ -58,8 +57,8 @@ export default function NewSessionModal({
   const [providerId, setProviderId] = useState('')
   const [recents, setRecents] = useState<string[]>([])
   const [projects, setProjects] = useState<ProjectEntry[]>([])
-  const [expandedCwd, setExpandedCwd] = useState('')
-  const [projectSessions, setProjectSessions] = useState<Record<string, NativeSessionInfo[]>>({})
+  const [menu, setMenu] = useState<RowMenu | null>(null)
+  const [aliasEdit, setAliasEdit] = useState<null | { cwd: string; text: string }>(null)
   const [err, setErr] = useState('')
 
   useEffect(() => {
@@ -76,6 +75,19 @@ export default function NewSessionModal({
     void window.api.projectsLoad().then(setProjects)
   }, [])
 
+  // Follow the main window's engine tab unless that engine is missing its CLI
+  useEffect(() => {
+    const match = engines.find((e) => e.id === defaultEngine)
+    if (match && match.bin) setEngine(defaultEngine)
+  }, [defaultEngine, engines])
+
+  useEffect(() => {
+    if (!menu) return
+    const close = (): void => setMenu(null)
+    window.addEventListener('mousedown', close)
+    return () => window.removeEventListener('mousedown', close)
+  }, [menu])
+
   const engineProviders = providers.filter((p) => p.engine === engine)
   const activeId = activeByEngine[engine] || 'builtin-default'
 
@@ -88,37 +100,21 @@ export default function NewSessionModal({
     setEngine(e)
     setProviderId('')
     setMode('default')
-    setExpandedCwd('')
-    setProjectSessions({})
-  }
-
-  const toggleProject = (p: ProjectEntry): void => {
-    if (expandedCwd === p.cwd) {
-      setExpandedCwd('')
-      return
-    }
-    setExpandedCwd(p.cwd)
-    void window.api
-      .listNativeSessions(engine)
-      .then((list) =>
-        setProjectSessions((prev) => ({
-          ...prev,
-          [p.cwd]: list.filter((s) => normalizeCwd(s.cwd, isWin) === p.cwd)
-        }))
-      )
   }
 
   const unpin = (key: string): void => {
-    void window.api.projectsSetPinned(key, false).then((list) => {
-      setProjects(list)
-      if (expandedCwd === key) setExpandedCwd('')
-    })
+    void window.api.projectsSetPinned(key, false).then(setProjects)
   }
 
   const pinCurrent = (): void => {
     const dir = cwd.trim()
     if (!dir) return
     void window.api.projectsSetPinned(dir, !currentPinned).then(setProjects)
+  }
+
+  const submitAlias = (): void => {
+    if (aliasEdit) onSetAlias(aliasEdit.cwd, aliasEdit.text.trim())
+    setAliasEdit(null)
   }
 
   const browse = (): void => {
@@ -149,14 +145,20 @@ export default function NewSessionModal({
         {engines.length > 1 && (
           <div className="form-row">
             <label>{t('new.engine')}</label>
-            <select value={engine} onChange={(e) => pickEngine(e.target.value as EngineId)}>
+            <div className="seg">
               {engines.map((e) => (
-                <option key={e.id} value={e.id} disabled={!e.bin}>
+                <button
+                  key={e.id}
+                  type="button"
+                  className={`seg-btn ${engine === e.id ? 'on' : ''}`}
+                  disabled={!e.bin}
+                  onClick={() => pickEngine(e.id)}
+                  title={!e.bin ? t('new.engineMissing') : ''}
+                >
                   {e.id === 'opencode' ? t('engine.opencode') : t('engine.claude')}
-                  {!e.bin ? ` — ${t('new.engineMissing')}` : ''}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         )}
         {engineProviders.length > 1 && (
@@ -196,54 +198,46 @@ export default function NewSessionModal({
               <div className="projects-head">{t('new.projectsTitle')}</div>
               {pinnedProjects.map((p) => {
                 const alias = aliases[p.cwd] ?? ''
-                const name = alias || basename(p.path)
-                return (
-                  <div key={p.cwd} className="project-wrap">
-                    <div className={`project-row ${normalizeCwd(cwd, isWin) === p.cwd ? 'sel' : ''}`}>
-                      <button
-                        className="project-expand"
-                        onClick={() => toggleProject(p)}
-                        title={t('new.projectHistory')}
-                      >
-                        {expandedCwd === p.cwd ? '▾' : '▸'}
-                      </button>
-                      <button className="project-main" onClick={() => setCwd(p.path)} title={p.path}>
-                        {name}
-                        {alias && <span className="project-orig">{basename(p.path)}</span>}
-                      </button>
-                      <button
-                        className="project-unpin"
-                        onClick={() => unpin(p.cwd)}
-                        title={t('ctx.unpinProject')}
-                      >
-                        ★
+                if (aliasEdit?.cwd === p.cwd) {
+                  return (
+                    <div key={p.cwd} className="project-alias-edit">
+                      <input
+                        autoFocus
+                        value={aliasEdit.text}
+                        placeholder={t('alias.placeholder')}
+                        onChange={(e) => setAliasEdit({ cwd: p.cwd, text: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') submitAlias()
+                          if (e.key === 'Escape') setAliasEdit(null)
+                        }}
+                        spellCheck={false}
+                      />
+                      <button className="primary" onClick={submitAlias}>
+                        ✓
                       </button>
                     </div>
-                    {expandedCwd === p.cwd && (
-                      <div className="project-sessions">
-                        {(projectSessions[p.cwd] ?? []).map((ns) => (
-                          <button
-                            key={ns.sessionId}
-                            className="project-session"
-                            onClick={() => {
-                              onResume?.(ns)
-                              onClose()
-                            }}
-                          >
-                            <span className="ps-title">
-                              {ns.title} · {ns.sessionId.slice(0, 8)}
-                            </span>
-                            <span className="ps-time">{relativeTime(ns.lastTs)}</span>
-                          </button>
-                        ))}
-                        {(projectSessions[p.cwd] ?? []).length === 0 && (
-                          <div className="project-none">{t('new.projectNoSessions')}</div>
-                        )}
-                      </div>
-                    )}
+                  )
+                }
+                return (
+                  <div
+                    key={p.cwd}
+                    className={`project-row ${normalizeCwd(cwd, isWin) === p.cwd ? 'sel' : ''}`}
+                    onClick={() => setCwd(p.path)}
+                    onContextMenu={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setMenu({ x: e.clientX, y: e.clientY, entry: p })
+                    }}
+                    title={p.path}
+                  >
+                    <span className="project-main">
+                      {alias || basename(p.path)}
+                      {alias && <span className="project-orig">{basename(p.path)}</span>}
+                    </span>
                   </div>
                 )
               })}
+              <div className="projects-tip">{t('new.projectTip')}</div>
             </div>
           )}
           {recents.length > 0 && (
@@ -296,6 +290,40 @@ export default function NewSessionModal({
           </button>
         </div>
       </div>
+
+      {menu && (
+        <div className="ctx-menu" style={{ left: menu.x, top: menu.y }} onMouseDown={(e) => e.stopPropagation()}>
+          <button
+            className="ctx-item"
+            onClick={() => {
+              setAliasEdit({ cwd: menu.entry.cwd, text: aliases[menu.entry.cwd] ?? '' })
+              setMenu(null)
+            }}
+          >
+            {t('ctx.setAlias')}
+          </button>
+          {(aliases[menu.entry.cwd] ?? '') !== '' && (
+            <button
+              className="ctx-item"
+              onClick={() => {
+                onSetAlias(menu.entry.cwd, '')
+                setMenu(null)
+              }}
+            >
+              {t('ctx.clearAlias')}
+            </button>
+          )}
+          <button
+            className="ctx-item"
+            onClick={() => {
+              unpin(menu.entry.cwd)
+              setMenu(null)
+            }}
+          >
+            {t('ctx.unpinProject')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

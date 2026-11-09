@@ -789,48 +789,29 @@ input:focus {
   padding: 2px 4px 6px;
 }
 
-.project-wrap + .project-wrap {
-  border-top: 1px solid var(--border);
-}
-
-.project-row {
+.projects .project-row {
   display: flex;
   align-items: center;
-  gap: 2px;
   border-radius: 4px;
-}
-.project-row.sel {
-  background: rgba(76, 194, 255, 0.1);
-}
-
-.project-expand {
-  border: none;
-  background: transparent;
-  color: var(--fg-dim);
+  padding: 0 4px;
   cursor: pointer;
-  padding: 4px 6px;
-  font-size: 11px;
-  flex: none;
 }
-.project-expand:hover {
-  color: var(--fg);
+.projects .project-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.projects .project-row.sel {
+  background: rgba(76, 194, 255, 0.1);
 }
 
 .project-main {
   flex: 1;
   min-width: 0;
-  text-align: left;
-  border: none;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  padding: 5px 4px;
-  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 12px;
 }
-.project-main:hover {
+.projects .project-row:hover .project-main {
   color: var(--accent, #4cc2ff);
 }
 
@@ -840,58 +821,51 @@ input:focus {
   margin-left: 6px;
 }
 
-.project-unpin {
-  border: none;
-  background: transparent;
-  color: var(--fg-dim);
-  cursor: pointer;
-  padding: 4px 8px;
-  font-size: 12px;
-  flex: none;
+.project-alias-edit {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px;
 }
-.project-unpin:hover {
-  color: #f5c542;
+.project-alias-edit input {
+  flex: 1;
+  min-width: 0;
+}
+.project-alias-edit button {
+  padding: 3px 10px;
 }
 
-.project-sessions {
-  padding: 0 4px 6px 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.project-session {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 4px;
-  font-size: 11.5px;
-  text-align: left;
-}
-.project-session:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-.project-session .ps-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.project-session .ps-time {
+.projects-tip {
   color: var(--fg-dim);
-  flex: none;
   font-size: 10.5px;
+  padding: 4px 4px 0;
 }
 
-.project-none {
+/* ── Segmented engine selector ── */
+.seg {
+  display: flex;
+  gap: 4px;
+}
+.seg-btn {
+  border: 1px solid var(--border);
+  background: transparent;
   color: var(--fg-dim);
-  font-size: 11px;
-  padding: 4px 6px;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+.seg-btn:hover:not(:disabled) {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.05);
+}
+.seg-btn.on {
+  color: var(--fg);
+  background: rgba(76, 194, 255, 0.12);
+  border-color: rgba(76, 194, 255, 0.4);
+}
+.seg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ── Rule file editor (CLAUDE.md / AGENTS.md) ── */
@@ -976,6 +950,13 @@ input:focus {
   white-space: pre;
   overflow: auto;
   tab-size: 2;
+}
+.rules-editor::placeholder {
+  color: var(--fg-dim);
+  opacity: 0.7;
+}
+.rules-editor.empty::placeholder {
+  font-style: italic;
 }
 
 .rules-loading {
