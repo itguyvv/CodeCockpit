@@ -7,3 +7,6 @@ data-dir.txt
 .npmrc
 *.log
 *.tsbuildinfo
+
+# Local-only knowledge base (never publish)
+docs/DEV-NOTES.local.md
