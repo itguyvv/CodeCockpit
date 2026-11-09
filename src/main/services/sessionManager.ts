@@ -236,10 +236,13 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
   })
   // CreateProcess cannot execute .cmd shims directly — route them through cmd.exe
   const isCmd = bin.toLowerCase().endsWith('.cmd')
+  // Normalize spawn dims so resizeSession can dedup no-op resizes against them
+  record.cols ??= 110
+  record.rows ??= 30
   const p = pty.spawn(isCmd ? 'cmd.exe' : bin, isCmd ? ['/d', '/s', '/c', bin, ...args] : args, {
     name: 'xterm-256color',
-    cols: record.cols ?? 110,
-    rows: record.rows ?? 30,
+    cols: record.cols,
+    rows: record.rows,
     cwd: record.cwd,
     env: await buildSpawnEnv(record)
   })
@@ -362,11 +365,16 @@ export function writeInput(id: string, data: string): void {
 export function resizeSession(id: string, cols: number, rows: number): void {
   const live = procs.get(id)
   if (live) {
+    const c = Math.max(2, Math.floor(cols))
+    const r = Math.max(2, Math.floor(rows))
+    // Skip no-op resizes: node-pty signals the TUI even when the size is unchanged,
+    // the redraw counts as fresh output and shows a phantom "Working" on every switch
+    if (live.record.cols === c && live.record.rows === r) return
     // Remember the latest size: mode switches relaunch at the same size to avoid TUI corruption
-    live.record.cols = Math.max(2, Math.floor(cols))
-    live.record.rows = Math.max(2, Math.floor(rows))
+    live.record.cols = c
+    live.record.rows = r
     try {
-      live.pty.resize(live.record.cols, live.record.rows)
+      live.pty.resize(c, r)
     } catch {
       // Resizing an already-exited process throws; ignore
     }
