@@ -133,6 +133,13 @@ const de: Translation = {
   'settings.defaultScrollback': 'Terminal-Scrollback',
   'settings.scrollbackHint': 'Zeilen pro Terminal zum Zurückscrollen. Gilt für Terminals, die nach der Änderung geöffnet werden.',
   'settings.defaultsSaved': 'Gespeichert — gilt für alle neu erstellten Sitzungen',
+  'settings.sectionNotifications': 'Benachrichtigungen',
+  'settings.notifyOnIdle': 'Bei abgeschlossener Aufgabe benachrichtigen',
+  'settings.notifyOnIdleHint':
+    'Zeigt eine Systembenachrichtigung, wenn eine Sitzung inaktiv wird und das CodeCockpit-Fenster nicht im Fokus ist. Standardmäßig aus.',
+  'settings.notifyOnFocusSession': 'Bei Benachrichtigung zur Sitzung wechseln',
+  'settings.notifyOnFocusSessionHint':
+    'Bringt bei Auslösen der Benachrichtigung das Fenster nach vorn und wechselt zu dieser Sitzung.',
   'settings.sectionData': 'Daten & Migration',
   'settings.dataDir': 'Aktuelles Datenverzeichnis',
   'settings.changeDataDir': '📁 Datenverzeichnis ändern…',

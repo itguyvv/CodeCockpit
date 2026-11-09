@@ -215,6 +215,11 @@ const api = {
     on('pty:status', (p) => {
       const { id, status } = p as { id: string; status: unknown }
       cb(id, status)
+    }),
+  onFocus: (cb: (id: string) => void): Unsubscribe =>
+    on('pty:focus', (p) => {
+      const { id } = p as { id: string }
+      cb(id)
     })
 }
 

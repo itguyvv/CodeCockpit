@@ -154,6 +154,14 @@ function AppInner(): JSX.Element {
     }
   }, [updateSession, t])
 
+  // Notification-triggered jump: select the session in the renderer (window raising happens in main)
+  useEffect(() => {
+    return window.api.onFocus((id) => {
+      const s = sessions.find((x) => x.id === id)
+      if (s && s.status !== 'exited') setActiveId(id)
+    })
+  }, [sessions])
+
   const guardBypass = useCallback(
     (mode: string, onOk: () => void) => {
       if (mode === 'bypassPermissions') {

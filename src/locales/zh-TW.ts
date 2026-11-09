@@ -126,6 +126,12 @@ const zhTW: Translation = {
   'settings.defaultScrollback': '終端回溯行數',
   'settings.scrollbackHint': '每個終端保留的可回看行數，對修改後新開的終端生效。',
   'settings.defaultsSaved': '預設設定已儲存，之後新增的工作階段生效',
+  'settings.sectionNotifications': '通知',
+  'settings.notifyOnIdle': '工作完成後系統通知',
+  'settings.notifyOnIdleHint':
+    '工作階段轉為閒置且 CodeCockpit 視窗不在前景時，彈出系統通知。預設關閉。',
+  'settings.notifyOnFocusSession': '通知時跳至該工作階段',
+  'settings.notifyOnFocusSessionHint': '通知觸發時，把視窗帶到前景並切換到該工作階段。',
   'settings.sectionData': '資料與遷移',
   'settings.dataDir': '目前資料目錄',
   'settings.changeDataDir': '📁 變更資料目錄…',

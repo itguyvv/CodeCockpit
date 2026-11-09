@@ -135,6 +135,13 @@ const fr: Translation = {
   'settings.defaultScrollback': 'Défilement du terminal',
   'settings.scrollbackHint': 'Lignes conservées par terminal pour revenir en arrière. Appliqué aux terminaux ouverts après la modification.',
   'settings.defaultsSaved': 'Enregistré — s’applique aux sessions créées à partir de maintenant',
+  'settings.sectionNotifications': 'Notifications',
+  'settings.notifyOnIdle': 'Notifier à la fin d’une tâche',
+  'settings.notifyOnIdleHint':
+    'Affiche une notification système quand une session passe en inactif alors que la fenêtre CodeCockpit n’a pas le focus. Désactivé par défaut.',
+  'settings.notifyOnFocusSession': 'Aller à la session lors de la notification',
+  'settings.notifyOnFocusSessionHint':
+    'Au déclenchement de la notification, ramène la fenêtre au premier plan et bascule vers cette session.',
   'settings.sectionData': 'Données & migration',
   'settings.dataDir': 'Répertoire de données actuel',
   'settings.changeDataDir': '📁 Changer de répertoire de données…',

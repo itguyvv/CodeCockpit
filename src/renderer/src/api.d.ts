@@ -131,6 +131,10 @@ export interface AppSettings {
   confirmExit?: boolean
   /** xterm scrollback lines for new terminals */
   scrollback?: number
+  /** Opt-in system notification when a session goes idle while the window is unfocused */
+  notifyOnIdle?: boolean
+  /** Opt-in: also surface the window and switch to the session when that notification fires */
+  notifyOnFocusSession?: boolean
 }
 
 export interface WorkbenchApi {
@@ -193,6 +197,7 @@ export interface WorkbenchApi {
   onSessionId: (cb: (id: string, claudeSessionId: string) => void) => () => void
   onBusy: (cb: (id: string, busy: boolean, bg: number) => void) => () => void
   onStatus: (cb: (id: string, status: SessionStatus) => void) => () => void
+  onFocus: (cb: (id: string) => void) => () => void
 }
 
 declare global {

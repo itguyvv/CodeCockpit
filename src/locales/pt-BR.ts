@@ -134,6 +134,13 @@ const ptBR: Translation = {
   'settings.defaultScrollback': 'Rolagem do terminal',
   'settings.scrollbackHint': 'Linhas mantidas por terminal para rolar de volta. Vale para terminais abertos após a alteração.',
   'settings.defaultsSaved': 'Padrões salvos — vale para as sessões criadas a partir de agora',
+  'settings.sectionNotifications': 'Notificações',
+  'settings.notifyOnIdle': 'Avisar ao concluir uma tarefa',
+  'settings.notifyOnIdleHint':
+    'Mostra uma notificação do sistema quando uma sessão fica ociosa e a janela do CodeCockpit não está em foco. Desativado por padrão.',
+  'settings.notifyOnFocusSession': 'Ir para a sessão ao notificar',
+  'settings.notifyOnFocusSessionHint':
+    'Quando a notificação é disparada, traz a janela para a frente e muda para essa sessão.',
   'settings.sectionData': 'Dados e migração',
   'settings.dataDir': 'Diretório de dados atual',
   'settings.changeDataDir': '📁 Alterar diretório de dados…',

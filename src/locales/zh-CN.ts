@@ -126,6 +126,12 @@ const zhCN: Translation = {
   'settings.defaultScrollback': '终端回滚行数',
   'settings.scrollbackHint': '每个终端保留的可回看行数，对修改后新开的终端生效。',
   'settings.defaultsSaved': '默认设置已保存，之后新建的会话生效',
+  'settings.sectionNotifications': '通知',
+  'settings.notifyOnIdle': '任务完成后系统通知',
+  'settings.notifyOnIdleHint':
+    '会话转为空闲且 CodeCockpit 窗口不在前台时，弹出系统通知。默认关闭。',
+  'settings.notifyOnFocusSession': '通知时跳转到该会话',
+  'settings.notifyOnFocusSessionHint': '通知触发时，把窗口带到前台并切换到该会话。',
   'settings.sectionData': '数据与迁移',
   'settings.dataDir': '当前数据目录',
   'settings.changeDataDir': '📁 更改数据目录…',

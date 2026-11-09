@@ -131,6 +131,13 @@ const en = {
   'settings.defaultScrollback': 'Terminal scrollback',
   'settings.scrollbackHint': 'Lines kept per terminal for scrolling back. Applies to terminals opened after the change.',
   'settings.defaultsSaved': 'Defaults saved — applies to sessions created from now on',
+  'settings.sectionNotifications': 'Notifications',
+  'settings.notifyOnIdle': 'Notify when a task finishes',
+  'settings.notifyOnIdleHint':
+    'Shows a system notification when a session goes idle while the CodeCockpit window is not focused. Off by default.',
+  'settings.notifyOnFocusSession': 'Jump to the session when notifying',
+  'settings.notifyOnFocusSessionHint':
+    'When the notification fires, raise the window and switch to that session.',
   'settings.sectionData': 'Data & migration',
   'settings.dataDir': 'Current data directory',
   'settings.changeDataDir': '📁 Change data directory…',

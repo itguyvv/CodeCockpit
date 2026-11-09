@@ -128,6 +128,12 @@ const ko: Translation = {
   'settings.defaultScrollback': '터미널 스크롤백',
   'settings.scrollbackHint': '터미널마다 유지되는 스크롤백 줄 수입니다. 변경 후 열리는 터미널에 적용됩니다.',
   'settings.defaultsSaved': '기본값 저장 완료 — 이후 새 세션에 적용됩니다',
+  'settings.sectionNotifications': '알림',
+  'settings.notifyOnIdle': '작업 완료 시 알림',
+  'settings.notifyOnIdleHint':
+    '세션이 유휴 상태가 되고 CodeCockpit 창이 포커스를 잃었을 때 시스템 알림을 표시합니다. 기본값은 꺼짐입니다.',
+  'settings.notifyOnFocusSession': '알림 시 해당 세션으로 이동',
+  'settings.notifyOnFocusSessionHint': '알림이 발생하면 창을 앞으로 가져와 해당 세션으로 전환합니다.',
   'settings.sectionData': '데이터 및 마이그레이션',
   'settings.dataDir': '현재 데이터 디렉터리',
   'settings.changeDataDir': '📁 데이터 디렉터리 변경…',

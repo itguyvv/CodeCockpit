@@ -49,6 +49,10 @@ interface AppSettings {
   confirmExit?: boolean
   /** xterm scrollback lines for new terminals */
   scrollback?: number
+  /** Opt-in system notification when a session goes idle while the window is unfocused */
+  notifyOnIdle?: boolean
+  /** Opt-in: also surface the window and switch to the session when that notification fires */
+  notifyOnFocusSession?: boolean
 }
 
 let win: BrowserWindow | null = null

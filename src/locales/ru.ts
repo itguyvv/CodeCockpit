@@ -133,6 +133,13 @@ const ru: Translation = {
   'settings.defaultScrollback': 'Буфер прокрутки терминала',
   'settings.scrollbackHint': 'Строк прокрутки, сохраняемых в каждом терминале. Применяется к терминалам, открытым после изменения.',
   'settings.defaultsSaved': 'Сохранено — применяется к сессиям, созданным с этого момента',
+  'settings.sectionNotifications': 'Уведомления',
+  'settings.notifyOnIdle': 'Уведомлять о завершении задачи',
+  'settings.notifyOnIdleHint':
+    'Показывает системное уведомление, когда сессия переходит в простой, а окно CodeCockpit не в фокусе. По умолчанию выключено.',
+  'settings.notifyOnFocusSession': 'Переходить к сессии при уведомлении',
+  'settings.notifyOnFocusSessionHint':
+    'При срабатывании уведомления выводит окно на передний план и переключается на эту сессию.',
   'settings.sectionData': 'Данные и миграция',
   'settings.dataDir': 'Текущий каталог данных',
   'settings.changeDataDir': '📁 Сменить каталог данных…',

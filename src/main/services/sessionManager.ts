@@ -74,6 +74,29 @@ const BUSY_WINDOW_MS = 3000
  *  the stale exit event must not mark the session exited in the renderer */
 const replacing = new Set<string>()
 
+/** Notification preferences live in settings.json; undefined/false = off (opt-in feature) */
+function notifyPrefs(): { notifyOnIdle: boolean; notifyOnFocusSession: boolean } {
+  try {
+    const s = JSON.parse(fs.readFileSync(dataFile('settings.json'), 'utf-8')) as {
+      notifyOnIdle?: boolean
+      notifyOnFocusSession?: boolean
+    }
+    return { notifyOnIdle: s.notifyOnIdle === true, notifyOnFocusSession: s.notifyOnFocusSession === true }
+  } catch {
+    return { notifyOnIdle: false, notifyOnFocusSession: false }
+  }
+}
+
+/** Bring the app window up; optionally also switch the renderer to the given session */
+function presentWindow(jumpToSessionId?: string): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (w.isMinimized()) w.restore()
+    w.show()
+    w.focus()
+  }
+  if (jumpToSessionId) broadcast('pty:focus', { id: jumpToSessionId })
+}
+
 const busyTimer = setInterval(() => {
   const now = Date.now()
   for (const [id] of procs) {
@@ -86,20 +109,26 @@ const busyTimer = setInterval(() => {
       const prev = busyStates.get(id)
       busyStates.set(id, busy)
       broadcast('pty:busy', { id, busy: ptyActive, bg })
-      // busy → idle while the window is unfocused: system notification (only after 30s of busyness to avoid typing false alarms)
+      // busy → idle while the window is unfocused: system notification (opt-in;
+      // only after 30s of busyness to avoid typing false alarms)
       if (prev === true && !busy) {
         const startedAt = busyStartAt.get(id) ?? 0
         const focused = BrowserWindow.getAllWindows().some((w) => w.isFocused())
-        if (!focused && now - startedAt > 30_000 && Notification.isSupported()) {
+        const prefs = notifyPrefs()
+        if (!focused && now - startedAt > 30_000 && Notification.isSupported() && prefs.notifyOnIdle) {
           const rec = registry.get(id)
-          void new Notification({
+          const notification = new Notification({
             title: t('main.notifyTitle'),
             body: rec
               ? t('main.notifyIdleBody', {
                   name: rec.title || getAlias(rec.cwd) || path.basename(rec.cwd)
                 })
               : t('main.notifyIdleBodyPlain')
-          }).show()
+          })
+          notification.on('click', () => presentWindow())
+          notification.show()
+          // Opt-in: at notification time also surface the window and switch to that session
+          if (prefs.notifyOnFocusSession) presentWindow(id)
         }
       }
       if (busy && prev !== true) busyStartAt.set(id, now)

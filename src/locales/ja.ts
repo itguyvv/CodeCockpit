@@ -129,6 +129,13 @@ const ja: Translation = {
   'settings.defaultScrollback': 'ターミナルのスクロールバック',
   'settings.scrollbackHint': 'ターミナルごとに保持するスクロールバック行数。変更後に開いたターミナルに適用されます。',
   'settings.defaultsSaved': '既定値を保存しました。以後の新規セッションに適用されます',
+  'settings.sectionNotifications': '通知',
+  'settings.notifyOnIdle': 'タスク完了時に通知する',
+  'settings.notifyOnIdleHint':
+    'セッションがアイドルになり、CodeCockpit のウィンドウが前面にないときにシステム通知を表示します。既定はオフです。',
+  'settings.notifyOnFocusSession': '通知時にそのセッションへ移動',
+  'settings.notifyOnFocusSessionHint':
+    '通知の発火時にウィンドウを前面に出し、そのセッションへ切り替えます。',
   'settings.sectionData': 'データと移行',
   'settings.dataDir': '現在のデータディレクトリ',
   'settings.changeDataDir': '📁 データディレクトリを変更…',

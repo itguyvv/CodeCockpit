@@ -47,6 +47,8 @@ export default function SettingsModal({
   const [defaultMode, setDefaultMode] = useState('default')
   const [defaultModel, setDefaultModel] = useState('')
   const [scrollback, setScrollback] = useState(2000)
+  const [notifyOnIdle, setNotifyOnIdle] = useState(false)
+  const [notifyOnFocusSession, setNotifyOnFocusSession] = useState(false)
   const [mcp, setMcp] = useState<McpServerInfo[]>([])
   const [busy, setBusy] = useState('')
   const [engineInfos, setEngineInfos] = useState<EngineInfo[]>([])
@@ -62,6 +64,8 @@ export default function SettingsModal({
       setDefaultMode(s.defaultMode || 'default')
       setDefaultModel(s.defaultModel || '')
       setScrollback(s.scrollback ?? 2000)
+      setNotifyOnIdle(s.notifyOnIdle === true)
+      setNotifyOnFocusSession(s.notifyOnFocusSession === true)
       setEnginesEnabled(s.engines ?? {})
     })
     void window.api.mcpList().then(setMcp)
@@ -96,6 +100,12 @@ export default function SettingsModal({
       onSettingsChanged({ scrollback })
       onNotify(t('settings.defaultsSaved'))
     })
+  }
+
+  const setNotify = (key: 'notifyOnIdle' | 'notifyOnFocusSession', value: boolean): void => {
+    if (key === 'notifyOnIdle') setNotifyOnIdle(value)
+    else setNotifyOnFocusSession(value)
+    void window.api.setSettings({ [key]: value })
   }
 
   const openDraft = (d: Draft): void => {
@@ -277,6 +287,34 @@ export default function SettingsModal({
                   {t('settings.saveDefaults')}
                 </button>
               </div>
+            </div>
+
+            <div className="settings-section">
+              <div className="settings-title">{t('settings.sectionNotifications')}</div>
+              <div className="settings-row">
+                <label title={t('settings.notifyOnIdleHint')}>{t('settings.notifyOnIdle')}</label>
+                <label className="engine-toggle">
+                  <input
+                    type="checkbox"
+                    checked={notifyOnIdle}
+                    onChange={(e) => setNotify('notifyOnIdle', e.target.checked)}
+                  />
+                </label>
+              </div>
+              <div className="settings-row">
+                <label title={t('settings.notifyOnFocusSessionHint')}>
+                  {t('settings.notifyOnFocusSession')}
+                </label>
+                <label className="engine-toggle">
+                  <input
+                    type="checkbox"
+                    checked={notifyOnFocusSession}
+                    disabled={!notifyOnIdle}
+                    onChange={(e) => setNotify('notifyOnFocusSession', e.target.checked)}
+                  />
+                </label>
+              </div>
+              <p className="settings-hint">{t('settings.notifyOnIdleHint')}</p>
             </div>
 
             <div className="settings-section">
