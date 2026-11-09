@@ -86,6 +86,7 @@ const ko: Translation = {
   'rules.tabProjectOpencode': '프로젝트 AGENTS.md',
   'rules.notCreated': '아직 파일이 없습니다 — 저장할 때 생성됩니다',
   'rules.emptyPlaceholder': '아직 파일이 없습니다 — 입력 후 저장하면 생성됩니다',
+  'rules.preview': '미리보기',
   'rules.dirty': '저장되지 않은 변경 사항 — Ctrl+S로 저장',
   'rules.saved': '저장됨',
   'rules.readFail': '읽기 실패: {err}',

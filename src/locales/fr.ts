@@ -92,6 +92,7 @@ const fr: Translation = {
   'rules.tabProjectOpencode': 'AGENTS.md du projet',
   'rules.notCreated': 'Le fichier n’existe pas encore — il sera créé à l’enregistrement',
   'rules.emptyPlaceholder': 'Le fichier n’existe pas encore — saisissez du texte et enregistrez pour le créer',
+  'rules.preview': 'Aperçu',
   'rules.dirty': 'Modifications non enregistrées — Ctrl+S pour enregistrer',
   'rules.saved': 'Enregistré',
   'rules.readFail': 'Échec de la lecture : {err}',

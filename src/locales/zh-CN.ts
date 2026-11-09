@@ -84,6 +84,7 @@ const zhCN: Translation = {
   'rules.tabProjectOpencode': '项目 AGENTS.md',
   'rules.notCreated': '文件尚不存在——保存时自动创建',
   'rules.emptyPlaceholder': '文件尚不存在——输入内容后保存即可创建',
+  'rules.preview': '预览',
   'rules.dirty': '有未保存的修改——Ctrl+S 保存',
   'rules.saved': '已保存',
   'rules.readFail': '读取失败：{err}',

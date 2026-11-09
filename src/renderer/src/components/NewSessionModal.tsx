@@ -228,10 +228,13 @@ export default function NewSessionModal({
                     }}
                     title={p.path}
                   >
-                    <span className="project-main">
-                      {alias || basename(p.path)}
-                      {alias && <span className="project-orig">{basename(p.path)}</span>}
-                    </span>
+                    <div className="project-main">
+                      <span className="project-name">
+                        {alias || basename(p.path)}
+                        {alias && <span className="project-orig">{basename(p.path)}</span>}
+                      </span>
+                      <span className="project-path">{p.path}</span>
+                    </div>
                   </div>
                 )
               })}

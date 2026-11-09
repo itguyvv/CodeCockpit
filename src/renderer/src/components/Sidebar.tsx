@@ -480,11 +480,16 @@ export default function Sidebar({
                   <span
                     className={`dot ${live ? (live.busy ? 'running' : live.bgTasks > 0 ? 'bg' : 'idle') : 'off'}`}
                   />
-                  <span className="item-title">
-                    {customTitles[ns.sessionId] || ns.title}
-                    {ns.custom ? ' ✏' : ''}
+                  <span className="item-main">
+                    <span className="item-title">
+                      {customTitles[ns.sessionId] || ns.title}
+                      {ns.custom ? ' ✏' : ''}
+                    </span>
+                    <span className="item-meta">
+                      {relativeTime(ns.lastTs)}
+                      {ns.sizeBytes ? ` · ${formatSize(ns.sizeBytes)}` : ''}
+                    </span>
                   </span>
-                  <span className="item-time">{relativeTime(ns.lastTs)}</span>
                 </div>
               )
             })}

@@ -84,6 +84,7 @@ const zhTW: Translation = {
   'rules.tabProjectOpencode': '專案 AGENTS.md',
   'rules.notCreated': '檔案尚不存在——儲存時自動建立',
   'rules.emptyPlaceholder': '檔案尚不存在——輸入內容後儲存即可建立',
+  'rules.preview': '預覽',
   'rules.dirty': '有未儲存的修改——Ctrl+S 儲存',
   'rules.saved': '已儲存',
   'rules.readFail': '讀取失敗：{err}',

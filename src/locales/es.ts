@@ -91,6 +91,7 @@ const es: Translation = {
   'rules.tabProjectOpencode': 'AGENTS.md del proyecto',
   'rules.notCreated': 'El archivo aún no existe — se crea al guardar',
   'rules.emptyPlaceholder': 'El archivo aún no existe — escriba contenido y guarde para crearlo',
+  'rules.preview': 'Vista previa',
   'rules.dirty': 'Cambios sin guardar — Ctrl+S para guardar',
   'rules.saved': 'Guardado',
   'rules.readFail': 'Error al leer: {err}',

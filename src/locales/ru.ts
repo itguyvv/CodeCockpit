@@ -90,6 +90,7 @@ const ru: Translation = {
   'rules.tabProjectOpencode': 'AGENTS.md проекта',
   'rules.notCreated': 'Файла ещё нет — он будет создан при сохранении',
   'rules.emptyPlaceholder': 'Файла ещё нет — введите текст и сохраните, чтобы создать его',
+  'rules.preview': 'Предпросмотр',
   'rules.dirty': 'Есть несохранённые изменения — Ctrl+S для сохранения',
   'rules.saved': 'Сохранено',
   'rules.readFail': 'Не удалось прочитать: {err}',

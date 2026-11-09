@@ -88,6 +88,7 @@ const en = {
   'rules.tabProjectOpencode': 'Project AGENTS.md',
   'rules.notCreated': 'File does not exist yet — it is created on save',
   'rules.emptyPlaceholder': 'File does not exist yet — start typing to create it on save',
+  'rules.preview': 'Preview',
   'rules.dirty': 'Unsaved changes — Ctrl+S to save',
   'rules.saved': 'Saved',
   'rules.readFail': 'Failed to read: {err}',

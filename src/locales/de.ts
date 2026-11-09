@@ -90,6 +90,7 @@ const de: Translation = {
   'rules.tabProjectOpencode': 'Projekt-AGENTS.md',
   'rules.notCreated': 'Datei existiert noch nicht — wird beim Speichern angelegt',
   'rules.emptyPlaceholder': 'Datei existiert noch nicht — beim Speichern mit Inhalt angelegt',
+  'rules.preview': 'Vorschau',
   'rules.dirty': 'Ungespeicherte Änderungen — Strg+S zum Speichern',
   'rules.saved': 'Gespeichert',
   'rules.readFail': 'Lesen fehlgeschlagen: {err}',

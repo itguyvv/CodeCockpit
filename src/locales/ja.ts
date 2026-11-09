@@ -87,6 +87,7 @@ const ja: Translation = {
   'rules.tabProjectOpencode': 'プロジェクト AGENTS.md',
   'rules.notCreated': 'ファイルはまだ存在しません — 保存時に作成されます',
   'rules.emptyPlaceholder': 'ファイルはまだ存在しません — 入力して保存すると作成されます',
+  'rules.preview': 'プレビュー',
   'rules.dirty': '未保存の変更があります — Ctrl+S で保存',
   'rules.saved': '保存しました',
   'rules.readFail': '読み込み失敗：{err}',

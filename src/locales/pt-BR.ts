@@ -91,6 +91,7 @@ const ptBR: Translation = {
   'rules.tabProjectOpencode': 'AGENTS.md do projeto',
   'rules.notCreated': 'O arquivo ainda não existe — é criado ao salvar',
   'rules.emptyPlaceholder': 'O arquivo ainda não existe — digite o conteúdo e salve para criá-lo',
+  'rules.preview': 'Visualizar',
   'rules.dirty': 'Alterações não salvas — Ctrl+S para salvar',
   'rules.saved': 'Salvo',
   'rules.readFail': 'Falha ao ler: {err}',
