@@ -42,7 +42,9 @@ jobs:
             artifact: CodeCockpit-win
             paths: |
               dist/*.zip
-          - os: macos-latest
+          # Pinned image: the macos-latest label pool has repeatedly left jobs queued
+          # with no runner assigned until GitHub cancels them
+          - os: macos-15
             package-cmd: npm run dist:mac
             artifact: CodeCockpit-mac
             paths: dist/*.zip
@@ -83,7 +85,7 @@ jobs:
       # package a second arch in one run need that prebuild too. node-pty ships N-API
       # prebuilds (ABI-stable), so the extra prebuild needs no rebuild step.
       - name: Install darwin-x64 node-pty prebuild
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         run: npm i --no-save --force @lydell/node-pty-darwin-x64@$(node -p "require('./node_modules/@lydell/node-pty/package.json').version")
 
       - name: Install win32-arm64 node-pty prebuild
@@ -112,7 +114,7 @@ jobs:
               # GNU tar from Git-bash cannot read zip; the runner's bsdtar can
               /c/Windows/System32/tar.exe -tf dist/*-win-arm64.zip | grep -q node-pty-win32-arm64
               ;;
-            macos-latest)
+            macos-15)
               unzip -l dist/*-mac-arm64.zip | grep -q node-pty-darwin-arm64
               unzip -l dist/*-mac-x64.zip | grep -q node-pty-darwin-x64
               ;;
