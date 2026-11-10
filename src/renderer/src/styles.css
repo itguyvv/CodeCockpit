@@ -1801,3 +1801,31 @@ input:focus {
 .about-links a:hover {
   text-decoration: underline;
 }
+
+/* ── About tab: update status row ── */
+.about-update-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  min-height: 24px;
+}
+
+.about-update-badge {
+  color: #f5c542;
+  font-size: 12px;
+}
+
+.about-uptodate {
+  color: var(--ok);
+  font-size: 12px;
+}
+
+.about-update-state {
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+
+.about-update-status button {
+  font-size: 12px;
+}

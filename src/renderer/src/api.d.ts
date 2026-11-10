@@ -134,6 +134,16 @@ export interface AppSettings {
   notifyOnIdle?: boolean
   /** Opt-in: also surface the window and switch to the session when that notification fires */
   notifyOnFocusSession?: boolean
+  /** Auto-check GitHub for a newer release once at startup; missing = on */
+  checkUpdates?: boolean
+}
+
+export interface UpdateStatus {
+  available: boolean
+  version?: string
+  url?: string
+  /** Set when the check itself failed (offline / rate limit), so the UI can stay neutral */
+  error?: string
 }
 
 export interface WorkbenchApi {
@@ -198,6 +208,8 @@ export interface WorkbenchApi {
   onStatus: (cb: (id: string, status: SessionStatus) => void) => () => void
   onFocus: (cb: (id: string) => void) => () => void
   onUpdate: (cb: (version: string, url: string) => void) => () => void
+  updateStatus: () => Promise<UpdateStatus>
+  updateCheck: () => Promise<UpdateStatus>
 }
 
 declare global {

@@ -8,7 +8,8 @@ import type {
   McpServerInfo,
   ProviderListResult,
   ProviderProfile,
-  ProviderTestResult
+  ProviderTestResult,
+  UpdateStatus
 } from '../api'
 import { useT } from '../i18n'
 import { LOCALE_LIST, type LocaleCode } from '../../../locales'
@@ -49,6 +50,9 @@ export default function SettingsModal({
   const [scrollback, setScrollback] = useState(2000)
   const [notifyOnIdle, setNotifyOnIdle] = useState(false)
   const [notifyOnFocusSession, setNotifyOnFocusSession] = useState(false)
+  const [checkUpdates, setCheckUpdates] = useState(true)
+  const [upd, setUpd] = useState<UpdateStatus | null>(null)
+  const [checking, setChecking] = useState(false)
   const [mcp, setMcp] = useState<McpServerInfo[]>([])
   const [busy, setBusy] = useState('')
   const [engineInfos, setEngineInfos] = useState<EngineInfo[]>([])
@@ -66,11 +70,13 @@ export default function SettingsModal({
       setScrollback(s.scrollback ?? 2000)
       setNotifyOnIdle(s.notifyOnIdle === true)
       setNotifyOnFocusSession(s.notifyOnFocusSession === true)
+      setCheckUpdates(s.checkUpdates !== false)
       setEnginesEnabled(s.engines ?? {})
     })
     void window.api.mcpList().then(setMcp)
     void window.api.enginesDiscover().then(setEngineInfos)
     void window.api.providersList().then(setProviders)
+    void window.api.updateStatus().then(setUpd)
   }, [])
 
   const refreshProviders = (): Promise<void> =>
@@ -106,6 +112,19 @@ export default function SettingsModal({
     if (key === 'notifyOnIdle') setNotifyOnIdle(value)
     else setNotifyOnFocusSession(value)
     void window.api.setSettings({ [key]: value })
+  }
+
+  const setCheckUpdatesPref = (v: boolean): void => {
+    setCheckUpdates(v)
+    void window.api.setSettings({ checkUpdates: v })
+  }
+
+  const checkNow = (): void => {
+    setChecking(true)
+    void window.api
+      .updateCheck()
+      .then(setUpd)
+      .finally(() => setChecking(false))
   }
 
   const openDraft = (d: Draft): void => {
@@ -604,24 +623,56 @@ export default function SettingsModal({
         )}
 
         {tab === 'about' && (
-          <div className="settings-section">
-            <div className="about-head">
-              <img src={logoUrl} alt="CodeCockpit" className="about-logo" />
-              <div className="about-name">
-                CodeCockpit
-                <span className="about-version">v{appInfo?.appVersion ?? '?'}</span>
+          <>
+            <div className="settings-section">
+              <div className="about-head">
+                <img src={logoUrl} alt="CodeCockpit" className="about-logo" />
+                <div className="about-name">
+                  CodeCockpit
+                  <span className="about-version">v{appInfo?.appVersion ?? '?'}</span>
+                </div>
               </div>
+              <div className="about-links">
+                <a href="https://github.com/itguyvv/CodeCockpit" target="_blank" rel="noreferrer">
+                  github.com/itguyvv/CodeCockpit
+                </a>
+                <a href="https://github.com/itguyvv/CodeCockpit/issues" target="_blank" rel="noreferrer">
+                  {t('about.reportIssue')}
+                </a>
+              </div>
+              <p className="settings-hint">{t('about.license')}</p>
             </div>
-            <div className="about-links">
-              <a href="https://github.com/itguyvv/CodeCockpit" target="_blank" rel="noreferrer">
-                github.com/itguyvv/CodeCockpit
-              </a>
-              <a href="https://github.com/itguyvv/CodeCockpit/issues" target="_blank" rel="noreferrer">
-                {t('about.reportIssue')}
-              </a>
+
+            <div className="settings-section">
+              <div className="settings-title">{t('settings.sectionUpdates')}</div>
+              <div className="settings-row">
+                <label title={t('settings.checkUpdatesHint')}>{t('settings.checkUpdates')}</label>
+                <label className="engine-toggle">
+                  <input type="checkbox" checked={checkUpdates} onChange={(e) => setCheckUpdatesPref(e.target.checked)} />
+                </label>
+              </div>
+              <div className="about-update-status">
+                {checking ? (
+                  <span className="about-update-state">{t('about.checking')}</span>
+                ) : upd?.available && upd.version ? (
+                  <>
+                    <span className="about-update-badge">{t('about.updateAvailable', { version: upd.version })}</span>
+                    <button onClick={() => upd.url && window.open(upd.url)}>{t('about.viewRelease')}</button>
+                  </>
+                ) : upd?.error ? (
+                  <span className="about-update-state">{t('about.checkFail')}</span>
+                ) : upd ? (
+                  <span className="about-uptodate">✓ {t('about.upToDate')}</span>
+                ) : null}
+              </div>
+              <div className="settings-actions">
+                <button className="ghost" disabled={checking} onClick={checkNow}>
+                  {t('about.checkNow')}
+                </button>
+              </div>
+              <p className="settings-hint">{t('settings.checkUpdatesHint')}</p>
             </div>
-            <p className="settings-hint">{t('about.license')}</p>
-          </div>
+          </>
         )}
 
         <div className="settings-actions end">

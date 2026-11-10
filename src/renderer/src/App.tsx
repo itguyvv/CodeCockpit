@@ -153,7 +153,7 @@ function AppInner(): JSX.Element {
       setStatuses((prev) => ({ ...prev, [id]: st }))
     )
     const offUpdate = window.api.onUpdate((version, url) =>
-      showToast(t('update.available', { version }), 12_000, url)
+      showToast(t('update.available', { version }), 5_000, url)
     )
     return () => {
       offExit()

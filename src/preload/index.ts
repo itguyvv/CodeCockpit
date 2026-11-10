@@ -46,6 +46,7 @@ const api = {
     scrollback?: number
     notifyOnIdle?: boolean
     notifyOnFocusSession?: boolean
+    checkUpdates?: boolean
   }> => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: {
     defaultMode?: string
@@ -54,6 +55,7 @@ const api = {
     engines?: Record<string, boolean>
     confirmExit?: boolean
     scrollback?: number
+    checkUpdates?: boolean
   }): Promise<{
     lastCwd?: string
     defaultMode?: string
@@ -64,6 +66,7 @@ const api = {
     scrollback?: number
     notifyOnIdle?: boolean
     notifyOnFocusSession?: boolean
+    checkUpdates?: boolean
   }> => ipcRenderer.invoke('settings:set', patch),
   input: (id: string, data: string): void => ipcRenderer.send('session:input', { id, data }),
   resize: (id: string, cols: number, rows: number): Promise<void> =>
@@ -227,7 +230,11 @@ const api = {
     on('update:available', (p) => {
       const { version, url } = p as { version: string; url: string }
       cb(version, url)
-    })
+    }),
+  updateStatus: (): Promise<{ available: boolean; version?: string; url?: string; error?: string }> =>
+    ipcRenderer.invoke('update:status'),
+  updateCheck: (): Promise<{ available: boolean; version?: string; url?: string; error?: string }> =>
+    ipcRenderer.invoke('update:check')
 }
 
 contextBridge.exposeInMainWorld('api', api)

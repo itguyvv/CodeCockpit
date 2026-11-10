@@ -52,6 +52,8 @@ interface AppSettings {
   notifyOnIdle?: boolean
   /** Opt-in: also surface the window and switch to the session when that notification fires */
   notifyOnFocusSession?: boolean
+  /** Auto-check GitHub for a newer release once at startup; missing = on */
+  checkUpdates?: boolean
 }
 
 let win: BrowserWindow | null = null
@@ -196,6 +198,8 @@ function registerIpc(): void {
     return readSettings()
   })
   ipcMain.handle('data-dir:set', (_e, custom: string) => setDataDir(custom))
+  ipcMain.handle('update:status', () => updateStatus)
+  ipcMain.handle('update:check', () => checkForUpdate())
 
   // Clipboard goes through the main process: sandboxed preloads have no clipboard module, the main process always does
   ipcMain.on('clip:write', (_e, text: string) => {
@@ -543,8 +547,9 @@ function createWindow(): void {
   })
 }
 
-// ── Update check: once per launch, ~10s after ready. Quiet by design — it only fires
-// when a newer published release exists on GitHub; the renderer shows a single toast ──
+// ── Update check: once per launch (unless disabled in settings), ~10s after ready.
+// Quiet by design — the only proactive surface is a single toast when a newer release
+// exists; the About tab shows the cached status and offers a manual re-check ──
 function isNewerTag(remote: string, local: string): boolean {
   const parts = (s: string): number[] => s.replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0)
   const a = parts(remote)
@@ -555,28 +560,48 @@ function isNewerTag(remote: string, local: string): boolean {
   return false
 }
 
-function checkForUpdate(): void {
-  void (async () => {
+interface UpdateStatus {
+  available: boolean
+  version?: string
+  url?: string
+  /** Set when the check itself failed (offline / rate limit), so the UI can stay neutral */
+  error?: string
+}
+
+let updateStatus: UpdateStatus = { available: false }
+
+function checkForUpdate(): Promise<UpdateStatus> {
+  return (async () => {
     try {
       const res = await fetch('https://api.github.com/repos/itguyvv/CodeCockpit/releases/latest', {
         headers: { Accept: 'application/vnd.github+json' },
         signal: AbortSignal.timeout(10_000)
       })
-      if (!res.ok) return
-      const rel = (await res.json()) as {
-        tag_name?: string
-        html_url?: string
-        draft?: boolean
-        prerelease?: boolean
+      if (res.ok) {
+        const rel = (await res.json()) as {
+          tag_name?: string
+          html_url?: string
+          draft?: boolean
+          prerelease?: boolean
+        }
+        if (!rel.draft && !rel.prerelease && rel.tag_name && rel.html_url) {
+          if (isNewerTag(rel.tag_name, app.getVersion())) {
+            updateStatus = { available: true, version: rel.tag_name, url: rel.html_url }
+            for (const w of BrowserWindow.getAllWindows()) {
+              w.webContents.send('update:available', { version: rel.tag_name, url: rel.html_url })
+            }
+          } else {
+            updateStatus = { available: false }
+          }
+        }
+      } else {
+        updateStatus = { available: false, error: String(res.status) }
       }
-      if (rel.draft || rel.prerelease || !rel.tag_name || !rel.html_url) return
-      if (!isNewerTag(rel.tag_name, app.getVersion())) return
-      for (const w of BrowserWindow.getAllWindows()) {
-        w.webContents.send('update:available', { version: rel.tag_name, url: rel.html_url })
-      }
-    } catch {
-      // Offline / blocked: silently skip and try again on the next launch
+    } catch (err) {
+      // Offline / blocked: keep a neutral failed state and try again on the next check
+      updateStatus = { available: false, error: String(err) }
     }
+    return updateStatus
   })()
 }
 
@@ -594,7 +619,7 @@ app.whenReady().then(() => {
   }
   registerIpc()
   createWindow()
-  setTimeout(checkForUpdate, 10_000)
+  if (readSettings().checkUpdates !== false) setTimeout(checkForUpdate, 10_000)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
