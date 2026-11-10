@@ -40,6 +40,31 @@ On a tag push CI also syncs `package.json`'s version to the tag (`v1.2.3` → `1
 
 Prerequisites: `main` is green, working tree clean, all 10 locales in sync (`npm run typecheck` passes), version decision made.
 
+### Pre-flight checklist (every release)
+
+Work through this list before tagging. Items marked *(web)* can only be done on github.com; the rest happen locally.
+
+**Docs**
+
+- [ ] `CHANGELOG.md`: move the *Unreleased* entries under the new version heading with today's date; keep an empty *Unreleased* section on top for the next cycle.
+- [ ] `README.md` + `README.zh-CN.md`: new features are reflected in the feature list, the roadmap milestone is checked off, and both languages stay in sync.
+- [ ] `package.json`: `version` bumped; `description` still accurate (mentions both engines).
+- [ ] Screenshots: if the UI changed visibly, regenerate `docs/screenshots/{en,zh}/*.png` (keep the filenames — the READMEs reference them).
+
+**Build**
+
+- [ ] `npm run typecheck` passes (also proves all 10 locales are key-complete).
+- [ ] `npm run dist` builds; the packaged exe was smoke-tested (create a session, run a prompt, rename, open Settings).
+- [ ] After any new dependency: verify the renderer CSP (`src/renderer/index.html`) still allows everything in dev and in the packaged build.
+
+**Repo metadata — re-verify *(web)*: https://github.com/ITGuyVV/CodeCockpit/settings**
+
+- [ ] Repo **description** still mentions both engines and still fits the feature set.
+- [ ] **Topics** still cover the stack: `claude-code`, `opencode`, `ai-agents`, `electron`, `terminal`, `developer-tools`, `pty`, `xterm`, `cross-platform`.
+- [ ] **Website** field points at the right page (currently the Releases page).
+- [ ] **Social preview** still current — `docs/social-card.png` is the source image.
+- [ ] Community files render correctly: SECURITY.md, CODE_OF_CONDUCT.md, issue forms, PR template.
+
 1. **Bump the version** (optional but recommended — keeps the repo truthful):
 
    ```bash
@@ -116,5 +141,7 @@ npm run dist:linux -- --x64   # optional cross-check; CI is authoritative for ot
 ## 5. Post-release
 
 - Check the GitHub release page renders: notes, asset count (11), checksums line in the body.
+- Verify the repo badges update on both READMEs: CI green, release badge shows the new version.
+- Re-verify the repo metadata checklist from §2 (description / topics / website / social preview) once the release is public.
 - If the release adds user-facing strings that were translated in the same cycle, no further action is needed — locales ship inside the artifacts.
 - Watch for issues tagged `macos` / `linux` in the first days after a multi-platform release; the unverified-at-release-time risks are listed in the port plan and the README's feedback invitation.
