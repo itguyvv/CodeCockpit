@@ -63,7 +63,8 @@
   },
   "productName": "CodeCockpit",
   "build": {
-    "appId": "com.codecockpit.app",
+    "appId": "io.github.itguyvv.codecockpit",
+    "copyright": "Copyright © 2026 ITGuyVV",
     "directories": {
       "output": "dist"
     },
