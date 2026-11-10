@@ -1,0 +1,63 @@
+name: Bug report
+description: Report something that behaves unexpectedly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more precise the details, the faster the fix.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows x64
+        - Windows ARM64
+        - macOS Apple Silicon
+        - macOS Intel
+        - Linux x64
+        - Linux ARM64
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: CodeCockpit version
+      description: Shown in Settings → About and in the status bar
+      placeholder: e.g. 1.2.0
+    validations:
+      required: true
+  - type: input
+    id: cli
+    attributes:
+      label: CLI version
+      description: Output of `claude --version` or `opencode --version` — whichever you were using
+      placeholder: e.g. claude 2.x.y
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Content of `%TEMP%\codecockpit-renderer.log` (Windows) or `/tmp/codecockpit-renderer.log` (macOS/Linux), if the file exists.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, session records (redact API keys before pasting anything).

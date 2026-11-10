@@ -91,12 +91,14 @@ That's it — the Settings language picker, native dialogs, and notifications pi
 
 ## Reporting bugs
 
-Please include:
+Open an issue with the [bug report template](../../issues/new?template=bug_report.yml) — it asks for everything needed:
 
 - OS version and whether the app is a dev build or the packaged zip,
-- Claude Code CLI version (`claude --version`),
+- CLI version (`claude --version` / `opencode --version`),
 - steps to reproduce and what you expected vs. saw,
 - `codecockpit-renderer.log` from your temp directory if it is a UI/renderer issue.
+
+Security vulnerabilities go through [private vulnerability reporting](SECURITY.md) instead of public issues.
 
 ## License
 
