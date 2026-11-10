@@ -6,7 +6,7 @@
 
 **你的 AI 编程智能体驾驶舱。**
 
-在同一个原生窗口里运行、观测、管理多个 AI 编程 CLI 会话（当前支持 Claude Code 与 OpenCode，持续扩展中）——真实 PTY 终端、精确的 token/成本统计、完整的会话历史。
+在同一个原生窗口里运行、观测、管理多个 AI 编程 CLI 会话（当前支持 Claude Code、Codex 与 OpenCode，持续扩展中）——真实 PTY 终端、精确的 token/成本统计、完整的会话历史。
 
 [![CI](https://github.com/ITGuyVV/CodeCockpit/actions/workflows/ci.yml/badge.svg)](https://github.com/ITGuyVV/CodeCockpit/actions/workflows/ci.yml)
 [![GitHub release](https://img.shields.io/github/v/release/ITGuyVV/CodeCockpit?sort=semver)](https://github.com/ITGuyVV/CodeCockpit/releases/latest)
@@ -51,16 +51,16 @@
 
 ## 特性
 
-- **双引擎驾驶舱** — Claude Code 与 OpenCode 并行使用，各自独立的历史中心；用不到的引擎可在设置中停用。
+- **三引擎驾驶舱** — Claude Code、Codex、OpenCode 并行使用，各自独立的历史中心；用不到的引擎可在设置中停用。
 - **真实 PTY 终端** — 每个会话运行在独立的 ConPTY 进程中，由 xterm.js 完整渲染，支持选中、复制/粘贴、文件路径拖拽，可并行任意多个会话。
 - **终端搜索** — 任意会话中按 `Ctrl+F` 打开查找栏，匹配高亮并显示计数。
-- **精确会话遥测** — 解析各引擎自己的会话记录（Claude jsonl / OpenCode 存储）：模型、输入/输出 token、缓存读/写、估算成本、轮次、工具调用排行、纯 AI 工作时长。
+- **精确会话遥测** — 解析各引擎自己的会话记录（Claude jsonl / Codex rollout / OpenCode 存储）：模型、输入/输出 token、缓存读/写、估算成本、轮次、工具调用排行、纯 AI 工作时长。
 - **会话仪表盘** — 每个会话底部一条实时状态栏：上下文占用、输出速度、工具使用分布一目了然。
 - **历史中心** — 汇集各引擎的全部本地会话，按项目分组，支持重命名、删除（带确认）、拖动排序、搜索、记录大小。分组默认折叠，一键全部展开。
 - **项目别名与置顶** — 在侧栏给目录起显示名、置顶常用项目；新建会话时可一键直达置顶项目的最近会话。
-- **内置规则编辑器** — 在应用内编辑全局与各项目的 `CLAUDE.md`（Claude Code）/ `AGENTS.md`（OpenCode），支持 Markdown 实时预览、双向同步滚动与最大化。
+- **内置规则编辑器** — 在应用内编辑全局与各项目的 `CLAUDE.md`（Claude Code）/ `AGENTS.md`（Codex、OpenCode），支持 Markdown 实时预览、双向同步滚动与最大化。
 - **工作区持久化** — 启动时完整恢复活跃会话列表；已退出的进程一键恢复。
-- **API 服务商配置** — cc-switch 风格：每个引擎可配多个服务商（Base URL + API Key），一键连通性测试，模型映射（main/haiku/sonnet/opus 四档映射到任意模型），按会话环境变量注入或全局配置改写（改写前自动生成 `.bak` 备份）。
+- **API 服务商配置** — cc-switch 风格：每个引擎可配多个服务商（Base URL + API Key），一键连通性测试，模型映射（main/haiku/sonnet/opus 四档映射到任意模型），按会话环境变量注入或全局配置改写（改写前自动生成 `.bak` 备份）。Codex 的中继配置走它自己的 `config.toml`，故不在该体系内。
 - **权限模式切换** — default / acceptEdits / plan / bypassPermissions 实时切换、上下文不丢；bypass 模式双重确认。
 - **换目录续接上下文** — 项目搬家后切换 cwd 并续接同一会话，上下文原样保留。
 - **完成通知（可选开启）** — 窗口在后台时智能体完成即弹系统通知，点击跳转到该会话终端。默认关闭——在 设置 → 通用 中开启。
@@ -91,6 +91,7 @@ macOS 与 Linux 构建是首次发布——如在你的机器上遇到问题，�
 - **Node.js** ≥ 20（仅源码构建需要；打包产物无需任何依赖）
 - 至少其一：
   - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) — 仅 Windows 上该 CLI 依赖 Git Bash；CodeCockpit 自动探测常见安装路径
+  - [Codex CLI](https://github.com/openai/codex) — `npm i -g @openai/codex`
   - [OpenCode CLI](https://opencode.ai) — `npm i -g opencode-ai` 或官方安装器
 
 ## 开发
@@ -100,7 +101,7 @@ npm install
 npm run dev
 ```
 
-CodeCockpit 启动时自动定位 `claude` CLI（PATH、WinGet Links、npm 全局）、`opencode` CLI 与 Git Bash。
+CodeCockpit 启动时自动定位 `claude` CLI（PATH、WinGet Links、npm 全局）、`codex` CLI（PATH、npm 全局）、`opencode` CLI 与 Git Bash。
 
 常用脚本：
 
@@ -121,7 +122,7 @@ Windows 的 `dist` 步骤产出：
 ## 数据位置
 
 - **应用数据**（会话列表、自定义命名、排序、服务商配置、设置）：Windows 便携模式下位于可执行文件旁边的 `data/`，macOS 为 `~/Library/Application Support/CodeCockpit/data`，Linux 为 `~/.config/CodeCockpit/data`——或 `data-dir.txt` 指定的路径（Windows 在 exe 旁，其他系统在系统配置目录）。可在设置中更改，或通过导出/导入 zip 迁移。
-- **聊天记录**：由引擎自身写入——Claude Code 位于 `~/.claude/projects/<项目目录编码>/<sessionId>.jsonl`，OpenCode 位于其自己的存储目录（Windows：`%USERPROFILE%\.local\share\opencode`）。CodeCockpit 只读取这些文件——绝不改写你的会话记录。
+- **聊天记录**：由引擎自身写入——Claude Code 位于 `~/.claude/projects/<项目目录编码>/<sessionId>.jsonl`，Codex 位于 `~/.codex/sessions/...` 的 rollout 记录，OpenCode 位于其自己的存储目录（Windows：`%USERPROFILE%\.local\share\opencode`）。CodeCockpit 只读取这些文件——绝不改写你的会话记录。
 
 > **API Key 说明**：服务商配置以明文保存在应用数据目录中（与各 CLI 自身配置文件的做法一致）。你在设置里填入的内容只留在本机；按会话注入环境变量，Key 不会进入项目文件。
 
@@ -149,7 +150,7 @@ CodeCockpit 内置 10 种语言，渲染进程与主进程（菜单、对话框�
 - [x] M8 — OpenCode 第二引擎（启动、遥测、历史、续聊）
 - [x] M9 — API 服务商配置（连通性测试、模型映射、全局应用）
 - [x] M10 — 项目别名、置顶项目、规则编辑器、可选完成通知（v1.2.0）
-- [ ] Codex CLI 第三引擎接入
+- [x] M11 — Codex 第三引擎（启动、遥测、历史、续聊 — v1.3.0）
 - [x] macOS / Linux 构建（beta——欢迎反馈）
 
 ## 参与贡献

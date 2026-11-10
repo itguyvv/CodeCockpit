@@ -13,7 +13,7 @@ const zhCN: Translation = {
   'toolbar.settings': '⚙ 设置',
   'toolbar.toggleSidebar': '切换侧边栏',
   'welcome.hint': '左侧选择历史会话继续，或点「＋ 新建会话」开始。',
-  'welcome.features': '每个会话是独立的真实进程 · 像素级终端 · 可并行多个 · 支持多引擎',
+  'welcome.features': '每个会话是独立的真实进程 · 像素级终端 · 可并行多个 · Claude Code · Codex · OpenCode',
   'welcome.language': '语言',
   'welcome.credit': '由 {name} 创建 · MIT 许可证开源',
   'statusbar.cli': 'CLI: {bin}',

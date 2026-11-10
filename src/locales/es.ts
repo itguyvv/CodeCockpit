@@ -15,7 +15,7 @@ const es: Translation = {
   'toolbar.toggleSidebar': 'Alternar barra lateral',
   'welcome.hint': 'Elija una sesión del historial a la izquierda, o pulse «＋ Nueva sesión» para empezar.',
   'welcome.features':
-    'Cada sesión es un proceso real aislado · Terminal fiel al píxel · Varias en paralelo · Listo para varios motores',
+    'Cada sesión es un proceso real aislado · Terminal fiel al píxel · Varias en paralelo · Claude Code · Codex · OpenCode',
   'welcome.language': 'Idioma',
   'welcome.credit': 'Creado por {name} · Código abierto bajo la licencia MIT',
   'statusbar.cli': 'CLI: {bin}',

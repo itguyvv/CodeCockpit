@@ -15,7 +15,7 @@ const ptBR: Translation = {
   'toolbar.toggleSidebar': 'Alternar barra lateral',
   'welcome.hint': 'Escolha uma sessão do histórico à esquerda ou clique em “＋ Nova sessão” para começar.',
   'welcome.features':
-    'Cada sessão é um processo real isolado · Terminal fiel ao pixel · Várias em paralelo · Pronto para múltiplos engines',
+    'Cada sessão é um processo real isolado · Terminal fiel ao pixel · Várias em paralelo · Claude Code · Codex · OpenCode',
   'welcome.language': 'Idioma',
   'welcome.credit': 'Criado por {name} · Código aberto sob a licença MIT',
   'statusbar.cli': 'CLI: {bin}',

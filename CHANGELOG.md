@@ -6,18 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-10
+
 ### Added
 
+- **Codex engine** — OpenAI's Codex CLI joins Claude Code and openCode as a third fully supported backend. Sessions live in their own sidebar tab; history is read from `~/.codex/sessions` with thread titles; resuming reconnects the full context; all four permission modes map onto codex's sandbox/approval flags; the session dashboard aggregates tokens, cost, turns, and tool calls live from the rollout log; the rule editor gains the global `~/.codex/AGENTS.md` scope; image paste follows the path-insertion behavior. Codex stays out of the API-provider relay system (its relay configuration is a TOML file, not environment variables).
 - Terminal search — `Ctrl+F` (`Cmd+F` on macOS) in any session opens a find bar with match highlighting and a match counter.
 - Update check — the app queries GitHub Releases once at startup and shows a quiet toast when a newer version is out. The check can be disabled and triggered manually from Settings → About, which also shows the current update status.
 
 ### Changed
 
 - Sessions now spawn with UTF-8 defaults (`PYTHONUTF8=1`, `LANG=en_US.UTF-8`), so tool output containing non-ASCII text — most visibly Python programs printing to a pipe — no longer renders as mojibake.
+- Codex sessions derive their busy/processing state from the rollout's `task_started`/`task_complete` events instead of terminal output, so scrolling the full-screen TUI no longer flips an idle session to "working".
 
 ### Fixed
 
+- Codex sessions in the "Accept edits" mode failed to start: the flag codex 0.167 removed (`--full-auto`) was still being passed; the supported `--approve-for-me` is used instead.
+- The Codex session tailer no longer rescans the whole sessions directory every second; rollout files vanish-concurrently are tolerated.
 - All app JSON state (settings, session list, custom titles, ordering) is written atomically, so an interrupted write can no longer truncate the files.
+- The background-task badge no longer counts shells from historical launches replayed on resume — only processes that are actually still running.
 
 ## [1.2.0] - 2026-11-09
 

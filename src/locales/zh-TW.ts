@@ -13,7 +13,7 @@ const zhTW: Translation = {
   'toolbar.settings': '⚙ 設定',
   'toolbar.toggleSidebar': '切換側邊欄',
   'welcome.hint': '從左側選擇歷史工作階段繼續，或點「＋ 新增工作階段」開始。',
-  'welcome.features': '每個工作階段都是獨立的真實程序 · 像素級終端機 · 可並行多個 · 支援多引擎',
+  'welcome.features': '每個工作階段都是獨立的真實程序 · 像素級終端機 · 可並行多個 · Claude Code · Codex · OpenCode',
   'welcome.language': '語言',
   'welcome.credit': '由 {name} 建立 · MIT 授權開源',
   'statusbar.cli': 'CLI: {bin}',

@@ -13,7 +13,7 @@ const ja: Translation = {
   'toolbar.settings': '⚙ 設定',
   'toolbar.toggleSidebar': 'サイドバーの切り替え',
   'welcome.hint': '左側で履歴セッションを選ぶか、「＋ 新規セッション」をクリックして開始します。',
-  'welcome.features': '各セッションは独立した実プロセス · ピクセル単位のターミナル · 同時実行可能 · マルチエンジン対応',
+  'welcome.features': '各セッションは独立した実プロセス · ピクセル単位のターミナル · 同時実行可能 · Claude Code · Codex · OpenCode',
   'welcome.language': '言語',
   'welcome.credit': '{name} が開発 · MIT ライセンスでオープンソース',
   'statusbar.cli': 'CLI: {bin}',

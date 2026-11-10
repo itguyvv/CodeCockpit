@@ -48,7 +48,7 @@ Work through this list before tagging. Items marked *(web)* can only be done on 
 
 - [ ] `CHANGELOG.md`: move the *Unreleased* entries under the new version heading with today's date; keep an empty *Unreleased* section on top for the next cycle.
 - [ ] `README.md` + `README.zh-CN.md`: new features are reflected in the feature list, the roadmap milestone is checked off, and both languages stay in sync.
-- [ ] `package.json`: `version` bumped; `description` still accurate (mentions both engines).
+- [ ] `package.json`: `version` bumped; `description` still accurate (mentions the supported engines).
 - [ ] Screenshots: if the UI changed visibly, regenerate `docs/screenshots/{en,zh}/*.png` (keep the filenames — the READMEs reference them).
 
 **Build**
@@ -59,8 +59,8 @@ Work through this list before tagging. Items marked *(web)* can only be done on 
 
 **Repo metadata — re-verify *(web)*: https://github.com/ITGuyVV/CodeCockpit/settings**
 
-- [ ] Repo **description** still mentions both engines and still fits the feature set.
-- [ ] **Topics** still cover the stack: `claude-code`, `opencode`, `ai-agents`, `electron`, `terminal`, `developer-tools`, `pty`, `xterm`, `cross-platform`.
+- [ ] Repo **description** still mentions the supported engines and still fits the feature set.
+- [ ] **Topics** still cover the stack: `claude-code`, `codex`, `opencode`, `ai-agents`, `electron`, `terminal`, `developer-tools`, `pty`, `xterm`, `cross-platform`.
 - [ ] **Website** field points at the right page (currently the Releases page).
 - [ ] **Social preview** still current — `docs/social-card.png` is the source image.
 - [ ] Community files render correctly: SECURITY.md, CODE_OF_CONDUCT.md, issue forms, PR template.

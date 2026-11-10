@@ -13,7 +13,7 @@ const ko: Translation = {
   'toolbar.settings': '⚙ 설정',
   'toolbar.toggleSidebar': '사이드바 전환',
   'welcome.hint': '왼쪽에서 기록 세션을 선택하거나 「＋ 새 세션」을 클릭해 시작하세요.',
-  'welcome.features': '세션마다 독립된 실제 프로세스 · 픽셀 단위 터미널 · 다중 병렬 실행 · 멀티 엔진 지원',
+  'welcome.features': '세션마다 독립된 실제 프로세스 · 픽셀 단위 터미널 · 다중 병렬 실행 · Claude Code · Codex · OpenCode',
   'welcome.language': '언어',
   'welcome.credit': '{name} 제작 · MIT 라이선스 오픈소스',
   'statusbar.cli': 'CLI: {bin}',
