@@ -85,11 +85,14 @@ function registerIpc(): void {
   ipcMain.handle('app:info', async () => {
     const engines = await discoverEngines()
     const claude = engines.find((e) => e.id === 'claude')
+    const codex = engines.find((e) => e.id === 'codex')
     const opencode = engines.find((e) => e.id === 'opencode')
     const gitBash = await findGitBash()
     return {
       claudeBin: claude?.bin ?? '',
       claudeVersion: claude?.version ?? '',
+      codexBin: codex?.bin ?? '',
+      codexVersion: codex?.version ?? '',
       opencodeBin: opencode?.bin ?? '',
       opencodeVersion: opencode?.version ?? '',
       gitBash,
@@ -166,6 +169,7 @@ function registerIpc(): void {
     ...listProfiles(),
     configFiles: {
       claude: globalConfigFile('claude'),
+      codex: globalConfigFile('codex'),
       opencode: globalConfigFile('opencode')
     }
   }))
@@ -442,6 +446,7 @@ function registerIpc(): void {
   // and allowlisted in services/rules.ts
   ipcMain.handle('rules:paths', () => ({
     claudeGlobal: resolveRuleFile({ scope: 'claude-global' }),
+    codexGlobal: resolveRuleFile({ scope: 'codex-global' }),
     opencodeGlobal: resolveRuleFile({ scope: 'opencode-global' })
   }))
   ipcMain.handle('rules:read', (_e, ref: RuleRef) => readRuleFile(ref))

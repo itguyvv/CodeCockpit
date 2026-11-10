@@ -12,6 +12,8 @@ export interface NativeSessionInfo {
   lastTs: number
   sizeBytes: number
   projectEncoded: string
+  /** Owning engine — claude and codex ids share the UUID shape, so the renderer must not guess */
+  engine?: string
   /** title is a user-defined name (takes priority over the auto title) */
   custom?: boolean
 }

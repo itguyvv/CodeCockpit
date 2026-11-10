@@ -164,7 +164,8 @@ export default function Sidebar({
         )
       : nativeList
     // Group keys are engine-scoped so the two histories never share manual ordering
-    const groupKey = (cwd: string): string => (engine === 'opencode' ? `opencode:${cwd}` : cwd)
+    const groupKey = (cwd: string): string =>
+      engine === 'opencode' ? `opencode:${cwd}` : engine === 'codex' ? `codex:${cwd}` : cwd
     const map = new Map<string, NativeSessionInfo[]>()
     for (const s of filtered) {
       const key = groupKey(s.cwd || s.projectEncoded)
@@ -193,7 +194,10 @@ export default function Sidebar({
       const head = ordered[0]?.cwd ?? ''
       return {
         key,
-        project: engine === 'opencode' ? basename(head || key.replace(/^opencode:/, '')) : basename(key),
+        project:
+          engine === 'opencode' ? basename(head || key.replace(/^opencode:/, ''))
+          : engine === 'codex' ? basename(head || key.replace(/^codex:/, ''))
+          : basename(key),
         cwd: head,
         items: ordered
       }
@@ -308,7 +312,7 @@ export default function Sidebar({
               className={`engine-tab ${e === engine ? 'on' : ''}`}
               onClick={() => onEngineChange(e)}
             >
-              {e === 'opencode' ? t('engine.opencode') : t('engine.claude')}
+              {e === 'opencode' ? t('engine.opencode') : e === 'codex' ? t('engine.codex') : t('engine.claude')}
             </button>
           ))}
         </div>

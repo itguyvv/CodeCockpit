@@ -84,10 +84,10 @@ function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) =
   void saved.then((r) => {
     console.info(`[img-paste] got=${r ? r.kind + ':' + r.path : '(none)'}`)
     if (!r?.path) {
-      if (engine !== 'opencode') entry.term.input('\x1bv') // let the CLI read the clipboard itself
+      if (engine !== 'opencode' && engine !== 'codex') entry.term.input('\x1bv') // let the CLI read the clipboard itself
       return
     }
-    if (engine === 'opencode' || r.kind === 'file') entry.term.paste(r.path)
+    if (engine === 'opencode' || engine === 'codex' || r.kind === 'file') entry.term.paste(r.path)
     else entry.term.input('\x1bv')
   })
 }

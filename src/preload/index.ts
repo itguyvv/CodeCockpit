@@ -12,6 +12,8 @@ const api = {
   getAppInfo: (): Promise<{
     claudeBin: string
     claudeVersion: string
+    codexBin: string
+    codexVersion: string
     opencodeBin: string
     opencodeVersion: string
     gitBash: string
@@ -132,7 +134,7 @@ const api = {
     pinned: boolean
   ): Promise<Array<{ cwd: string; path: string; addedAt: number; lastUsedAt: number; pinned: boolean }>> =>
     ipcRenderer.invoke('projects:setPinned', { cwd, pinned }),
-  rulesPaths: (): Promise<{ claudeGlobal: string; opencodeGlobal: string }> =>
+  rulesPaths: (): Promise<{ claudeGlobal: string; codexGlobal: string; opencodeGlobal: string }> =>
     ipcRenderer.invoke('rules:paths'),
   rulesRead: (
     ref: { scope: string; engine?: string; cwd?: string }

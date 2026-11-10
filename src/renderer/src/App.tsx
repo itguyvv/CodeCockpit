@@ -261,7 +261,7 @@ function AppInner(): JSX.Element {
 
   const handleResume = useCallback(
     (ns: NativeSessionInfo) => {
-      const engine: EngineId = ns.sessionId.startsWith('ses_') ? 'opencode' : 'claude'
+      const engine: EngineId = ns.engine ?? (ns.sessionId.startsWith('ses_') ? 'opencode' : 'claude')
       // A live session in the list → just switch to it, don't spawn a duplicate process
       const existing = sessions.find((s) => s.claudeSessionId === ns.sessionId)
       if (existing && existing.status !== 'exited') {
@@ -442,8 +442,8 @@ function AppInner(): JSX.Element {
     )
   }
 
-  // Rule files follow the current engine context (claude → CLAUDE.md, opencode → AGENTS.md)
-  const rulesFileName = (active?.engine ?? engineTab) === 'opencode' ? 'AGENTS.md' : 'CLAUDE.md'
+  // Rule files follow the current engine context (claude → CLAUDE.md, codex/opencode → AGENTS.md)
+  const rulesFileName = (active?.engine ?? engineTab) === 'claude' ? 'CLAUDE.md' : 'AGENTS.md'
 
   return (
     <div className="app">
@@ -601,6 +601,12 @@ function AppInner(): JSX.Element {
             {appInfo?.claudeBin
               ? t('statusbar.cli', { bin: `claude ${appInfo.claudeVersion || ''}` })
               : t('statusbar.cliMissing')}
+          </span>
+        ) : engineTab === 'codex' ? (
+          <span className={appInfo?.codexBin ? '' : 'status-error'} title={appInfo?.codexBin}>
+            {appInfo?.codexBin
+              ? t('statusbar.codexCli', { ver: appInfo.codexVersion || '?' })
+              : t('statusbar.codexMissing')}
           </span>
         ) : (
           <span className={appInfo?.opencodeBin ? '' : 'status-error'} title={appInfo?.opencodeBin}>

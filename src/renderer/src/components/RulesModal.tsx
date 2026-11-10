@@ -73,22 +73,27 @@ export default function RulesModal({ engine, projectCwd, onClose, onNotify }: Pr
     tab === 'global'
       ? engine === 'opencode'
         ? { scope: 'opencode-global' }
-        : { scope: 'claude-global' }
+        : engine === 'codex'
+          ? { scope: 'codex-global' }
+          : { scope: 'claude-global' }
       : { scope: 'project', engine, cwd: projectCwd }
 
+  const globalLabel =
+    engine === 'opencode'
+      ? t('rules.tabGlobalOpencode')
+      : engine === 'codex'
+        ? t('rules.tabGlobalCodex')
+        : t('rules.tabGlobalClaude')
+  const projectLabel =
+    engine === 'opencode'
+      ? t('rules.tabProjectOpencode')
+      : engine === 'codex'
+        ? t('rules.tabProjectCodex')
+        : t('rules.tabProjectClaude')
+
   const tabs: Array<{ id: TabId; label: string }> = [
-    {
-      id: 'global',
-      label: `🌐 ${engine === 'opencode' ? t('rules.tabGlobalOpencode') : t('rules.tabGlobalClaude')}`
-    },
-    ...(projectCwd
-      ? [
-          {
-            id: 'project' as TabId,
-            label: `📁 ${engine === 'opencode' ? t('rules.tabProjectOpencode') : t('rules.tabProjectClaude')}`
-          }
-        ]
-      : [])
+    { id: 'global', label: `🌐 ${globalLabel}` },
+    ...(projectCwd ? [{ id: 'project' as TabId, label: `📁 ${projectLabel}` }] : [])
   ]
 
   // Lazy-load the file behind a tab on first visit

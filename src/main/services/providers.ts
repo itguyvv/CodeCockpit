@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { dataFile, writeJsonAtomic } from './dataDir'
+import { codexHome } from './codexStore'
 import { t } from './i18n'
 import type { EngineId } from './engines'
 
@@ -286,7 +287,9 @@ function applyOpenCodeGlobal(profile: ProviderProfile): void {
 
 /** Config file path per engine (shown to the user in apply-confirmation texts) */
 export function globalConfigFile(engine: EngineId): string {
-  return engine === 'opencode' ? openCodeConfigFile().file : claudeSettingsFile()
+  if (engine === 'opencode') return openCodeConfigFile().file
+  if (engine === 'codex') return path.join(codexHome(), 'config.toml')
+  return claudeSettingsFile()
 }
 
 // ── Connectivity test ──

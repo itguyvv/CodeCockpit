@@ -2,11 +2,11 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-export type RuleScope = 'claude-global' | 'opencode-global' | 'project'
+export type RuleScope = 'claude-global' | 'codex-global' | 'opencode-global' | 'project'
 
 export interface RuleRef {
   scope: RuleScope
-  engine?: 'claude' | 'opencode'
+  engine?: 'claude' | 'codex' | 'opencode'
   cwd?: string
 }
 
@@ -30,11 +30,12 @@ export function openCodeConfigDir(): string {
 export function resolveRuleFile(ref: RuleRef): string {
   const home = os.homedir()
   if (ref.scope === 'claude-global') return path.join(home, '.claude', 'CLAUDE.md')
+  if (ref.scope === 'codex-global') return path.join(home, '.codex', 'AGENTS.md')
   if (ref.scope === 'opencode-global') return path.join(openCodeConfigDir(), 'AGENTS.md')
   if (ref.scope === 'project') {
     const cwd = (ref.cwd ?? '').trim()
     if (!cwd || !fs.existsSync(cwd)) throw new Error('invalid project directory')
-    return path.join(cwd, ref.engine === 'opencode' ? 'AGENTS.md' : 'CLAUDE.md')
+    return path.join(cwd, ref.engine === 'claude' ? 'CLAUDE.md' : 'AGENTS.md')
   }
   throw new Error('unknown rule scope')
 }

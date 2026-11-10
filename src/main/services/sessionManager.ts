@@ -26,6 +26,14 @@ import {
   scanOpenCodeSessions,
   sniffNewOpenCodeSession
 } from './opencodeStore'
+import {
+  CodexTailer,
+  deleteCodexSession,
+  listCodexSessionIds,
+  resolveCodexSessionFile,
+  scanCodexSessions,
+  sniffNewCodexSession
+} from './codexStore'
 
 export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
 
@@ -169,11 +177,13 @@ function ensureTailer(live: LiveProc): void {
     statusBySession.set(live.record.id, live.tailer!.getStatus())
     dirtyStatus.add(live.record.id)
   }
-  // openCode aggregates from its own JSON storage instead of a claude jsonl
+  // openCode aggregates from its own JSON storage, codex from its rollout jsonl
   live.tailer =
     live.record.engine === 'opencode'
       ? new OpenCodeTailer(id, emit)
-      : new SessionTailer(resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id), emit)
+      : live.record.engine === 'codex'
+        ? new CodexTailer(id, emit)
+        : new SessionTailer(resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id), emit)
   // Broadcast an initial snapshot right after tailing (resumed sessions get full stats immediately)
   statusBySession.set(live.record.id, live.tailer!.getStatus())
   dirtyStatus.add(live.record.id)
@@ -299,7 +309,8 @@ export interface CreateOpts {
 export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
   const engine: EngineId = isEngineId(opts.engine) ? opts.engine : 'claude'
   const bin = await engineBin(engine)
-  if (!bin) throw new Error(t(engine === 'opencode' ? 'main.noOcCli' : 'main.noCli'))
+  if (!bin)
+    throw new Error(t(engine === 'opencode' ? 'main.noOcCli' : engine === 'codex' ? 'main.noCodexCli' : 'main.noCli'))
   const record: SessionRecord = {
     id: randomUUID(),
     claudeSessionId: opts.resumeId ?? null,
@@ -318,7 +329,11 @@ export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
   saveRegistry()
   // Snapshot before spawn: the new session's id is guaranteed to be absent from this snapshot
   const knownIds =
-    engine === 'opencode' ? listOpenCodeSessionIds() : listExistingSessionIds(record.cwd)
+    engine === 'opencode'
+      ? listOpenCodeSessionIds()
+      : engine === 'codex'
+        ? listCodexSessionIds()
+        : listExistingSessionIds(record.cwd)
   try {
     await spawnFor(record, bin)
   } catch (e) {
@@ -333,7 +348,9 @@ export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
       live.stopSniffer =
         engine === 'opencode'
           ? sniffNewOpenCodeSession(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
-          : sniffNewSessionFile(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
+          : engine === 'codex'
+            ? sniffNewCodexSession(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
+            : sniffNewSessionFile(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
     }
   }
   return { id: record.id }
@@ -525,9 +542,11 @@ export async function changeDir(id: string, cwd: string): Promise<void> {
   }
 }
 
-/** History of one engine (claude jsonl mirror / openCode JSON storage), custom names overlaid */
+/** History of one engine (claude jsonl mirror / codex rollouts / openCode storage), custom names overlaid */
 export function listNativeSessions(engine: EngineId = 'claude', limit?: number): NativeSessionInfo[] {
-  const list: NativeSessionInfo[] =
+  const tag = (items: NativeSessionInfo[]): NativeSessionInfo[] =>
+    items.map((s) => ({ ...s, engine }))
+  const list: NativeSessionInfo[] = tag(
     engine === 'opencode'
       ? scanOpenCodeSessions(limit ?? 60).map((s) => ({
           sessionId: s.sessionId,
@@ -536,9 +555,13 @@ export function listNativeSessions(engine: EngineId = 'claude', limit?: number):
           permissionMode: 'default',
           lastTs: s.lastTs,
           sizeBytes: s.sizeBytes,
-          projectEncoded: s.projectID
+          projectEncoded: s.projectID,
+          engine
         }))
-      : scanNativeSessions(limit ?? 60)
+      : engine === 'codex'
+        ? scanCodexSessions(limit ?? 60)
+        : scanNativeSessions(limit ?? 60)
+  )
   const titles = loadTitles()
   for (const item of list) {
     const custom = titles[item.sessionId]
@@ -550,9 +573,12 @@ export function listNativeSessions(engine: EngineId = 'claude', limit?: number):
   return list
 }
 
-/** Route a history delete by id: openCode ids carry the ses_ prefix, claude ids are UUIDs */
+/** Route a history delete by id: openCode ids carry the ses_ prefix; claude and codex ids
+ *  are both UUIDs, so codex is detected by its rollout file actually existing on disk */
 export function deleteHistorySession(sessionId: string): boolean {
-  return sessionId.startsWith('ses_') ? deleteOpenCodeSession(sessionId) : deleteNativeSession(sessionId)
+  if (sessionId.startsWith('ses_')) return deleteOpenCodeSession(sessionId)
+  if (resolveCodexSessionFile(sessionId)) return deleteCodexSession(sessionId)
+  return deleteNativeSession(sessionId)
 }
 
 // ── Custom session names (same effect as /rename; local persistence takes display priority) ──

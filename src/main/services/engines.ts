@@ -5,12 +5,12 @@ import { findClaudeBin, getClaudeVersion } from './claude'
 import { IS_WIN, binRank, homePath, locateOnPath } from './platform'
 
 /** Supported coding-agent engines. Session data of different engines is never merged. */
-export type EngineId = 'claude' | 'opencode'
+export type EngineId = 'claude' | 'codex' | 'opencode'
 
-export const ENGINE_IDS: EngineId[] = ['claude', 'opencode']
+export const ENGINE_IDS: EngineId[] = ['claude', 'codex', 'opencode']
 
 export function isEngineId(v: unknown): v is EngineId {
-  return v === 'claude' || v === 'opencode'
+  return v === 'claude' || v === 'codex' || v === 'opencode'
 }
 
 export interface EngineInfo {
@@ -35,6 +35,17 @@ export function buildEngineArgs(engine: EngineId, opts: SpawnOpts): string[] {
     if (opts.resumeId) args.push('-s', opts.resumeId)
     if (opts.model) args.push('-m', opts.model)
     if (opts.mode === 'bypassPermissions') args.push('--auto')
+    return args
+  }
+  if (engine === 'codex') {
+    // Model comes from codex's own config.toml; sessions resume by uuid.
+    // Mode mapping: acceptEdits → full-auto (rare approvals), plan → read-only sandbox,
+    // bypass → no sandbox + no approvals. Codex default is workspace-write + on-request.
+    const args: string[] = []
+    if (opts.resumeId) args.push('resume', opts.resumeId)
+    if (opts.mode === 'bypassPermissions') args.push('--dangerously-bypass-approvals-and-sandbox')
+    else if (opts.mode === 'acceptEdits') args.push('--full-auto')
+    else if (opts.mode === 'plan') args.push('--sandbox', 'read-only')
     return args
   }
   const args: string[] = []
@@ -106,6 +117,53 @@ export async function findOpenCodeBin(): Promise<string> {
   return bin
 }
 
+let cachedCodexBin: string | null = null
+const codexVersionCache = new Map<string, string>()
+
+const CODEX_COMMON_PATHS = (): string[] => {
+  if (IS_WIN) {
+    return [
+      process.env.CODEX_BIN || '',
+      path.join(process.env.APPDATA || '', 'npm', 'codex.cmd'),
+      'C:\\Program Files\\nodejs\\codex.cmd'
+    ]
+  }
+  return [
+    process.env.CODEX_BIN || '',
+    '/usr/local/bin/codex',
+    '/opt/homebrew/bin/codex',
+    homePath('.local', 'bin', 'codex')
+  ]
+}
+
+export async function findCodexBin(): Promise<string> {
+  if (cachedCodexBin) return cachedCodexBin
+  const found = await locateOnPath('codex')
+  const candidates = [...CODEX_COMMON_PATHS(), ...(found ? [found] : [])]
+  const existing = candidates.filter((p) => p && fs.existsSync(p))
+  // Prefer real executables over shell/cmd shims; shims still work (spawnFor routes them)
+  const bin = existing.find((p) => binRank(p) === 2) ?? existing.find((p) => binRank(p) === 1) ?? ''
+  if (bin) cachedCodexBin = bin
+  return bin
+}
+
+export function getCodexVersion(bin: string): Promise<string> {
+  const hit = codexVersionCache.get(bin)
+  if (hit) return Promise.resolve(hit)
+  const isCmd = bin.toLowerCase().endsWith('.cmd')
+  return new Promise((resolve) => {
+    const done = (v: string) => {
+      if (v) codexVersionCache.set(bin, v)
+      resolve(v)
+    }
+    if (isCmd) {
+      exec(`"${bin}" --version`, { timeout: 15000 }, (err, stdout) => done(err ? '' : stdout.trim()))
+    } else {
+      execFile(bin, ['--version'], { timeout: 15000 }, (err, stdout) => done(err ? '' : stdout.trim()))
+    }
+  })
+}
+
 export function getOpenCodeVersion(bin: string): Promise<string> {
   const hit = openCodeVersionCache.get(bin)
   if (hit) return Promise.resolve(hit)
@@ -126,18 +184,22 @@ export function getOpenCodeVersion(bin: string): Promise<string> {
 
 /** Detect all engines in parallel; missing CLIs return bin='' instead of throwing */
 export async function discoverEngines(): Promise<EngineInfo[]> {
-  const [claudeBin, openCodeBin] = await Promise.all([findClaudeBin(), findOpenCodeBin()])
-  const [claudeVersion, openCodeVersion] = await Promise.all([
+  const [claudeBin, codexBin, openCodeBin] = await Promise.all([findClaudeBin(), findCodexBin(), findOpenCodeBin()])
+  const [claudeVersion, codexVersion, openCodeVersion] = await Promise.all([
     claudeBin ? getClaudeVersion(claudeBin) : Promise.resolve(''),
+    codexBin ? getCodexVersion(codexBin) : Promise.resolve(''),
     openCodeBin ? getOpenCodeVersion(openCodeBin) : Promise.resolve('')
   ])
   return [
     { id: 'claude', bin: claudeBin, version: claudeVersion },
+    { id: 'codex', bin: codexBin, version: codexVersion },
     { id: 'opencode', bin: openCodeBin, version: openCodeVersion }
   ]
 }
 
 /** Resolve the CLI binary for one engine ('' = not installed) */
 export async function engineBin(engine: EngineId): Promise<string> {
-  return engine === 'opencode' ? findOpenCodeBin() : findClaudeBin()
+  if (engine === 'opencode') return findOpenCodeBin()
+  if (engine === 'codex') return findCodexBin()
+  return findClaudeBin()
 }

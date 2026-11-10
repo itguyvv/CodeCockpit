@@ -1,4 +1,4 @@
-export type EngineId = 'claude' | 'opencode'
+export type EngineId = 'claude' | 'codex' | 'opencode'
 
 export interface EngineInfo {
   id: EngineId
@@ -9,6 +9,8 @@ export interface EngineInfo {
 export interface AppInfo {
   claudeBin: string
   claudeVersion: string
+  codexBin: string
+  codexVersion: string
   opencodeBin: string
   opencodeVersion: string
   gitBash: string
@@ -28,6 +30,7 @@ export interface NativeSessionInfo {
   lastTs: number
   sizeBytes: number
   projectEncoded: string
+  engine?: EngineId
   custom?: boolean
 }
 
@@ -93,10 +96,10 @@ export interface ProviderTestResult {
 export interface ProviderListResult {
   profiles: ProviderProfile[]
   activeByEngine: Partial<Record<EngineId, string>>
-  configFiles: { claude: string; opencode: string }
+  configFiles: { claude: string; codex: string; opencode: string }
 }
 
-export type RuleScope = 'claude-global' | 'opencode-global' | 'project'
+export type RuleScope = 'claude-global' | 'codex-global' | 'opencode-global' | 'project'
 
 export interface RuleRef {
   scope: RuleScope
@@ -181,7 +184,7 @@ export interface WorkbenchApi {
   aliasesSet: (cwd: string, alias: string) => Promise<Record<string, string>>
   projectsLoad: () => Promise<ProjectEntry[]>
   projectsSetPinned: (cwd: string, pinned: boolean) => Promise<ProjectEntry[]>
-  rulesPaths: () => Promise<{ claudeGlobal: string; opencodeGlobal: string }>
+  rulesPaths: () => Promise<{ claudeGlobal: string; codexGlobal: string; opencodeGlobal: string }>
   rulesRead: (ref: RuleRef) => Promise<RuleFile>
   rulesWrite: (ref: RuleRef, content: string, crlf: boolean) => Promise<string>
   providersList: () => Promise<ProviderListResult>

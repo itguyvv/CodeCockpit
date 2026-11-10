@@ -33,6 +33,11 @@ export function modesForEngine(engine: EngineId): Array<{ value: string; key: Tr
   return MODES
 }
 
+/** Display name of an engine (brand names are not translated) */
+export function engineName(engine: EngineId): string {
+  return engine === 'opencode' ? 'OpenCode' : engine === 'codex' ? 'Codex' : 'Claude Code'
+}
+
 export function modeLabel(mode: string, t: TFn): string {
   const m = MODES.find((x) => x.value === mode)
   return m ? t(m.key) : mode

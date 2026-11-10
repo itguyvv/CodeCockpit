@@ -153,7 +153,7 @@ export default function NewSessionModal({
                   onClick={() => pickEngine(e.id)}
                   title={!e.bin ? t('new.engineMissing') : ''}
                 >
-                  {e.id === 'opencode' ? t('engine.opencode') : t('engine.claude')}
+                  {e.id === 'opencode' ? t('engine.opencode') : e.id === 'codex' ? t('engine.codex') : t('engine.claude')}
                 </button>
               ))}
             </div>

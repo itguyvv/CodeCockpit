@@ -84,7 +84,8 @@ export default function SettingsModal({
       setProviders(r)
     })
 
-  const engineName = (e: EngineId): string => (e === 'opencode' ? t('engine.opencode') : t('engine.claude'))
+  const engineName = (e: EngineId): string =>
+    e === 'opencode' ? t('engine.opencode') : e === 'codex' ? t('engine.codex') : t('engine.claude')
 
   const setEngineEnabled = (id: EngineId, on: boolean): void => {
     // At least one installed engine must stay enabled, otherwise the window has no sessions at all
