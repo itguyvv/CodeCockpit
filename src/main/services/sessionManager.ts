@@ -218,6 +218,13 @@ async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, stri
   let env = spawnEnvCache
   if (!env) {
     env = { ...process.env } as Record<string, string>
+    // CLI Bash tools capture child output through pipes and decode it as UTF-8, but on
+    // Windows Python encodes pipe output in the ANSI codepage (GBK on zh-CN systems)
+    // and MSYS bash shows non-ASCII paths as byte escapes when LANG is unset — either
+    // way Chinese tool output arrives as replacement characters. Inject UTF-8 defaults
+    // only when the user has not set them (an explicit PYTHONUTF8=0 or LC_ALL wins).
+    if (!env.PYTHONUTF8) env.PYTHONUTF8 = '1'
+    if (!env.LANG && !env.LC_ALL) env.LANG = 'en_US.UTF-8'
     if (IS_WIN) {
       // git-bash is only a claude CLI requirement on Windows. Resolved unconditionally
       // there: the first session may be openCode but later claude ones need bash too
