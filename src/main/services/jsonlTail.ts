@@ -51,6 +51,11 @@ export class SessionTailer {
   private timer: NodeJS.Timeout
   /** Background bash task ids announced as running and not yet observed finished/stopped */
   private bgTasks = new Set<string>()
+  /** Launches read from the initial history pass must not count: background shells are
+   *  children of the CLI process and die with it, so only events observed from the live
+   *  process (after the first poll) can mark a task as still running. Otherwise a resume
+   *  of a session whose engine never wrote the completion notice shows a stale badge. */
+  private livePhase = false
 
   constructor(
     public readonly filePath: string,
@@ -105,6 +110,7 @@ export class SessionTailer {
         // A single malformed line doesn't break the rest
       }
     }
+    this.livePhase = true
     this.dirty = true
     this.onDirty()
   }
@@ -177,7 +183,7 @@ export class SessionTailer {
   private trackBgResult(b: { content?: unknown }): void {
     const txt = typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '')
     const launch = txt.match(/Command running in background with ID: (\w+)/)
-    if (launch) {
+    if (launch && this.livePhase) {
       this.bgTasks.add(launch[1])
       this.status.backgroundTasks = this.bgTasks.size
       this.dirty = true
