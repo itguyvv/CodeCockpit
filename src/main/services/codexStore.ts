@@ -304,6 +304,10 @@ export class CodexTailer {
   private timer: NodeJS.Timeout
   /** Timestamp of the running turn's task_started (paired with task_complete for AI time) */
   private turnStartAt = 0
+  /** Live work-state: task_started seen after the initial snapshot, task_complete not yet */
+  private inTask = false
+  /** False until the first poll finished reading the rollout's startup snapshot */
+  private snapshotDone = false
 
   constructor(
     private readonly sessionId: string,
@@ -314,6 +318,11 @@ export class CodexTailer {
 
   getStatus(): SessionStatus {
     return { ...this.status }
+  }
+
+  /** True while a task is in flight (task_started without task_complete) */
+  busyHint(): boolean {
+    return this.inTask
   }
 
   dispose(): void {
@@ -360,6 +369,7 @@ export class CodexTailer {
         // A single malformed line doesn't break the rest
       }
     }
+    this.snapshotDone = true
     if (this.dirty) {
       this.dirty = false
       this.onDirty()
@@ -390,7 +400,10 @@ export class CodexTailer {
         this.status.turns++
         this.turnStartAt = isNaN(ts) ? Date.now() : ts
         this.status.lastActivity = Date.now()
+        // Snapshot replays of a previously killed turn must not read as work in progress
+        if (this.snapshotDone) this.inTask = true
       } else if (p.type === 'task_complete') {
+        this.inTask = false
         if (this.turnStartAt) {
           this.status.durationMs += Math.max(0, (isNaN(ts) ? Date.now() : ts) - this.turnStartAt)
           this.turnStartAt = 0

@@ -60,6 +60,8 @@ export interface SessionRecord {
 interface StatusTailer {
   getStatus(): SessionStatus
   dispose(): void
+  /** Authoritative work-state override (codex): true while a rollout task is in flight */
+  busyHint?: () => boolean
 }
 
 interface LiveProc {
@@ -107,16 +109,20 @@ function presentWindow(jumpToSessionId?: string): void {
 
 const busyTimer = setInterval(() => {
   const now = Date.now()
-  for (const [id] of procs) {
+  for (const [id, live] of procs) {
     const last = lastDataAt.get(id) ?? 0
     const ptyActive = now - last < BUSY_WINDOW_MS
     // Background shells keep a session active even while the TUI waits silently for input
     const bg = statusBySession.get(id)?.backgroundTasks ?? 0
-    const busy = ptyActive || bg > 0
+    // codex's full-screen TUI repaints on every scroll, so PTY output is not a reliable
+    // work signal there — the rollout's task_started/task_complete pair is authoritative
+    const active =
+      live.record.engine === 'codex' ? (live.tailer?.busyHint?.() ?? ptyActive) : ptyActive
+    const busy = active || bg > 0
     if (busyStates.get(id) !== busy) {
       const prev = busyStates.get(id)
       busyStates.set(id, busy)
-      broadcast('pty:busy', { id, busy: ptyActive, bg })
+      broadcast('pty:busy', { id, busy: active, bg })
       // busy → idle: system notification (opt-in; 5s minimum so a single
       // stray output burst doesn't fire while the user is still typing)
       if (prev === true && !busy) {
