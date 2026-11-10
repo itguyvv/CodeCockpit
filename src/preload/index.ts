@@ -222,6 +222,11 @@ const api = {
     on('pty:focus', (p) => {
       const { id } = p as { id: string }
       cb(id)
+    }),
+  onUpdate: (cb: (version: string, url: string) => void): Unsubscribe =>
+    on('update:available', (p) => {
+      const { version, url } = p as { version: string; url: string }
+      cb(version, url)
     })
 }
 

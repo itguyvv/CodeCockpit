@@ -250,6 +250,8 @@ const ptBR: Translation = {
   'settings.tabAbout': 'Sobre',
   'about.reportIssue': 'Relatar um problema',
   'about.license': 'Distribuído sob a licença MIT.',
+  'update.available': 'Atualização disponível: {version} — clique para abrir a página da versão',
+  'term.findPlaceholder': 'Pesquisar no terminal',
   'provider.test': 'Testar',
   'provider.testing': 'Testando…',
   'provider.testOk': 'Conexão OK · {ms} ms',

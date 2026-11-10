@@ -31,6 +31,8 @@ function AppInner(): JSX.Element {
   const [confirm, setConfirm] = useState<null | { text: string; onOk: () => void }>(null)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
+  /** When set, the current toast is clickable and opens this URL in the system browser */
+  const [toastUrl, setToastUrl] = useState('')
   const [customTitles, setCustomTitles] = useState<Record<string, string>>({})
   const [aliases, setAliases] = useState<Record<string, string>>({})
   const [projectPins, setProjectPins] = useState<Record<string, boolean>>({})
@@ -57,9 +59,13 @@ function AppInner(): JSX.Element {
     }
   }, [enabledEngines, engineTab])
 
-  const showToast = useCallback((msg: string) => {
+  const showToast = useCallback((msg: string, ms = 4000, url = '') => {
     setToast(msg)
-    setTimeout(() => setToast(''), 4000)
+    setToastUrl(url)
+    setTimeout(() => {
+      setToast('')
+      setToastUrl('')
+    }, ms)
   }, [])
 
   // Settings saved inside the modal apply immediately (engine tabs, new-terminal scrollback)
@@ -146,11 +152,15 @@ function AppInner(): JSX.Element {
     const offStatus = window.api.onStatus((id, st) =>
       setStatuses((prev) => ({ ...prev, [id]: st }))
     )
+    const offUpdate = window.api.onUpdate((version, url) =>
+      showToast(t('update.available', { version }), 12_000, url)
+    )
     return () => {
       offExit()
       offSid()
       offBusy()
       offStatus()
+      offUpdate()
     }
   }, [updateSession, t])
 
@@ -649,7 +659,14 @@ function AppInner(): JSX.Element {
         />
       )}
 
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div
+          className={`toast ${toastUrl ? 'link' : ''}`}
+          onClick={() => toastUrl && window.open(toastUrl)}
+        >
+          {toast}
+        </div>
+      )}
 
       {confirm && (
         <div className="modal-mask">

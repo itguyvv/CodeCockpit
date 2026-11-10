@@ -244,6 +244,8 @@ const ja: Translation = {
   'settings.tabAbout': 'このアプリについて',
   'about.reportIssue': '問題を報告',
   'about.license': 'MIT ライセンスで公開しています。',
+  'update.available': '新バージョン {version} があります — クリックでリリースページを開く',
+  'term.findPlaceholder': 'ターミナル内を検索',
   'provider.test': '接続テスト',
   'provider.testing': 'テスト中…',
   'provider.testOk': '接続 OK · {ms} ms',

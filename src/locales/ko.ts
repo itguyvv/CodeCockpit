@@ -241,6 +241,8 @@ const ko: Translation = {
   'settings.tabAbout': '정보',
   'about.reportIssue': '문제 보고하기',
   'about.license': 'MIT 라이선스로 배포됩니다.',
+  'update.available': '새 버전 {version} 사용 가능 — 클릭하여 릴리스 페이지 열기',
+  'term.findPlaceholder': '터미널에서 찾기',
   'provider.test': '연결 테스트',
   'provider.testing': '테스트 중…',
   'provider.testOk': '연결 성공 · {ms} ms',

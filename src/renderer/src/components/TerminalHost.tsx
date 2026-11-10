@@ -1,13 +1,24 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { SearchAddon, type ISearchDecorationOptions } from '@xterm/addon-search'
 import '@xterm/xterm/css/xterm.css'
 import type { EngineId } from '../api'
+import { useT } from '../i18n'
 
 interface Entry {
   term: Terminal
   fit: FitAddon
+  search: SearchAddon
   offs: Array<() => void>
+}
+
+// #RRGGBB only: the addon rejects alpha colors for decoration backgrounds
+const SEARCH_DECOR: ISearchDecorationOptions = {
+  matchBackground: '#574a17',
+  activeMatchBackground: '#2b5a78',
+  matchOverviewRuler: '#f5c542',
+  activeMatchColorOverviewRuler: '#4cc2ff'
 }
 
 export interface TerminalHandle {
@@ -25,7 +36,7 @@ export interface TerminalHandle {
   dispose: (id: string) => void
 }
 
-function createTerm(scrollback: number): { term: Terminal; fit: FitAddon } {
+function createTerm(scrollback: number): { term: Terminal; fit: FitAddon; search: SearchAddon } {
   const term = new Terminal({
     // mac fonts first; they simply don't resolve on Windows/Linux and the stack falls through
     fontFamily:
@@ -46,7 +57,9 @@ function createTerm(scrollback: number): { term: Terminal; fit: FitAddon } {
   })
   const fit = new FitAddon()
   term.loadAddon(fit)
-  return { term, fit }
+  const search = new SearchAddon()
+  term.loadAddon(search)
+  return { term, fit, search }
 }
 
 /** Whether the clipboard contains an image (async query via the Electron main process; false on browser debug pages without the api bridge) */
@@ -83,6 +96,7 @@ function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) =
 const IS_MAC = /Mac/i.test(navigator.platform)
 
 const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: (id: string) => EngineId }>((props, ref) => {
+  const t = useT()
   const hostRef = useRef<HTMLDivElement>(null)
   const entries = useRef<Map<string, Entry>>(new Map())
   const attachedId = useRef<string | null>(null)
@@ -91,6 +105,37 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
   scrollbackRef.current = props.scrollback
   const engineOfRef = useRef(props.engineOf)
   engineOfRef.current = props.engineOf
+  // Find bar state; findOpenRef mirrors findOpen for the imperative handlers' closures
+  const [findOpen, setFindOpen] = useState(false)
+  const findOpenRef = useRef(false)
+  findOpenRef.current = findOpen
+  const [findRes, setFindRes] = useState<{ index: number; count: number } | null>(null)
+  const findInputRef = useRef<HTMLInputElement>(null)
+
+  const activeEntry = (): Entry | undefined => entries.current.get(attachedId.current ?? '')
+
+  const runFind = (dir: 1 | -1): void => {
+    const e = activeEntry()
+    const q = findInputRef.current?.value.trim() ?? ''
+    if (!e || !q) return
+    if (dir === 1) e.search.findNext(q, { decorations: SEARCH_DECOR })
+    else e.search.findPrevious(q, { decorations: SEARCH_DECOR })
+  }
+
+  const closeFind = (): void => {
+    setFindOpen(false)
+    setFindRes(null)
+    const e = activeEntry()
+    e?.search.clearDecorations()
+    e?.term.focus()
+  }
+
+  useEffect(() => {
+    if (!findOpen) return
+    const el = findInputRef.current
+    el?.focus()
+    el?.select()
+  }, [findOpen])
 
   useImperativeHandle(ref, () => {
     const PENDING = '__pending'
@@ -101,6 +146,10 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
           if (mid === id) entry.term.write(data)
         })
       )
+      const resDisp = entry.search.onDidChangeResults((d) => {
+        if (findOpenRef.current) setFindRes({ index: d.resultIndex, count: d.resultCount })
+      })
+      entry.offs.push(() => resDisp.dispose())
       // Keyboard input → PTY
       const dataDisp = entry.term.onData((data) => {
         // Drop focus reports (mode 1004): forwarding them makes the TUI redraw on every
@@ -181,14 +230,19 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
           entry.term.selectAll()
           return false
         }
+        if (mod && !evt.shiftKey && key === 'f') {
+          evt.preventDefault()
+          setFindOpen(true)
+          return false
+        }
         return true
       })
     }
 
     const getDims = (): { cols: number; rows: number } => {
       if (!attachedId.current) {
-        const { term, fit } = createTerm(scrollbackRef.current)
-        const entry: Entry = { term, fit, offs: [] }
+        const { term, fit, search } = createTerm(scrollbackRef.current)
+        const entry: Entry = { term, fit, search, offs: [] }
         entries.current.set(PENDING, entry)
         if (hostRef.current && !term.element) {
           term.open(hostRef.current)
@@ -216,8 +270,8 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       }
       const prev = entries.current.get(attachedId.current ?? '')
       prev?.term.element?.remove()
-      const { term, fit } = createTerm(scrollbackRef.current)
-      const entry: Entry = { term, fit, offs: [] }
+      const { term, fit, search } = createTerm(scrollbackRef.current)
+      const entry: Entry = { term, fit, search, offs: [] }
       entries.current.set(id, entry)
       if (hostRef.current) {
         term.open(hostRef.current)
@@ -290,6 +344,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
     if (!host) return
     const onContextMenu = (e: MouseEvent): void => {
       e.preventDefault()
+      if ((e.target as HTMLElement).closest('.term-find')) return
       const id = attachedId.current
       if (!id) return
       const entry = entries.current.get(id)
@@ -318,7 +373,9 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       })
     }
     host.addEventListener('contextmenu', onContextMenu)
-    const onMouseDown = (): void => {
+    const onMouseDown = (e: MouseEvent): void => {
+      // Clicks on the find bar must not steal focus back to the terminal
+      if ((e.target as HTMLElement).closest('.term-find')) return
       const id = attachedId.current
       if (id) entries.current.get(id)?.term.focus()
     }
@@ -372,7 +429,45 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
     }
   }, [])
 
-  return <div className="term-host" ref={hostRef} />
+  return (
+    <div className="term-host" ref={hostRef}>
+      {findOpen && (
+        <div className="term-find">
+          <input
+            ref={findInputRef}
+            placeholder={t('term.findPlaceholder')}
+            spellCheck={false}
+            onChange={() => runFind(1)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                runFind(e.shiftKey ? -1 : 1)
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                e.stopPropagation()
+                closeFind()
+              } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                e.preventDefault()
+                findInputRef.current?.select()
+              }
+            }}
+          />
+          <span className="term-find-count">
+            {findRes ? (findRes.count > 0 ? `${findRes.index + 1}/${findRes.count}` : '0') : ''}
+          </span>
+          <button className="icon-btn term-find-btn" onClick={() => runFind(-1)}>
+            ↑
+          </button>
+          <button className="icon-btn term-find-btn" onClick={() => runFind(1)}>
+            ↓
+          </button>
+          <button className="icon-btn term-find-btn" onClick={closeFind}>
+            ✕
+          </button>
+        </div>
+      )}
+    </div>
+  )
 })
 
 TerminalHost.displayName = 'TerminalHost'

@@ -247,6 +247,8 @@ const en = {
   'settings.tabAbout': 'About',
   'about.reportIssue': 'Report an issue',
   'about.license': 'Released under the MIT License.',
+  'update.available': 'Update available: {version} — click to open the release page',
+  'term.findPlaceholder': 'Find in terminal',
   'provider.test': 'Test',
   'provider.testing': 'Testing…',
   'provider.testOk': 'Connectivity OK · {ms} ms',

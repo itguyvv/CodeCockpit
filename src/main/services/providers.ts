@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { dataFile } from './dataDir'
+import { dataFile, writeJsonAtomic } from './dataDir'
 import { t } from './i18n'
 import type { EngineId } from './engines'
 
@@ -85,7 +85,7 @@ function saveStore(store: ProviderStore): void {
     profiles: store.profiles.filter((p) => !p.builtin),
     activeByEngine: store.activeByEngine
   }
-  fs.writeFileSync(storeFile(), JSON.stringify(clean, null, 2), 'utf-8')
+  writeJsonAtomic(storeFile(), clean)
 }
 
 export function listProfiles(): ProviderStore {
@@ -257,7 +257,7 @@ function applyClaudeGlobal(profile: ProviderProfile): void {
   if (Object.keys(env).length === 0) delete doc.env
   else doc.env = env
   fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, JSON.stringify(doc, null, 2), 'utf-8')
+  writeJsonAtomic(file, doc)
 }
 
 /** Merge a provider block + default model into ~/.config/opencode/opencode.json(c) */
@@ -281,7 +281,7 @@ function applyOpenCodeGlobal(profile: ProviderProfile): void {
   }
   doc.provider = providers
   if (modelId) doc.model = `${providerId}/${modelId}`
-  fs.writeFileSync(file, JSON.stringify(doc, null, 2), 'utf-8')
+  writeJsonAtomic(file, doc)
 }
 
 /** Config file path per engine (shown to the user in apply-confirmation texts) */

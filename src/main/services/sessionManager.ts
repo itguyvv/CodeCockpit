@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { dataFile } from './dataDir'
+import { dataFile, writeJsonAtomic } from './dataDir'
 import { getAlias } from './projectMeta'
 import { t } from './i18n'
 import { findGitBash } from './claude'
@@ -194,7 +194,7 @@ function broadcast(channel: string, payload: unknown): void {
 function saveRegistry(): void {
   try {
     const list = [...registry.values()]
-    fs.writeFileSync(dataFile('sessions.json'), JSON.stringify(list, null, 2), 'utf-8')
+    writeJsonAtomic(dataFile('sessions.json'), list)
   } catch {
     // Non-fatal if the save fails
   }
@@ -573,7 +573,7 @@ export function renameSession(claudeSessionId: string, title: string): void {
   const titles = loadTitles()
   if (title.trim()) titles[claudeSessionId] = title.trim()
   else delete titles[claudeSessionId]
-  fs.writeFileSync(titlesFile(), JSON.stringify(titles, null, 2), 'utf-8')
+  writeJsonAtomic(titlesFile(), titles)
 }
 
 export function shutdownAll(): void {

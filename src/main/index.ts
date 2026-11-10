@@ -5,7 +5,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { unzipSync, zipSync, type Zippable } from 'fflate'
 import { IS_LINUX, IS_MAC, IS_WIN } from './services/platform'
-import { getAppRoot, getDataDir, setDataDir, dataFile } from './services/dataDir'
+import { getAppRoot, getDataDir, setDataDir, dataFile, writeJsonAtomic } from './services/dataDir'
 import { loadAliases, setAlias, loadProjects, setProjectPinned, touchProject } from './services/projectMeta'
 import { resolveRuleFile, readRuleFile, writeRuleFile, type RuleRef } from './services/rules'
 import { t, setLocale } from './services/i18n'
@@ -76,7 +76,7 @@ function rememberCwd(cwd: string): void {
 
 function writeSettings(patch: Record<string, unknown>): void {
   const next = { ...readSettings(), ...patch }
-  fs.writeFileSync(dataFile('settings.json'), JSON.stringify(next, null, 2), 'utf-8')
+  writeJsonAtomic(dataFile('settings.json'), next)
 }
 
 function registerIpc(): void {
@@ -399,7 +399,7 @@ function registerIpc(): void {
   })
   ipcMain.handle('workspace:save', (_e, list: Array<Record<string, unknown>>) => {
     try {
-      fs.writeFileSync(dataFile('active-sessions.json'), JSON.stringify(list, null, 2), 'utf-8')
+      writeJsonAtomic(dataFile('active-sessions.json'), list)
       return true
     } catch {
       return false
@@ -417,7 +417,7 @@ function registerIpc(): void {
   })
   ipcMain.handle('history-order:save', (_e, obj: { groups: string[]; items: Record<string, string[]> }) => {
     try {
-      fs.writeFileSync(dataFile('history-order.json'), JSON.stringify(obj, null, 2), 'utf-8')
+      writeJsonAtomic(dataFile('history-order.json'), obj)
       return true
     } catch {
       return false
@@ -543,6 +543,43 @@ function createWindow(): void {
   })
 }
 
+// ── Update check: once per launch, ~10s after ready. Quiet by design — it only fires
+// when a newer published release exists on GitHub; the renderer shows a single toast ──
+function isNewerTag(remote: string, local: string): boolean {
+  const parts = (s: string): number[] => s.replace(/^v/, '').split('.').map((n) => parseInt(n, 10) || 0)
+  const a = parts(remote)
+  const b = parts(local)
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0)
+  }
+  return false
+}
+
+function checkForUpdate(): void {
+  void (async () => {
+    try {
+      const res = await fetch('https://api.github.com/repos/itguyvv/CodeCockpit/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+        signal: AbortSignal.timeout(10_000)
+      })
+      if (!res.ok) return
+      const rel = (await res.json()) as {
+        tag_name?: string
+        html_url?: string
+        draft?: boolean
+        prerelease?: boolean
+      }
+      if (rel.draft || rel.prerelease || !rel.tag_name || !rel.html_url) return
+      if (!isNewerTag(rel.tag_name, app.getVersion())) return
+      for (const w of BrowserWindow.getAllWindows()) {
+        w.webContents.send('update:available', { version: rel.tag_name, url: rel.html_url })
+      }
+    } catch {
+      // Offline / blocked: silently skip and try again on the next launch
+    }
+  })()
+}
+
 app.whenReady().then(() => {
   // Drop Electron's implicit default menu: its Edit→Paste accelerator (Ctrl+V) pastes into
   // xterm's hidden helper textarea a second time, duplicating what the renderer pasted.
@@ -557,6 +594,7 @@ app.whenReady().then(() => {
   }
   registerIpc()
   createWindow()
+  setTimeout(checkForUpdate, 10_000)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

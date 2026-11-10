@@ -197,6 +197,7 @@ export interface WorkbenchApi {
   onBusy: (cb: (id: string, busy: boolean, bg: number) => void) => () => void
   onStatus: (cb: (id: string, status: SessionStatus) => void) => () => void
   onFocus: (cb: (id: string) => void) => () => void
+  onUpdate: (cb: (version: string, url: string) => void) => () => void
 }
 
 declare global {

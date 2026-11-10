@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { dataFile } from './dataDir'
+import { dataFile, writeJsonAtomic } from './dataDir'
 import { IS_WIN } from './platform'
 
 /** Canonical key for a project directory: trailing separators stripped, case-folded on
@@ -31,7 +31,7 @@ export function setAlias(cwd: string, alias: string): Record<string, string> {
   const trimmed = alias.trim()
   if (trimmed) aliases[key] = trimmed
   else delete aliases[key]
-  fs.writeFileSync(dataFile('aliases.json'), JSON.stringify(aliases, null, 2), 'utf-8')
+  writeJsonAtomic(dataFile('aliases.json'), aliases)
   return aliases
 }
 
@@ -59,7 +59,7 @@ export function loadProjects(): ProjectEntry[] {
 }
 
 function saveProjects(list: ProjectEntry[]): void {
-  fs.writeFileSync(dataFile('projects.json'), JSON.stringify({ projects: list }, null, 2), 'utf-8')
+  writeJsonAtomic(dataFile('projects.json'), { projects: list })
 }
 
 /** Register/refresh a project when a session is created (keeps its pinned state) */

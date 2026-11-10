@@ -238,6 +238,8 @@ const zhTW: Translation = {
   'settings.tabAbout': '關於',
   'about.reportIssue': '回報問題',
   'about.license': '以 MIT 授權開源發布。',
+  'update.available': '發現新版本 {version} — 點擊開啟發布頁',
+  'term.findPlaceholder': '在終端中查找',
   'provider.test': '測試連線',
   'provider.testing': '測試中…',
   'provider.testOk': '連線成功 · {ms} ms',

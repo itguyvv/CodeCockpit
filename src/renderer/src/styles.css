@@ -632,6 +632,51 @@ input:focus {
   height: 100%;
 }
 
+/* ── Terminal find bar (overlay top-right) ── */
+.term-find {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 7px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.term-find input {
+  width: 200px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  outline: none;
+}
+
+.term-find input:focus {
+  border-color: var(--accent2);
+}
+
+.term-find-count {
+  font-size: 11px;
+  color: var(--fg-dim);
+  min-width: 30px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.term-find-btn {
+  padding: 2px 7px;
+  font-size: 12px;
+  flex: none;
+}
+
 /* ── Welcome page ── */
 .welcome {
   position: absolute;
@@ -1450,6 +1495,10 @@ input:focus {
   z-index: 300;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
   max-width: 70vw;
+}
+
+.toast.link {
+  cursor: pointer;
 }
 
 /* ── Browser debug page warning ── */

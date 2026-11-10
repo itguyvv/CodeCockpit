@@ -249,6 +249,8 @@ const de: Translation = {
   'settings.tabAbout': 'Über',
   'about.reportIssue': 'Problem melden',
   'about.license': 'Veröffentlicht unter der MIT-Lizenz.',
+  'update.available': 'Update verfügbar: {version} — Klicken, um die Release-Seite zu öffnen',
+  'term.findPlaceholder': 'Im Terminal suchen',
   'provider.test': 'Verbindung testen',
   'provider.testing': 'Teste…',
   'provider.testOk': 'Verbindung OK · {ms} ms',

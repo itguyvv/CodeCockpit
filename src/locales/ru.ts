@@ -249,6 +249,8 @@ const ru: Translation = {
   'settings.tabAbout': 'О программе',
   'about.reportIssue': 'Сообщить о проблеме',
   'about.license': 'Распространяется по лицензии MIT.',
+  'update.available': 'Доступно обновление: {version} — нажмите, чтобы открыть страницу релиза',
+  'term.findPlaceholder': 'Поиск в терминале',
   'provider.test': 'Проверить',
   'provider.testing': 'Проверка…',
   'provider.testOk': 'Соединение OK · {ms} ms',

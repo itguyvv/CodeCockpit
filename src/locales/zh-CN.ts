@@ -238,6 +238,8 @@ const zhCN: Translation = {
   'settings.tabAbout': '关于',
   'about.reportIssue': '报告问题',
   'about.license': '基于 MIT 许可证开源发布。',
+  'update.available': '发现新版本 {version} — 点击打开发布页',
+  'term.findPlaceholder': '在终端中查找',
   'provider.test': '测试连接',
   'provider.testing': '测试中…',
   'provider.testOk': '连接成功 · {ms} ms',

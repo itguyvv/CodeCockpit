@@ -250,6 +250,8 @@ const es: Translation = {
   'settings.tabAbout': 'Acerca de',
   'about.reportIssue': 'Informar de un problema',
   'about.license': 'Publicado bajo la licencia MIT.',
+  'update.available': 'Actualización disponible: {version} — haz clic para abrir la página de la versión',
+  'term.findPlaceholder': 'Buscar en la terminal',
   'provider.test': 'Probar',
   'provider.testing': 'Probando…',
   'provider.testOk': 'Conexión OK · {ms} ms',

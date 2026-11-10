@@ -42,11 +42,23 @@ export function getDataDir(): string {
 }
 
 export function setDataDir(custom: string): string {
-  fs.writeFileSync(pointerFile(), custom, 'utf-8')
+  writeFileAtomic(pointerFile(), custom)
   cached = null
   return getDataDir()
 }
 
 export function dataFile(...names: string[]): string {
   return path.join(getDataDir(), ...names)
+}
+
+/** Atomic write: temp file + rename, so a crash mid-write can never leave a truncated file */
+export function writeFileAtomic(file: string, data: string): void {
+  const tmp = `${file}.tmp`
+  fs.writeFileSync(tmp, data, 'utf-8')
+  fs.renameSync(tmp, file)
+}
+
+/** Atomic JSON write with the same formatting every registry file uses */
+export function writeJsonAtomic(file: string, data: unknown): void {
+  writeFileAtomic(file, JSON.stringify(data, null, 2))
 }
