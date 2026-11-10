@@ -8,6 +8,9 @@
 
 Run, observe, and manage multiple AI coding CLI sessions (Claude Code & OpenCode today, more coming) from one native window — real PTY terminals, exact token/cost accounting, and full session history.
 
+[![CI](https://github.com/ITGuyVV/CodeCockpit/actions/workflows/ci.yml/badge.svg)](https://github.com/ITGuyVV/CodeCockpit/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/ITGuyVV/CodeCockpit?sort=semver)](https://github.com/ITGuyVV/CodeCockpit/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ITGuyVV/CodeCockpit/total)](https://github.com/ITGuyVV/CodeCockpit/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Electron](https://img.shields.io/badge/Electron-45-47848F)
@@ -50,16 +53,19 @@ Driving several AI coding agents means juggling raw terminal windows, losing tra
 
 - **Two engines, one cockpit** — Claude Code and OpenCode side by side, each with its own history center; engines you don't use can be disabled in Settings.
 - **Real PTY terminals** — every session runs in an independent ConPTY process, fully rendered by xterm.js with selection, copy/paste, drag & drop of file paths, and unlimited parallel sessions.
+- **Terminal search** — `Ctrl+F` in any session opens a find bar with match highlighting and a match counter.
 - **Exact session telemetry** — parses each engine's own session records (Claude jsonl / OpenCode storage): model, input/output tokens, cache read/write, estimated cost, turns, tool-call ranking, and pure AI working time.
 - **Session dashboard** — a live bottom bar per session: context usage, output speed, and the tool-usage mix at a glance.
 - **History center** — all native sessions per engine, grouped by project, with rename, delete (with confirmation), drag to reorder, search, and record sizes. Groups collapse by default with one-click expand-all.
+- **Project aliases & pinned projects** — give directories display names in the sidebar, pin favorites, and jump straight to a pinned project's recent sessions from the new-session dialog.
+- **In-app rule editor** — edit global and per-project `CLAUDE.md` (Claude Code) / `AGENTS.md` (OpenCode) with live Markdown preview, synchronized scrolling, and a maximize toggle.
 - **Workspace persistence** — the active session list is fully restored on startup; exiting processes come back with a single click via resume.
 - **API provider profiles** — cc-switch style: multiple provider profiles per engine with base URL + API key, one-click connectivity test, model mapping (route main/haiku/sonnet/opus tiers onto any model), and per-session env injection or global config rewrite (a `.bak` backup is written first).
 - **Permission mode switching** — default / acceptEdits / plan / bypassPermissions switched live without losing context; bypass mode asks twice.
 - **Change directory, keep context** — moved a project to a new path? Switch cwd and resume the same session in place.
-- **Completion notifications** — native OS notifications when the agent finishes while the window is in the background; click to jump back.
+- **Completion notifications (opt-in)** — a desktop notification when the agent finishes while the window is in the background; clicking it switches to that session's terminal. Off by default — enable in Settings → General.
 - **Exit confirmation** — closing the window with sessions running asks first (optional "don't ask again"), so a stray click never kills your agents.
-- **Settings center** — tabbed: defaults (mode/model, terminal scrollback), engine toggles, provider profiles, and quick access to Claude config + MCP server overview; relocatable data directory with zip export/import.
+- **Settings center** — tabbed: defaults (mode/model, terminal scrollback), engine toggles, provider profiles, update check, About, and quick access to Claude config + MCP server overview; relocatable data directory with zip export/import.
 - **10 languages** — English, 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Français, Español, Português (Brasil), Русский. Switch any time in Settings.
 
 ## Download & Install
@@ -142,6 +148,7 @@ CodeCockpit ships 10 languages out of the box and uses a type-safe shared dictio
 - [x] M7 — Internationalization (10 languages)
 - [x] M8 — OpenCode as a second engine (spawn, telemetry, history, resume)
 - [x] M9 — API provider profiles (connectivity test, model mapping, global apply)
+- [x] M10 — Project aliases, pinned projects, rule file editor, opt-in completion notifications (v1.2.0)
 - [ ] Codex CLI as a third engine
 - [x] macOS / Linux builds (beta — feedback welcome)
 

@@ -4,6 +4,51 @@ All notable changes to CodeCockpit are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Terminal search — `Ctrl+F` (`Cmd+F` on macOS) in any session opens a find bar with match highlighting and a match counter.
+- Update check — the app queries GitHub Releases once at startup and shows a quiet toast when a newer version is out. The check can be disabled and triggered manually from Settings → About, which also shows the current update status.
+
+### Changed
+
+- Sessions now spawn with UTF-8 defaults (`PYTHONUTF8=1`, `LANG=en_US.UTF-8`), so tool output containing non-ASCII text — most visibly Python programs printing to a pipe — no longer renders as mojibake.
+
+### Fixed
+
+- All app JSON state (settings, session list, custom titles, ordering) is written atomically, so an interrupted write can no longer truncate the files.
+
+## [1.2.0] - 2026-11-09
+
+### Added
+
+- **Project aliases** — give any directory a display name in the sidebar; the original path stays visible next to it.
+- **Pinned projects** — pin frequently used directories from the sidebar context menu and jump straight to their recent sessions from the new-session dialog.
+- **Rule file editor** — edit global and per-project `CLAUDE.md` (Claude Code) / `AGENTS.md` (openCode) in-app, with live Markdown preview, synchronized scrolling, and a maximize toggle.
+- **Completion notifications (opt-in)** — get a desktop notification when the AI finishes a request; clicking it switches to that session's terminal. Off by default — enable in Settings → General.
+
+### Fixed
+
+- Switching sessions no longer flips idle sessions to a phantom "Working" status; the indicator reflects real AI activity only.
+- Renaming a running Claude Code / openCode session now persists correctly (internal ids were written as title keys).
+
+## [1.1.1] - 2026-11-09
+
+### Added
+
+- **macOS and Linux builds** — Apple Silicon + Intel mac zips, Linux AppImage / deb / rpm (x64 + arm64), plus a Windows ARM64 zip; all produced by the release CI.
+- Cross-platform CLI discovery, path handling, fonts, and Cmd shortcuts.
+- Settings → **About** tab with the app version.
+- OpenCode 1.18 (SQLite session storage) support; only the newest storage generation per install is listed.
+- Image paste into openCode sessions via the async clipboard API, with a platform-aware clipboard fallback.
+- Background-shell detection — terminal links open in the system browser while a background process runs.
+- Release runbook (`docs/RELEASING.md`) documenting the full artifact matrix.
+
+### Changed
+
+- Release CI hardened: cross-arch node-pty prebuilds, retries against transient download failures, draft-release publication from version tags.
+
 ## [1.1.0] - 2026-11-07
 
 ### Added
