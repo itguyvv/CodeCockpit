@@ -52,7 +52,15 @@ function rolloutFiles(): string[] {
     }
   }
   return out
-    .map((p) => ({ p, m: fs.statSync(p).mtimeMs }))
+    .map((p) => {
+      // A rollout can vanish between readdir and stat (concurrent deletion) — skip it
+      try {
+        return { p, m: fs.statSync(p).mtimeMs }
+      } catch {
+        return { p, m: -1 }
+      }
+    })
+    .filter((x) => x.m >= 0)
     .sort((a, b) => b.m - a.m)
     .map((x) => x.p)
 }
@@ -170,7 +178,12 @@ export function scanCodexSessions(limit = 60): NativeSessionInfo[] {
     if (out.length >= limit) break
     const head = readHead(file)
     if (!head) continue
-    const st = fs.statSync(file)
+    let st: fs.Stats
+    try {
+      st = fs.statSync(file)
+    } catch {
+      continue // Deleted between listing and stat
+    }
     const title = names.get(head.id) || firstUserTitle(file) || t('history.noTitle')
     out.push({
       sessionId: head.id,
@@ -219,6 +232,15 @@ export function sniffNewCodexSession(
       return
     }
     for (const file of rolloutFiles().slice(0, 30)) {
+      // A rollout created before this spawn belongs to another session — even when its id
+      // is missing from the index baseline (unnamed sessions are not indexed)
+      let mtime = 0
+      try {
+        mtime = fs.statSync(file).mtimeMs
+      } catch {
+        continue
+      }
+      if (mtime < startedAt - 5_000) continue
       const head = readHead(file)
       if (!head || knownSessionIds.has(head.id)) continue
       if (!head.cwd || !sameDir(head.cwd, cwd)) continue
@@ -308,6 +330,9 @@ export class CodexTailer {
   private inTask = false
   /** False until the first poll finished reading the rollout's startup snapshot */
   private snapshotDone = false
+  /** Resolved rollout path; resolved lazily, then reused (a rescan per poll would
+   *  readdir the whole sessions tree every second for the life of the session) */
+  private file = ''
 
   constructor(
     private readonly sessionId: string,
@@ -332,13 +357,16 @@ export class CodexTailer {
 
   private poll(): void {
     if (this.stopped) return
-    const file = resolveCodexSessionFile(this.sessionId)
-    if (!file) return // Rollout not created yet (TUI writes it right after launch)
+    if (!this.file) {
+      this.file = resolveCodexSessionFile(this.sessionId)
+      if (!this.file) return // Rollout not created yet (TUI writes it right after launch)
+    }
+    const file = this.file
     let st: fs.Stats
     try {
       st = fs.statSync(file)
     } catch {
-      return
+      return // Deleted mid-session — keep the last aggregated status
     }
     if (st.size <= this.offset) return
     let chunk: string

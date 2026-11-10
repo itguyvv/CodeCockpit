@@ -39,12 +39,13 @@ export function buildEngineArgs(engine: EngineId, opts: SpawnOpts): string[] {
   }
   if (engine === 'codex') {
     // Model comes from codex's own config.toml; sessions resume by uuid.
-    // Mode mapping: acceptEdits → full-auto (rare approvals), plan → read-only sandbox,
+    // Mode mapping (codex 0.167): acceptEdits → approve-for-me (workspace-write with automatic
+    // approvals; the old --full-auto flag no longer exists), plan → read-only sandbox,
     // bypass → no sandbox + no approvals. Codex default is workspace-write + on-request.
     const args: string[] = []
     if (opts.resumeId) args.push('resume', opts.resumeId)
     if (opts.mode === 'bypassPermissions') args.push('--dangerously-bypass-approvals-and-sandbox')
-    else if (opts.mode === 'acceptEdits') args.push('--full-auto')
+    else if (opts.mode === 'acceptEdits') args.push('--approve-for-me')
     else if (opts.mode === 'plan') args.push('--sandbox', 'read-only')
     return args
   }
