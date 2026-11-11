@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- macOS/Linux: sessions spawned from a GUI launch (Finder/Dock) inherited the minimal launchd environment, so CLI logins that live in the shell profile (API keys, proxies, PATH additions) were invisible — Claude Code showed "Not logged in" while the same CLI worked in a terminal. Sessions now start through the user's login + interactive shell (`$SHELL -l -i -c 'exec <cli>'`), matching the terminal environment; the CLI still owns the PTY via `exec`.
+
 ## [1.3.0] - 2026-11-10
 
 ### Added

@@ -18,7 +18,7 @@ import {
 import { SessionTailer, resolveSessionFile, sessionFilePath, type SessionStatus } from './jsonlTail'
 import { buildEngineArgs, engineBin, isEngineId, type EngineId } from './engines'
 import { injectionEnv } from './providers'
-import { IS_WIN } from './platform'
+import { IS_MAC, IS_WIN } from './platform'
 import {
   OpenCodeTailer,
   deleteOpenCodeSession,
@@ -254,6 +254,16 @@ async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, stri
   return { ...env, ...extra }
 }
 
+/** Single-quote a POSIX argument (embedded quotes closed and re-opened) */
+function posixQuote(s: string): string {
+  return `'${s.replace(/'/g, `'\\''`)}'`
+}
+
+/** Login+interactive shell of the user's session; the fallback covers GUI launches where SHELL is unset */
+function userShell(): string {
+  return process.env.SHELL || (IS_MAC ? '/bin/zsh' : '/bin/bash')
+}
+
 async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
   const args = buildEngineArgs(record.engine, {
     resumeId: record.claudeSessionId ?? undefined,
@@ -265,7 +275,21 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
   // Normalize spawn dims so resizeSession can dedup no-op resizes against them
   record.cols ??= 110
   record.rows ??= 30
-  const p = pty.spawn(isCmd ? 'cmd.exe' : bin, isCmd ? ['/d', '/s', '/c', bin, ...args] : args, {
+  // On macOS/Linux a GUI-launched app inherits launchd's minimal environment — the shell
+  // profile (API keys, PATH additions, proxies) that makes the CLI work in a terminal is
+  // missing, which surfaced as "Not logged in" while the same CLI worked in Terminal.app.
+  // Spawn through the user's login+interactive shell and exec the CLI inside it, so the
+  // session environment matches a real terminal. exec keeps the pid, so kill/exit
+  // semantics stay attached to the CLI process itself.
+  const shell = IS_WIN ? '' : userShell()
+  const haveShell = shell && fs.existsSync(shell)
+  const file = isCmd ? 'cmd.exe' : haveShell ? shell : bin
+  const spawnArgs = isCmd
+    ? ['/d', '/s', '/c', bin, ...args]
+    : haveShell
+      ? ['-l', '-i', '-c', `exec ${[bin, ...args].map(posixQuote).join(' ')}`]
+      : args
+  const p = pty.spawn(file, spawnArgs, {
     name: 'xterm-256color',
     cols: record.cols,
     rows: record.rows,
