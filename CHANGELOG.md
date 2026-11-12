@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-12
+
 ### Added
 
 - One-click "remove all" for the active-sessions list — after a confirmation, stops and removes every session in the window at once; history is untouched and each session can be resumed later.
