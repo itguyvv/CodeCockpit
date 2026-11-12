@@ -33,6 +33,8 @@ const ja: Translation = {
     'このセッションのチャット履歴（.jsonl）全体を完全に削除します。元に戻すことはできません。',
   'confirm.deleteRunning': '\nこのセッションはこのウィンドウで実行中のため、削除時に停止して取り除かれます。',
   'confirm.deleteAsk': '\n削除しますか？',
+  'confirm.removeAll':
+    '\nこのウィンドウのアクティブなセッション {count} 件すべてを停止して取り除きますか？履歴は影響を受けません。後でいつでも再開できます。',
   'common.cancel': 'キャンセル',
   'common.save': '保存',
   'common.close': '閉じる',
@@ -56,6 +58,7 @@ const ja: Translation = {
   'sidebar.collapse': 'サイドバーを閉じる',
   'sidebar.search': 'セッションを検索…',
   'sidebar.active': 'アクティブなセッション',
+  'sidebar.removeAll': 'このウィンドウのセッションをすべて取り除く',
   'sidebar.history': '履歴',
   'sidebar.expandAll': 'すべて展開',
   'sidebar.collapseAll': 'すべて折りたたむ',

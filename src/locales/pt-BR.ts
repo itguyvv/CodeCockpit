@@ -36,6 +36,8 @@ const ptBR: Translation = {
   'confirm.deleteRunning':
     '\nEsta sessão está em execução nesta janela e também será encerrada e removida.',
   'confirm.deleteAsk': '\nExcluir esta sessão?',
+  'confirm.removeAll':
+    '\nParar e remover todas as {count} sessões ativas desta janela? O histórico não é afetado — você poderá retomá-las depois.',
   'common.cancel': 'Cancelar',
   'common.save': 'Salvar',
   'common.close': 'Fechar',
@@ -60,6 +62,7 @@ const ptBR: Translation = {
   'sidebar.collapse': 'Recolher barra lateral',
   'sidebar.search': 'Pesquisar sessões…',
   'sidebar.active': 'Sessões ativas',
+  'sidebar.removeAll': 'Remover todas as sessões desta janela',
   'sidebar.history': 'Histórico',
   'sidebar.expandAll': 'Expandir tudo',
   'sidebar.collapseAll': 'Recolher tudo',

@@ -610,6 +610,10 @@ function checkForUpdate(): Promise<UpdateStatus> {
   })()
 }
 
+// Windows routes toast click activation by AppUserModelID: without ours set (matching the
+// electron-builder appId), clicks on completion notifications never reach the app
+if (!IS_MAC) app.setAppUserModelId('io.github.itguyvv.codecockpit')
+
 app.whenReady().then(() => {
   // Drop Electron's implicit default menu: its Edit→Paste accelerator (Ctrl+V) pastes into
   // xterm's hidden helper textarea a second time, duplicating what the renderer pasted.

@@ -143,7 +143,10 @@ const busyTimer = setInterval(() => {
                 })
               : t('main.notifyIdleBodyPlain')
           })
-          notification.on('click', () => presentWindow(id))
+          notification.on('click', () => {
+            notification.close()
+            presentWindow(id)
+          })
           notification.show()
           // One notification per user request: re-armed by the next real input (writeInput).
           // Without this, the auto-jump's attach/resize redraws read as new output and re-notify.

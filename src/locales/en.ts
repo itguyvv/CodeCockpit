@@ -34,6 +34,8 @@ const en = {
   'confirm.deleteRunning':
     '\nThis session is currently running in this window and will be stopped and removed as well.',
   'confirm.deleteAsk': '\nDelete this session?',
+  'confirm.removeAll':
+    '\nStop and remove all {count} active session(s) from this window? History is not affected — you can resume any of them later.',
   'common.cancel': 'Cancel',
   'common.save': 'Save',
   'common.close': 'Close',
@@ -57,6 +59,7 @@ const en = {
   'sidebar.collapse': 'Collapse sidebar',
   'sidebar.search': 'Search sessions…',
   'sidebar.active': 'Active sessions',
+  'sidebar.removeAll': 'Remove all sessions from this window',
   'sidebar.history': 'History',
   'sidebar.expandAll': 'Expand all',
   'sidebar.collapseAll': 'Collapse all',

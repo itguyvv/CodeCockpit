@@ -32,6 +32,8 @@ const ko: Translation = {
   'confirm.deleteIntro': '이 세션의 전체 채팅 기록(.jsonl)을 영구 삭제합니다. 되돌릴 수 없습니다.',
   'confirm.deleteRunning': '\n이 세션은 현재 이 창에서 실행 중이며 삭제 시 함께 종료되고 제거됩니다.',
   'confirm.deleteAsk': '\n삭제하시겠습니까?',
+  'confirm.removeAll':
+    '\n이 창의 활성 세션 {count}개를 모두 중지하고 제거할까요? 기록은 영향을 받지 않으며 나중에 언제든 다시 이어할 수 있습니다.',
   'common.cancel': '취소',
   'common.save': '저장',
   'common.close': '닫기',
@@ -55,6 +57,7 @@ const ko: Translation = {
   'sidebar.collapse': '사이드바 접기',
   'sidebar.search': '세션 검색…',
   'sidebar.active': '활성 세션',
+  'sidebar.removeAll': '이 창의 세션 모두 제거',
   'sidebar.history': '기록',
   'sidebar.expandAll': '모두 펼치기',
   'sidebar.collapseAll': '모두 접기',

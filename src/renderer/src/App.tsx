@@ -379,6 +379,21 @@ function AppInner(): JSX.Element {
     setActiveId((cur) => (cur === id ? '' : cur))
   }, [])
 
+  // Remove every active session at once (history is untouched; each can be resumed later)
+  const handleRemoveAllActive = useCallback(() => {
+    setConfirm({
+      text: t('confirm.removeAll', { count: String(sessions.length) }),
+      onOk: () => {
+        for (const s of sessions) {
+          void window.api.kill(s.id)
+          termRef.current?.dispose(s.id)
+        }
+        setSessions([])
+        setActiveId('')
+      }
+    })
+  }, [sessions, t])
+
   // Change the working directory and restart with --resume (after a project moved)
   const handleChangeDir = useCallback(
     (id: string) => {
@@ -494,6 +509,7 @@ function AppInner(): JSX.Element {
             onProjectRules={(cwd) => setShowRules({ projectCwd: cwd })}
             onDelete={handleDelete}
             onRemoveActive={handleRemoveActive}
+            onRemoveAllActive={handleRemoveAllActive}
             onReorderActive={handleReorderActive}
             onChangeDir={handleChangeDir}
             pinnedProjects={projectPins}

@@ -74,6 +74,8 @@ interface Props {
   pinnedProjects: Record<string, boolean>
   onDelete: (claudeSessionId: string) => void
   onRemoveActive: (id: string) => void
+  /** Stop and drop every active session in this window (after confirmation) */
+  onRemoveAllActive: () => void
   onReorderActive: (from: number, to: number) => void
   /** Change the working directory of an active session (after a project moved) */
   onChangeDir: (id: string) => void
@@ -99,6 +101,7 @@ export default function Sidebar({
   pinnedProjects,
   onDelete,
   onRemoveActive,
+  onRemoveAllActive,
   onReorderActive,
   onChangeDir,
   onToggle
@@ -331,6 +334,13 @@ export default function Sidebar({
               <span className="live-pulse" />
               {t('sidebar.active')}
               <span className="active-count">{activeSessions.length}</span>
+              <button
+                className="icon-btn active-clear"
+                onClick={onRemoveAllActive}
+                title={t('sidebar.removeAll')}
+              >
+                ✕
+              </button>
             </div>
             {activeSessions.map((s, i) => {
               const size = s.claudeSessionId ? sizeBySid.get(s.claudeSessionId) : undefined

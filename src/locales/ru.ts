@@ -35,6 +35,8 @@ const ru: Translation = {
   'confirm.deleteRunning':
     '\nЭта сессия сейчас запущена в этом окне и при удалении будет остановлена и удалена.',
   'confirm.deleteAsk': '\nУдалить эту сессию?',
+  'confirm.removeAll':
+    '\nОстановить и убрать все активные сессии ({count}) из этого окна? История не затрагивается — любую из них можно продолжить позже.',
   'common.cancel': 'Отмена',
   'common.save': 'Сохранить',
   'common.close': 'Закрыть',
@@ -59,6 +61,7 @@ const ru: Translation = {
   'sidebar.collapse': 'Свернуть боковую панель',
   'sidebar.search': 'Поиск сессий…',
   'sidebar.active': 'Активные сессии',
+  'sidebar.removeAll': 'Убрать все сессии из этого окна',
   'sidebar.history': 'История',
   'sidebar.expandAll': 'Развернуть все',
   'sidebar.collapseAll': 'Свернуть все',

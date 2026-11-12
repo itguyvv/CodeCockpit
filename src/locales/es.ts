@@ -36,6 +36,8 @@ const es: Translation = {
   'confirm.deleteRunning':
     '\nEsta sesión se está ejecutando en esta ventana; también se detendrá y se quitará al eliminarla.',
   'confirm.deleteAsk': '\n¿Eliminar esta sesión?',
+  'confirm.removeAll':
+    '\n¿Detener y quitar las {count} sesiones activas de esta ventana? El historial no se ve afectado; podrás reanudarlas más tarde.',
   'common.cancel': 'Cancelar',
   'common.save': 'Guardar',
   'common.close': 'Cerrar',
@@ -60,6 +62,7 @@ const es: Translation = {
   'sidebar.collapse': 'Contraer barra lateral',
   'sidebar.search': 'Buscar sesiones…',
   'sidebar.active': 'Sesiones activas',
+  'sidebar.removeAll': 'Quitar todas las sesiones de esta ventana',
   'sidebar.history': 'Historial',
   'sidebar.expandAll': 'Expandir todo',
   'sidebar.collapseAll': 'Contraer todo',

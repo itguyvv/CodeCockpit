@@ -37,6 +37,8 @@ const fr: Translation = {
   'confirm.deleteRunning':
     '\nCette session est en cours dans cette fenêtre ; elle sera arrêtée et retirée en même temps.',
   'confirm.deleteAsk': '\nSupprimer cette session ?',
+  'confirm.removeAll':
+    "\nArrêter et retirer les {count} sessions actives de cette fenêtre ? L'historique n'est pas affecté — chaque session pourra être reprise plus tard.",
   'common.cancel': 'Annuler',
   'common.save': 'Enregistrer',
   'common.close': 'Fermer',
@@ -61,6 +63,7 @@ const fr: Translation = {
   'sidebar.collapse': 'Réduire la barre latérale',
   'sidebar.search': 'Rechercher des sessions…',
   'sidebar.active': 'Sessions actives',
+  'sidebar.removeAll': 'Retirer toutes les sessions de cette fenêtre',
   'sidebar.history': 'Historique',
   'sidebar.expandAll': 'Tout déplier',
   'sidebar.collapseAll': 'Tout replier',

@@ -35,6 +35,8 @@ const de: Translation = {
   'confirm.deleteRunning':
     '\nDiese Sitzung läuft derzeit in diesem Fenster und wird beim Löschen ebenfalls beendet und entfernt.',
   'confirm.deleteAsk': '\nDiese Sitzung löschen?',
+  'confirm.removeAll':
+    '\nAlle {count} aktiven Sitzungen in diesem Fenster stoppen und entfernen? Die Historie bleibt unberührt — jede Sitzung lässt sich später fortsetzen.',
   'common.cancel': 'Abbrechen',
   'common.save': 'Speichern',
   'common.close': 'Schließen',
@@ -59,6 +61,7 @@ const de: Translation = {
   'sidebar.collapse': 'Seitenleiste einklappen',
   'sidebar.search': 'Sitzungen suchen…',
   'sidebar.active': 'Aktive Sitzungen',
+  'sidebar.removeAll': 'Alle Sitzungen aus diesem Fenster entfernen',
   'sidebar.history': 'Historie',
   'sidebar.expandAll': 'Alle aufklappen',
   'sidebar.collapseAll': 'Alle einklappen',

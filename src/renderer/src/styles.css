@@ -52,6 +52,13 @@ body,
   margin: 0;
 }
 
+#root {
+  /* clip, not hidden: a scrollable overflow would still let Chromium's IME/focus handler
+     programmatically scroll the app sideways when the composition textarea sits at the
+     screen's right edge — the reported "whole page jumps left while typing" */
+  overflow: clip;
+}
+
 body {
   background: var(--bg);
   color: var(--fg);
@@ -367,6 +374,16 @@ input:focus {
   border-radius: 9px;
   padding: 0 7px;
   line-height: 15px;
+}
+
+.active-clear {
+  font-size: 11px;
+  padding: 0 5px;
+  line-height: 15px;
+}
+
+.active-clear:hover {
+  color: var(--danger);
 }
 
 /* Active item: full-row card (same indent as history items), slightly lighter background to mark activity */

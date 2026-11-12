@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- One-click "remove all" for the active-sessions list — after a confirmation, stops and removes every session in the window at once; history is untouched and each session can be resumed later.
+
+### Fixed
+
+- Windows: clicking a completion notification now opens the app and switches to that session. The AppUserModelID was never set, so toast click activation never reached the app; clicking now also dismisses the toast immediately.
+- Windows: the page no longer jumps sideways while typing with an IME when the composition reaches the screen's right edge — Chromium's focus handling could programmatically scroll the document; the app root now clips overflow so there is nothing to scroll.
+
 ## [1.3.1] - 2026-11-11
 
 ### Fixed
