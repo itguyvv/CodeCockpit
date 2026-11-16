@@ -36,6 +36,20 @@ import {
   runningSessionCount,
   type PermissionMode
 } from './services/sessionManager'
+import {
+  DEFAULT_REMOTE_PORT,
+  getRemoteSecret,
+  listRemoteDevices,
+  regenerateRemoteSecret,
+  remoteFingerprint,
+  remoteNetInfo,
+  remotePort,
+  remoteRunning,
+  remoteClientCount,
+  revokeRemoteDevice,
+  startRemote,
+  stopRemote
+} from './services/remoteServer'
 
 interface AppSettings {
   lastCwd?: string
@@ -54,6 +68,10 @@ interface AppSettings {
   notifyOnFocusSession?: boolean
   /** Auto-check GitHub for a newer release once at startup; missing = on */
   checkUpdates?: boolean
+  /** Built-in remote access WebSocket server; missing = off */
+  remoteEnabled?: boolean
+  /** Port the remote server listens on */
+  remotePort?: number
 }
 
 let win: BrowserWindow | null = null
@@ -201,6 +219,42 @@ function registerIpc(): void {
     if (patch.locale) setLocale(patch.locale)
     return readSettings()
   })
+
+  // ── Remote access ──
+  ipcMain.handle('remote:getState', () => {
+    const s = readSettings()
+    return {
+      enabled: s.remoteEnabled === true,
+      running: remoteRunning(),
+      port: remoteRunning() ? remotePort() : s.remotePort ?? DEFAULT_REMOTE_PORT,
+      fp: remoteFingerprint(),
+      secret: getRemoteSecret(),
+      devices: listRemoteDevices(),
+      clientCount: remoteClientCount()
+    }
+  })
+  ipcMain.handle('remote:setEnabled', async (_e, on: boolean) => {
+    writeSettings({ remoteEnabled: on === true })
+    if (on) await startRemote(readSettings().remotePort ?? DEFAULT_REMOTE_PORT)
+    else stopRemote()
+    return remoteRunning()
+  })
+  ipcMain.handle('remote:setPort', async (_e, port: number) => {
+    const n = Math.floor(Number(port) || DEFAULT_REMOTE_PORT)
+    const valid = n >= 1024 && n <= 65535 ? n : DEFAULT_REMOTE_PORT
+    writeSettings({ remotePort: valid })
+    const s = readSettings()
+    if (s.remoteEnabled) {
+      stopRemote()
+      await startRemote(valid)
+    }
+    return valid
+  })
+  ipcMain.handle('remote:regenerateSecret', () => regenerateRemoteSecret())
+  ipcMain.handle('remote:getSecret', () => getRemoteSecret())
+  ipcMain.handle('remote:listDevices', () => listRemoteDevices())
+  ipcMain.handle('remote:revokeDevice', (_e, tokenHash: string) => revokeRemoteDevice(String(tokenHash ?? '')))
+  ipcMain.handle('remote:netInfo', () => remoteNetInfo())
   ipcMain.handle('data-dir:set', (_e, custom: string) => setDataDir(custom))
   ipcMain.handle('update:status', () => updateStatus)
   ipcMain.handle('update:check', () => checkForUpdate())
@@ -628,6 +682,8 @@ app.whenReady().then(() => {
   }
   registerIpc()
   createWindow()
+  if (readSettings().remoteEnabled)
+    void startRemote(readSettings().remotePort ?? DEFAULT_REMOTE_PORT)
   if (readSettings().checkUpdates !== false) setTimeout(checkForUpdate, 10_000)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -642,5 +698,6 @@ app.on('window-all-closed', () => {
 // will-quit runs only after every window closed for real (a cancelled exit dialog must
 // not have killed the PTYs already, which is what before-quit would do)
 app.on('will-quit', () => {
+  stopRemote()
   shutdownAll()
 })

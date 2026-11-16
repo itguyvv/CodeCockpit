@@ -49,6 +49,8 @@ const api = {
     notifyOnIdle?: boolean
     notifyOnFocusSession?: boolean
     checkUpdates?: boolean
+    remoteEnabled?: boolean
+    remotePort?: number
   }> => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: {
     defaultMode?: string
@@ -236,7 +238,29 @@ const api = {
   updateStatus: (): Promise<{ available: boolean; version?: string; url?: string; error?: string }> =>
     ipcRenderer.invoke('update:status'),
   updateCheck: (): Promise<{ available: boolean; version?: string; url?: string; error?: string }> =>
-    ipcRenderer.invoke('update:check')
+    ipcRenderer.invoke('update:check'),
+  remoteGetState: (): Promise<{
+    enabled: boolean
+    running: boolean
+    port: number
+    fp: string
+    secret: string
+    devices: Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>
+    clientCount: number
+  }> => ipcRenderer.invoke('remote:getState'),
+  remoteSetEnabled: (on: boolean): Promise<boolean> => ipcRenderer.invoke('remote:setEnabled', on),
+  remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
+  remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),
+  remoteListDevices: (): Promise<Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>> =>
+    ipcRenderer.invoke('remote:listDevices'),
+  remoteRevokeDevice: (tokenHash: string): Promise<boolean> =>
+    ipcRenderer.invoke('remote:revokeDevice', tokenHash),
+  remoteNetInfo: (): Promise<Array<{ address: string; iface: string; tailscale: boolean }>> =>
+    ipcRenderer.invoke('remote:netInfo'),
+  onRemoteClients: (cb: (count: number) => void): Unsubscribe =>
+    on('remote:clients', (p) => cb((p as { count: number }).count)),
+  onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void): Unsubscribe =>
+    on('remote:event', (p) => cb(p as { kind: string; name?: string }))
 }
 
 contextBridge.exposeInMainWorld('api', api)

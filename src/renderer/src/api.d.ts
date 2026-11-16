@@ -139,6 +139,10 @@ export interface AppSettings {
   notifyOnFocusSession?: boolean
   /** Auto-check GitHub for a newer release once at startup; missing = on */
   checkUpdates?: boolean
+  /** Built-in remote access WebSocket server; missing = off */
+  remoteEnabled?: boolean
+  /** Port the remote server listens on */
+  remotePort?: number
 }
 
 export interface UpdateStatus {
@@ -147,6 +151,23 @@ export interface UpdateStatus {
   url?: string
   /** Set when the check itself failed (offline / rate limit), so the UI can stay neutral */
   error?: string
+}
+
+export interface RemoteDevice {
+  tokenHash: string
+  name: string
+  addedAt: number
+  lastSeen: number
+}
+
+export interface RemoteState {
+  enabled: boolean
+  running: boolean
+  port: number
+  fp: string
+  secret: string
+  devices: RemoteDevice[]
+  clientCount: number
 }
 
 export interface WorkbenchApi {
@@ -213,6 +234,15 @@ export interface WorkbenchApi {
   onUpdate: (cb: (version: string, url: string) => void) => () => void
   updateStatus: () => Promise<UpdateStatus>
   updateCheck: () => Promise<UpdateStatus>
+  remoteGetState: () => Promise<RemoteState>
+  remoteSetEnabled: (on: boolean) => Promise<boolean>
+  remoteSetPort: (port: number) => Promise<number>
+  remoteRegenerateSecret: () => Promise<string>
+  remoteListDevices: () => Promise<RemoteDevice[]>
+  remoteRevokeDevice: (tokenHash: string) => Promise<boolean>
+  remoteNetInfo: () => Promise<Array<{ address: string; iface: string; tailscale: boolean }>>
+  onRemoteClients: (cb: (count: number) => void) => () => void
+  onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void) => () => void
 }
 
 declare global {

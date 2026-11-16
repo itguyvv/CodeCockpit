@@ -210,6 +210,58 @@ function broadcast(channel: string, payload: unknown): void {
   for (const w of BrowserWindow.getAllWindows()) {
     w.webContents.send(channel, payload)
   }
+  for (const fn of eventSubscribers) fn(channel, payload)
+}
+
+/** Non-window subscribers of session events (the remote access server) */
+const eventSubscribers = new Set<(channel: string, payload: unknown) => void>()
+
+/** Subscribe to every pty:* event the renderer windows also receive; returns the unsubscribe function */
+export function onSessionEvent(fn: (channel: string, payload: unknown) => void): () => void {
+  eventSubscribers.add(fn)
+  return () => eventSubscribers.delete(fn)
+}
+
+/** All sessions synthesized into one array (the remote protocol's sessions message) */
+export function listSummaries(): Array<{
+  id: string
+  engine: EngineId
+  title: string
+  cwd: string
+  claudeSessionId: string | null
+  status: string
+  permissionMode: string
+  startedAt: number
+  busy: boolean
+  bg: number
+  model: string
+  tokensIn: number
+  tokensOut: number
+  costUsd: number
+  turns: number
+}> {
+  const out: Array<ReturnType<typeof listSummaries>[number]> = []
+  for (const rec of registry.values()) {
+    const st = statusBySession.get(rec.id)
+    out.push({
+      id: rec.id,
+      engine: rec.engine,
+      title: rec.title,
+      cwd: rec.cwd,
+      claudeSessionId: rec.claudeSessionId,
+      status: rec.status,
+      permissionMode: rec.permissionMode,
+      startedAt: rec.startedAt,
+      busy: busyStates.get(rec.id) ?? false,
+      bg: st?.backgroundTasks ?? 0,
+      model: st?.model ?? '',
+      tokensIn: st?.tokensIn ?? 0,
+      tokensOut: st?.tokensOut ?? 0,
+      costUsd: st?.costUsd ?? 0,
+      turns: st?.turns ?? 0
+    })
+  }
+  return out
 }
 
 function saveRegistry(): void {
