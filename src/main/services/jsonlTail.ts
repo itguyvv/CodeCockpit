@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { encodeProjectDir, projectsRoot } from './jsonl'
 import { emptyStatus, type SessionStatus } from './status'
+import { clipToolInput, type RemoteMessage } from './conversation'
 
 export { emptyStatus, type SessionStatus }
 
@@ -39,6 +40,12 @@ function toolDetailOf(input: unknown): string {
   return s1.length > 80 ? s1.slice(0, 80) + '…' : s1
 }
 
+/** Event timestamp (ISO string on every message line); poll time as the fallback */
+function eventTs(ev: Record<string, unknown>): number {
+  const t = Date.parse(typeof ev.timestamp === 'string' ? ev.timestamp : '')
+  return isNaN(t) ? Date.now() : t
+}
+
 const POLL_MS = 1000
 
 /** Incrementally tail a session jsonl and aggregate it into SessionStatus; waits while the file doesn't exist yet */
@@ -59,7 +66,8 @@ export class SessionTailer {
 
   constructor(
     public readonly filePath: string,
-    private readonly onDirty: () => void
+    private readonly onDirty: () => void,
+    private readonly onMessages?: (msgs: RemoteMessage[]) => void
   ) {
     this.timer = setInterval(() => this.poll(), POLL_MS)
   }
@@ -125,43 +133,85 @@ export class SessionTailer {
         | undefined
       if (msg?.model) this.status.model = msg.model
       const u = msg?.usage
+      let turnCost = 0
       if (u) {
         this.status.tokensIn += u.input_tokens ?? 0
         this.status.tokensOut += u.output_tokens ?? 0
         this.status.cacheRead += u.cache_read_input_tokens ?? 0
         this.status.cacheWrite += u.cache_creation_input_tokens ?? 0
-        this.status.costUsd += estimateCost(msg?.model ?? this.status.model, u)
+        turnCost = estimateCost(msg?.model ?? this.status.model, u)
+        this.status.costUsd += turnCost
       }
+      const out: RemoteMessage[] = []
+      const ts = eventTs(ev)
+      const uuid = typeof ev.uuid === 'string' ? ev.uuid : ''
       const c = msg?.content
       if (Array.isArray(c)) {
+        const texts: string[] = []
         for (const b of c) {
-          if (b && typeof b === 'object' && (b as { type?: string }).type === 'tool_use') {
-            const blk = b as { name?: string; input?: unknown }
+          if (!b || typeof b !== 'object') continue
+          const blk = b as { type?: string; name?: string; input?: unknown; text?: unknown }
+          if (blk.type === 'tool_use') {
             const name = blk.name || 'Tool'
             this.status.tool = name
             this.status.toolDetail = toolDetailOf(blk.input)
             this.status.toolCalls++
             this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
+            if (uuid) {
+              out.push({
+                id: `${uuid}:tool`,
+                ts,
+                role: 'tool',
+                toolName: name,
+                toolInput: clipToolInput(blk.input)
+              })
+            }
+          } else if (blk.type === 'text' && typeof blk.text === 'string' && blk.text.trim()) {
+            texts.push(blk.text)
           }
         }
+        if (uuid && (texts.length > 0 || (u && (u.input_tokens ?? 0) > 0))) {
+          out.push({
+            id: uuid,
+            ts,
+            role: 'assistant',
+            text: texts.join('\n\n') || undefined,
+            tokensIn: u?.input_tokens,
+            tokensOut: u?.output_tokens,
+            costUsd: turnCost || undefined
+          })
+        }
       }
+      if (out.length) this.onMessages?.(out)
       return
     }
     if (type === 'user' && !ev.isMeta) {
       const c = (ev.message as { content?: unknown } | undefined)?.content ?? ev.content
       let isTurn = false
-      if (typeof c === 'string') isTurn = c.trim().length > 0
-      else if (Array.isArray(c)) {
-        isTurn = c.some(
-          (b) => b && typeof b === 'object' && (b as { type?: string }).type === 'text'
-        )
+      let prompt = ''
+      if (typeof c === 'string') {
+        isTurn = c.trim().length > 0
+        prompt = c
+      } else if (Array.isArray(c)) {
+        const texts: string[] = []
         for (const b of c) {
-          if (b && typeof b === 'object' && (b as { type?: string }).type === 'tool_result') {
+          if (!b || typeof b !== 'object') continue
+          const blk = b as { type?: string; text?: unknown }
+          if (blk.type === 'text' && typeof blk.text === 'string') texts.push(blk.text)
+          if (blk.type === 'tool_result') {
             this.trackBgResult(b as { content?: unknown })
           }
         }
+        prompt = texts.join('\n\n')
+        isTurn = texts.some((s) => s.trim().length > 0)
       }
       if (isTurn) this.status.turns++
+      const uuid = typeof ev.uuid === 'string' ? ev.uuid : ''
+      if (uuid && prompt.trim()) {
+        this.onMessages?.([
+          { id: uuid, ts: eventTs(ev), role: 'user', text: prompt.trim() }
+        ])
+      }
       return
     }
     if (type === 'queue-operation' || type === 'attachment') {

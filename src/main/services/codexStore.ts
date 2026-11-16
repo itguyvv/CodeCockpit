@@ -5,6 +5,7 @@ import { t } from './i18n'
 import type { NativeSessionInfo } from './jsonl'
 import { homePath } from './platform'
 import { emptyStatus, type SessionStatus } from './status'
+import { clipToolInput, type RemoteMessage } from './conversation'
 
 /** Codex home directory (~/.codex by default; CODEX_HOME overrides) */
 export function codexHome(): string {
@@ -336,7 +337,8 @@ export class CodexTailer {
 
   constructor(
     private readonly sessionId: string,
-    private readonly onDirty: () => void
+    private readonly onDirty: () => void,
+    private readonly onMessages?: (msgs: RemoteMessage[]) => void
   ) {
     this.timer = setInterval(() => this.poll(), POLL_MS)
   }
@@ -456,15 +458,51 @@ export class CodexTailer {
     }
     if (type === 'response_item') {
       const p = ev.payload as
-        | { type?: string; name?: string; arguments?: unknown; input?: unknown }
+        | {
+            type?: string
+            name?: string
+            arguments?: unknown
+            input?: unknown
+            id?: string
+            role?: string
+            content?: Array<{ type?: string; text?: string }>
+          }
         | undefined
-      if (!p || (p.type !== 'function_call' && p.type !== 'custom_tool_call')) return
-      const name = p.name || 'Tool'
-      this.status.tool = name
-      this.status.toolDetail = toolDetailOf(p.arguments ?? p.input)
-      this.status.toolCalls++
-      this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
-      this.status.lastActivity = Date.now()
+      if (!p) return
+      // Stable across tailer restarts: the rollout's per-line ordinal
+      const ord = typeof ev.ordinal === 'number' ? `ord${ev.ordinal}` : `t${ts}-${Math.random()}`
+      if (p.type === 'function_call' || p.type === 'custom_tool_call') {
+        const name = p.name || 'Tool'
+        this.status.tool = name
+        this.status.toolDetail = toolDetailOf(p.arguments ?? p.input)
+        this.status.toolCalls++
+        this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
+        this.status.lastActivity = Date.now()
+        this.onMessages?.([
+          {
+            id: p.id || ord,
+            ts: isNaN(ts) ? Date.now() : ts,
+            role: 'tool',
+            toolName: name,
+            toolInput: clipToolInput(p.arguments ?? p.input)
+          }
+        ])
+        return
+      }
+      if (p.type === 'message' && (p.role === 'user' || p.role === 'assistant')) {
+        const text = (p.content ?? [])
+          .filter((c) => typeof c?.text === 'string')
+          .map((c) => c.text as string)
+          .join('\n\n')
+          .trim()
+        // Rollouts replay prompt scaffolding inside user-role items; it is not conversation
+        if (!text || /^<(user_instructions|environment_context|app_context|app-context|turn_context)/.test(text)) {
+          return
+        }
+        this.onMessages?.([
+          { id: p.id || ord, ts: isNaN(ts) ? Date.now() : ts, role: p.role, text }
+        ])
+      }
     }
   }
 }

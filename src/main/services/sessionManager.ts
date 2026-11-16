@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { clearMessages, recordMessages, type RemoteMessage } from './conversation'
 import { dataFile, writeJsonAtomic } from './dataDir'
 import { getAlias } from './projectMeta'
 import { t } from './i18n'
@@ -187,12 +188,13 @@ function ensureTailer(live: LiveProc): void {
     dirtyStatus.add(live.record.id)
   }
   // openCode aggregates from its own JSON storage, codex from its rollout jsonl
+  const onMsgs = (msgs: RemoteMessage[]): void => recordMessages(live.record.id, msgs)
   live.tailer =
     live.record.engine === 'opencode'
-      ? new OpenCodeTailer(id, emit)
+      ? new OpenCodeTailer(id, emit, onMsgs)
       : live.record.engine === 'codex'
-        ? new CodexTailer(id, emit)
-        : new SessionTailer(resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id), emit)
+        ? new CodexTailer(id, emit, onMsgs)
+        : new SessionTailer(resolveSessionFile(id) ?? sessionFilePath(live.record.cwd, id), emit, onMsgs)
   // Broadcast an initial snapshot right after tailing (resumed sessions get full stats immediately)
   statusBySession.set(live.record.id, live.tailer!.getStatus())
   dirtyStatus.add(live.record.id)
@@ -318,6 +320,8 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
     record.status = 'exited'
     registry.set(record.id, record)
     saveRegistry()
+    // No tailer replays an exited session — drop its conversation buffer (mode/dir restarts keep it)
+    clearMessages(record.id)
     broadcast('pty:exit', { id: record.id, exitCode })
   })
   procs.set(record.id, { pty: p, record })

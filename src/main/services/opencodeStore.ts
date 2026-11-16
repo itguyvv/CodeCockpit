@@ -4,6 +4,7 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { emptyStatus, type SessionStatus } from './status'
 import { IS_WIN } from './platform'
+import { clipToolInput, type RemoteMessage } from './conversation'
 
 // openCode storage, two generations:
 // - legacy (< 1.18): plain JSON under <root>/storage/ —
@@ -405,6 +406,14 @@ interface MessageDoc {
   }
 }
 
+/** Part payload: text (chat content) or tool (invocation) */
+interface PartDoc {
+  type?: string
+  text?: unknown
+  tool?: string
+  state?: { input?: unknown }
+}
+
 interface Contribution {
   kind: 'msg' | 'part'
   /** Change key of the source row (mtime of a legacy file / updated+size of a DB row) */
@@ -492,6 +501,7 @@ const POLL_MS = 1000
 export class OpenCodeTailer {
   readonly sessionId: string
   private readonly onDirty: () => void
+  private readonly onMessages?: (msgs: RemoteMessage[]) => void
   private contrib = new Map<string, Contribution>()
   private lastTool: string | null = null
   private lastToolDetail = ''
@@ -500,9 +510,10 @@ export class OpenCodeTailer {
   private timer: NodeJS.Timeout
   private readonly useDb: boolean
 
-  constructor(sessionId: string, onDirty: () => void) {
+  constructor(sessionId: string, onDirty: () => void, onMessages?: (msgs: RemoteMessage[]) => void) {
     this.sessionId = sessionId
     this.onDirty = onDirty
+    this.onMessages = onMessages
     // One generation per install: the engine either writes the DB or the legacy tree
     this.useDb = hasSessionTable()
     this.timer = setInterval(() => this.poll(), POLL_MS)
@@ -527,6 +538,7 @@ export class OpenCodeTailer {
   private pollDb(): void {
     let changed = false
     const seen = new Set<string>()
+    const roles = new Map<string, string>()
     const msgs = query<{ id: string; time_updated: number | bigint; data: string }>(
       'SELECT id, time_updated, data FROM message WHERE session_id = ?',
       this.sessionId
@@ -535,15 +547,29 @@ export class OpenCodeTailer {
       changed =
         this.track('m:' + row.id, `${row.time_updated}:${row.data.length}`, () => contributionOfMessage(row.data), seen) ||
         changed
+      try {
+        const r = JSON.parse(row.data) as { role?: string }
+        if (r.role) roles.set(row.id, r.role)
+      } catch {
+        // Unparseable row — parts fall back to the assistant role
+      }
     }
-    const parts = query<{ id: string; time_updated: number | bigint; data: string }>(
-      'SELECT id, time_updated, data FROM part WHERE session_id = ?',
+    const parts = query<{ id: string; time_updated: number | bigint; data: string; message_id: string }>(
+      'SELECT id, time_updated, data, message_id FROM part WHERE session_id = ?',
       this.sessionId
     )
     for (const row of parts ?? []) {
-      changed =
-        this.track('p:' + row.id, `${row.time_updated}:${row.data.length}`, () => contributionOfPart(row.data), seen) ||
-        changed
+      const ch = this.track('p:' + row.id, `${row.time_updated}:${row.data.length}`, () => contributionOfPart(row.data), seen)
+      if (ch && this.onMessages) {
+        let doc: PartDoc | null = null
+        try {
+          doc = JSON.parse(row.data) as PartDoc
+        } catch {
+          // Unparseable — nothing to stream
+        }
+        this.emitPart(row.id, doc, roles.get(row.message_id), toTs(Number(row.time_updated)))
+      }
+      changed = ch || changed
     }
     changed = this.prune(seen) || changed
     if (changed) {
@@ -577,15 +603,33 @@ export class OpenCodeTailer {
       }
       for (const p of parts) {
         const partPath = path.join(partDir, p)
-        changed =
-          this.track(partPath, String(mtimeOf(partPath)), () => contributionOfLegacyFile(partPath, 'part'), seen) ||
-          changed
+        const ch =
+          this.track(partPath, String(mtimeOf(partPath)), () => contributionOfLegacyFile(partPath, 'part'), seen)
+        if (ch && this.onMessages) {
+          const role = readJson<MessageDoc>(msgPath)?.role
+          this.emitPart(p.replace(/\.json$/, ''), readJson<PartDoc>(partPath), role, mtimeOf(partPath))
+        }
+        changed = ch || changed
       }
     }
     changed = this.prune(seen) || changed
     if (changed) {
       this.recompute()
       this.onDirty()
+    }
+  }
+
+  /** Stream one new/changed part to the conversation log (rows mutate during streaming) */
+  private emitPart(partId: string, doc: PartDoc | null, role: string | undefined, ts: number): void {
+    if (!doc || !this.onMessages) return
+    if (doc.type === 'text' && typeof doc.text === 'string' && doc.text.trim()) {
+      this.onMessages([
+        { id: `p:${partId}`, ts, role: role === 'user' ? 'user' : 'assistant', text: doc.text.trim() }
+      ])
+    } else if (doc.type === 'tool' && doc.tool) {
+      this.onMessages([
+        { id: `p:${partId}`, ts, role: 'tool', toolName: doc.tool, toolInput: clipToolInput(doc.state?.input) }
+      ])
     }
   }
 
