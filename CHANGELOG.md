@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Remote access (M1, desktop side)** — an optional, built-in WebSocket server (Settings → Remote access, off by default) so a phone client can watch session progress and send prompts over the network. Self-signed TLS with a fingerprint to compare on first connect; pairing by a copyable secret that mints a per-device token for reconnects (secrets and tokens stored hashed; failed-auth rate limiting; max 4 clients). The phone gets the session list, a live chat-style conversation stream (user / assistant / tool messages, upserted in place as they stream) for all three engines, telemetry snapshots, and can submit input and switch permission modes. Protocol documented in `docs/REMOTE_PROTOCOL.md` as the implementation contract for the upcoming CodeCockpit Remote Android app.
+
 ## [1.3.2] - 2026-11-12
 
 ### Added
