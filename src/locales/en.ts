@@ -279,6 +279,38 @@ const en = {
   'provider.modelOpus': 'Opus slot',
   'provider.modelMapSame': 'same as main',
   'provider.listEmpty': 'No providers yet for this engine — add one below.',
+  'settings.tabRemote': 'Remote access',
+  'remote.enabled': 'Enable remote access',
+  'remote.enabledHint':
+    'Runs a TLS-protected WebSocket server on this machine so a phone can watch session progress and send prompts over the network. Off by default.',
+  'remote.statusRunning': 'Running on port {port}',
+  'remote.statusStopped': 'Stopped',
+  'remote.clientsConnected': '{n} connected',
+  'remote.port': 'Port',
+  'remote.portSaved': 'Port saved — the server restarts on the new port',
+  'remote.portInvalid': 'Port must be a number between 1024 and 65535',
+  'remote.secret': 'Pairing secret',
+  'remote.secretHint': 'Typed once on the phone to pair. Every paired device then reconnects with its own token.',
+  'remote.copy': 'Copy',
+  'remote.copied': 'Copied to clipboard',
+  'remote.regenerate': 'Regenerate',
+  'remote.regenerateConfirm':
+    'Regenerating the secret un-pairs every device — all phones must pair again with the new secret. Continue?',
+  'remote.regenerated': 'New secret generated — pair your devices again',
+  'remote.fingerprint': 'Certificate fingerprint',
+  'remote.fingerprintHint': 'Compare this with the fingerprint shown on the phone at first connect, then trust it.',
+  'remote.hintTitle': 'Connecting from your phone',
+  'remote.ipsLabel': 'On the phone, enter this desktop’s address:',
+  'remote.tailscaleTag': 'Tailscale',
+  'remote.firewallHint':
+    'Windows may ask to allow network access the first time the server starts — approve it, or remote access stays blocked.',
+  'remote.devices': 'Paired devices',
+  'remote.noDevices': 'No devices paired yet — pair one by entering the secret on the phone.',
+  'remote.revoke': 'Revoke',
+  'remote.revokeConfirm': 'Revoke "{name}"? The device loses access immediately.',
+  'remote.lastSeen': 'added {added}, active {seen}',
+  'statusbar.remote': '{n} remote client(s)',
+  'toast.remotePaired': 'Remote device paired: {name}'
 }
 
 export type TranslationKey = keyof typeof en

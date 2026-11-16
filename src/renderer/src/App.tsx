@@ -42,6 +42,7 @@ function AppInner(): JSX.Element {
   const [engineInfos, setEngineInfos] = useState<EngineInfo[]>([])
   const [enginesOn, setEnginesOn] = useState<Partial<Record<EngineId, boolean>>>({})
   const [scrollback, setScrollback] = useState(2000)
+  const [remoteClients, setRemoteClients] = useState(0)
   const termRef = useRef<TerminalHandle>(null)
 
   const active = sessions.find((s) => s.id === activeId) ?? null
@@ -155,12 +156,18 @@ function AppInner(): JSX.Element {
     const offUpdate = window.api.onUpdate((version, url) =>
       showToast(t('update.available', { version }), 5_000, url)
     )
+    const offRemoteClients = window.api.onRemoteClients(setRemoteClients)
+    const offRemoteEvent = window.api.onRemoteEvent((e) => {
+      if (e.kind === 'paired' && e.name) showToast(t('toast.remotePaired', { name: e.name }))
+    })
     return () => {
       offExit()
       offSid()
       offBusy()
       offStatus()
       offUpdate()
+      offRemoteClients()
+      offRemoteEvent()
     }
   }, [updateSession, t])
 
@@ -641,6 +648,7 @@ function AppInner(): JSX.Element {
           )}
         <span title={appInfo?.dataDir}>{t('statusbar.data', { dir: appInfo?.dataDir ?? '' })}</span>
         <span>{t('statusbar.sessions', { n: sessions.length })}</span>
+        {remoteClients > 0 && <span>{t('statusbar.remote', { n: remoteClients })}</span>}
         {active && <span>{t('statusbar.mode', { mode: modeLabel(active.mode, t) })}</span>}
         <span className="status-hint">
           {appInfo?.platform === 'darwin' ? t('statusbar.hint').replace(/Ctrl\+/g, 'Cmd+') : t('statusbar.hint')}

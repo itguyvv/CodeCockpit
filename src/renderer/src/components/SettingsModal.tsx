@@ -9,6 +9,8 @@ import type {
   ProviderListResult,
   ProviderProfile,
   ProviderTestResult,
+  RemoteDevice,
+  RemoteState,
   UpdateStatus
 } from '../api'
 import { useT } from '../i18n'
@@ -27,7 +29,7 @@ interface Props {
 
 const BUILTIN_ID = 'builtin-default'
 
-type SettingsTab = 'general' | 'engines' | 'providers' | 'claude' | 'about'
+type SettingsTab = 'general' | 'engines' | 'providers' | 'remote' | 'claude' | 'about'
 
 type Draft = Omit<ProviderProfile, 'id'> & { id?: string }
 
@@ -62,6 +64,10 @@ export default function SettingsModal({
   const [draft, setDraft] = useState<Draft | null>(null)
   const [testResult, setTestResult] = useState<ProviderTestResult | 'testing' | null>(null)
   const [confirmBox, setConfirmBox] = useState<null | { text: string; onOk: () => void }>(null)
+  const [remote, setRemote] = useState<RemoteState | null>(null)
+  const [remotePortInput, setRemotePortInput] = useState('')
+  const [netAddrs, setNetAddrs] = useState<Array<{ address: string; iface: string; tailscale: boolean }>>([])
+  const [remoteClients, setRemoteClients] = useState(0)
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
@@ -77,7 +83,21 @@ export default function SettingsModal({
     void window.api.enginesDiscover().then(setEngineInfos)
     void window.api.providersList().then(setProviders)
     void window.api.updateStatus().then(setUpd)
+    void refreshRemote()
+    const offClients = window.api.onRemoteClients(setRemoteClients)
+    const offEvent = window.api.onRemoteEvent(() => void refreshRemote())
+    return () => {
+      offClients()
+      offEvent()
+    }
   }, [])
+
+  const refreshRemote = (): Promise<void> =>
+    Promise.all([window.api.remoteGetState(), window.api.remoteNetInfo()]).then(([st, ips]) => {
+      setRemote(st)
+      setRemotePortInput(String(st.port))
+      setNetAddrs(ips)
+    })
 
   const refreshProviders = (): Promise<void> =>
     window.api.providersList().then((r) => {
@@ -119,6 +139,48 @@ export default function SettingsModal({
     setCheckUpdates(v)
     void window.api.setSettings({ checkUpdates: v })
   }
+
+  const toggleRemote = (on: boolean): void => {
+    void window.api.remoteSetEnabled(on).then(() => refreshRemote())
+  }
+
+  const saveRemotePort = (): void => {
+    const n = Number(remotePortInput)
+    if (!Number.isInteger(n) || n < 1024 || n > 65535) {
+      onNotify(t('remote.portInvalid'))
+      return
+    }
+    void window.api.remoteSetPort(n).then(() => refreshRemote()).then(() => onNotify(t('remote.portSaved')))
+  }
+
+  const copySecret = (): void => {
+    if (!remote?.secret) return
+    window.api.copyText(remote.secret)
+    onNotify(t('remote.copied'))
+  }
+
+  const doRegenerate = (): void => {
+    setConfirmBox({
+      text: t('remote.regenerateConfirm'),
+      onOk: () => {
+        void window.api
+          .remoteRegenerateSecret()
+          .then(() => refreshRemote())
+          .then(() => onNotify(t('remote.regenerated')))
+      }
+    })
+  }
+
+  const doRevoke = (d: RemoteDevice): void => {
+    setConfirmBox({
+      text: t('remote.revokeConfirm', { name: d.name }),
+      onOk: () => {
+        void window.api.remoteRevokeDevice(d.tokenHash).then(() => refreshRemote())
+      }
+    })
+  }
+
+  const fmtTime = (n: number): string => (n > 0 ? new Date(n).toLocaleString() : '—')
 
   const checkNow = (): void => {
     setChecking(true)
@@ -241,6 +303,7 @@ export default function SettingsModal({
     { id: 'general', label: t('settings.tabGeneral') },
     { id: 'engines', label: t('settings.tabEngines') },
     { id: 'providers', label: t('settings.tabProviders') },
+    { id: 'remote', label: t('settings.tabRemote') },
     { id: 'claude', label: t('settings.tabClaude') },
     { id: 'about', label: t('settings.tabAbout') }
   ]
@@ -582,6 +645,97 @@ export default function SettingsModal({
               </div>
             )}
           </div>
+        )}
+
+        {tab === 'remote' && (
+          <>
+            <div className="settings-section">
+              <div className="settings-title">{t('settings.tabRemote')}</div>
+              <div className="settings-row">
+                <label>{t('remote.enabled')}</label>
+                <label className="engine-toggle">
+                  <input
+                    type="checkbox"
+                    checked={remote?.enabled === true}
+                    onChange={(e) => toggleRemote(e.target.checked)}
+                  />
+                </label>
+              </div>
+              <p className="settings-hint">
+                {remote?.running
+                  ? `${t('remote.statusRunning', { port: remote.port })}${
+                      remoteClients > 0 ? ` · ${t('remote.clientsConnected', { n: remoteClients })}` : ''
+                    }`
+                  : t('remote.statusStopped')}
+              </p>
+              <p className="settings-hint">{t('remote.enabledHint')}</p>
+            </div>
+
+            {remote?.enabled && (
+              <>
+                <div className="settings-section">
+                  <div className="settings-title">{t('remote.hintTitle')}</div>
+                  <div className="settings-row">
+                    <label>{t('remote.port')}</label>
+                    <input
+                      className="remote-port"
+                      value={remotePortInput}
+                      onChange={(e) => setRemotePortInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveRemotePort()}
+                      spellCheck={false}
+                    />
+                    <button onClick={saveRemotePort}>{t('common.save')}</button>
+                  </div>
+                  <div className="settings-row">
+                    <label title={t('remote.secretHint')}>{t('remote.secret')}</label>
+                    <span className="remote-mono">{remote.secret}</span>
+                    <button onClick={copySecret}>{t('remote.copy')}</button>
+                    <button className="danger" onClick={doRegenerate}>
+                      {t('remote.regenerate')}
+                    </button>
+                  </div>
+                  <p className="settings-hint">{t('remote.secretHint')}</p>
+                  <div className="settings-row">
+                    <label title={t('remote.fingerprintHint')}>{t('remote.fingerprint')}</label>
+                    <span className="remote-mono">{remote.fp || '—'}</span>
+                  </div>
+                  <p className="settings-hint">{t('remote.fingerprintHint')}</p>
+                  <p className="settings-hint">{t('remote.ipsLabel')}</p>
+                  <div className="remote-ips">
+                    {netAddrs.length === 0 && <span className="remote-device-meta">—</span>}
+                    {netAddrs.map((a) => (
+                      <span key={`${a.iface}/${a.address}`} className="remote-ip">
+                        <span className="remote-mono">{a.address}</span>
+                        {a.tailscale && <em className="provider-tag">{t('remote.tailscaleTag')}</em>}
+                      </span>
+                    ))}
+                  </div>
+                  {appInfo?.platform === 'win32' && (
+                    <p className="settings-hint">{t('remote.firewallHint')}</p>
+                  )}
+                </div>
+
+                <div className="settings-section">
+                  <div className="settings-title">{t('remote.devices')}</div>
+                  {remote.devices.length === 0 ? (
+                    <p className="settings-hint">{t('remote.noDevices')}</p>
+                  ) : (
+                    <div className="remote-devices">
+                      {remote.devices.map((d) => (
+                        <div key={d.tokenHash} className="remote-device">
+                          <span className="remote-device-name">{d.name}</span>
+                          <span className="remote-device-meta">
+                            {t('remote.lastSeen', { added: fmtTime(d.addedAt), seen: fmtTime(d.lastSeen) })}
+                          </span>
+                          <button onClick={() => doRevoke(d)}>{t('remote.revoke')}</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </>
         )}
 
         {tab === 'claude' && (

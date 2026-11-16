@@ -1662,6 +1662,70 @@ input:focus {
   border-color: rgba(229, 72, 77, 0.4);
 }
 
+/* ── Remote access ── */
+.remote-mono {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: rgba(223, 225, 232, 0.85);
+  word-break: break-all;
+  user-select: text;
+}
+
+.remote-port {
+  width: 90px;
+}
+
+.remote-ips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 8px;
+}
+
+.remote-ip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.remote-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.remote-device {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.remote-device-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #dfe1e8;
+}
+
+.remote-device-meta {
+  flex: 1;
+  font-size: 12px;
+  color: rgba(223, 225, 232, 0.5);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remote-device button {
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
 .provider-form {
   display: grid;
   grid-template-columns: 150px 1fr;
