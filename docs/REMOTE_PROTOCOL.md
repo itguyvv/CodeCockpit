@@ -12,6 +12,15 @@ over a TLS WebSocket.
 - One WebSocket per client. The server allows at most **4 authenticated clients**
   simultaneously. Connections that never authenticate within **10 seconds** are
   closed. After **5 failed auth attempts** an IP is banned for **60 seconds**.
+- **Which address to use** — the protocol itself is identical on every path:
+  - *Same network*: a LAN address of the desktop, or its Tailscale address
+    (100.64/10) when both devices are on the same tailnet.
+  - *Any network*: the desktop can publish itself on the open internet via
+    UPnP/NAT-PMP router mapping (with STUN used to display the public address and
+    diagnose CGNAT / double NAT). When enabled, the desktop's Settings → Remote
+    access tab shows a public `ip:port` address — connect to that exactly like a
+    LAN address. The same TLS + secret/token auth protects this exposure; there
+    is no server-side infrastructure.
 
 ## Authentication
 
