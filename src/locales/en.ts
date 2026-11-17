@@ -299,11 +299,24 @@ const en = {
   'remote.regenerated': 'New secret generated — pair your devices again',
   'remote.fingerprint': 'Certificate fingerprint',
   'remote.fingerprintHint': 'Compare this with the fingerprint shown on the phone at first connect, then trust it.',
-  'remote.hintTitle': 'Connecting from your phone',
-  'remote.ipsLabel': 'On the phone, enter this desktop’s address:',
+  'remote.hintTitle': 'Same network',
+  'remote.ipsLabel': 'Phone and desktop on the same Wi-Fi, or both on Tailscale — enter one of these addresses:',
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint':
     'Windows may ask to allow network access the first time the server starts — approve it, or remote access stays blocked.',
+  'remote.publicTitle': 'Any network',
+  'remote.publicToggle': 'Allow connections from any network',
+  'remote.publicHint':
+    'Opens the port on your router automatically (UPnP) — no manual configuration. Your pairing secret is the only thing guarding it from the open internet, so keep it private.',
+  'remote.publicWorking': 'Detecting your router and public address…',
+  'remote.publicActive': 'Public address — enter this on your phone:',
+  'remote.publicCgnat':
+    'Your internet provider uses carrier-grade NAT (this line has no public IP), so this mode cannot work here. Use Tailscale instead.',
+  'remote.publicDoubleNat':
+    'Two routers in a row detected (double NAT). Open the port on the first router too, or use Tailscale.',
+  'remote.publicManualForward':
+    'Automatic port mapping failed. Forward TCP port {port} to this computer in your router admin page, then use this address:',
+  'remote.publicFailed': 'Could not reach the router automatically. Tailscale is the reliable fallback.',
   'remote.devices': 'Paired devices',
   'remote.noDevices': 'No devices paired yet — pair one by entering the secret on the phone.',
   'remote.revoke': 'Revoke',

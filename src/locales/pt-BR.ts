@@ -300,10 +300,23 @@ const ptBR: Translation = {
   'remote.regenerated': 'Novo segredo gerado — pareie seus dispositivos novamente',
   'remote.fingerprint': 'Impressão digital do certificado',
   'remote.fingerprintHint': 'Compare com a impressão exibida no celular na primeira conexão e depois confie nela.',
-  'remote.hintTitle': 'Conectando pelo celular',
-  'remote.ipsLabel': 'No celular, informe o endereço deste desktop:',
+  'remote.hintTitle': 'Mesma rede',
+  'remote.ipsLabel': 'Celular e desktop no mesmo Wi-Fi, ou ambos no Tailscale — informe um destes endereços:',
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'O Windows pode pedir permissão de acesso à rede na primeira vez que o servidor inicia — aprove, ou o acesso remoto ficará bloqueado.',
+  'remote.publicTitle': 'Qualquer rede',
+  'remote.publicToggle': 'Permitir conexões de qualquer rede',
+  'remote.publicHint':
+    'Abre a porta no seu roteador automaticamente (UPnP) — sem configuração manual. O segredo de pareamento é a única proteção na internet aberta: guarde-o bem.',
+  'remote.publicWorking': 'Detectando o roteador e o endereço público…',
+  'remote.publicActive': 'Endereço público — informe-o no celular:',
+  'remote.publicCgnat':
+    'Sua conexão usa NAT de operadora (sem IP público), então este modo não funciona aqui. Use o Tailscale.',
+  'remote.publicDoubleNat':
+    'NAT duplo detectado (dois roteadores em série). Abra a porta também no primeiro roteador ou use o Tailscale.',
+  'remote.publicManualForward':
+    'O mapeamento automático de portas falhou. Redirecione a porta TCP {port} para este computador na administração do roteador e use este endereço:',
+  'remote.publicFailed': 'Não foi possível configurar o roteador automaticamente. O Tailscale é a alternativa confiável.',
   'remote.devices': 'Dispositivos pareados',
   'remote.noDevices': 'Nenhum dispositivo pareado ainda — pareie um digitando o segredo no celular.',
   'remote.revoke': 'Revogar',

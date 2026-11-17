@@ -300,10 +300,23 @@ const es: Translation = {
   'remote.regenerated': 'Nuevo secreto generado: vuelve a emparejar tus dispositivos',
   'remote.fingerprint': 'Huella del certificado',
   'remote.fingerprintHint': 'Compárala con la huella que muestra el teléfono en la primera conexión y luego confía en ella.',
-  'remote.hintTitle': 'Conexión desde tu teléfono',
-  'remote.ipsLabel': 'En el teléfono, introduce la dirección de este escritorio:',
+  'remote.hintTitle': 'La misma red',
+  'remote.ipsLabel': 'Teléfono y escritorio en el mismo Wi-Fi, o ambos en Tailscale — introduce una de estas direcciones:',
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'Windows puede pedir permiso de acceso a la red la primera vez que arranca el servidor: acéptalo o el acceso remoto quedará bloqueado.',
+  'remote.publicTitle': 'Cualquier red',
+  'remote.publicToggle': 'Permitir conexiones desde cualquier red',
+  'remote.publicHint':
+    'Abre el puerto en tu router automáticamente (UPnP), sin configuración manual. El secreto de emparejamiento es la única barrera en internet: guárdalo bien.',
+  'remote.publicWorking': 'Detectando el router y la dirección pública…',
+  'remote.publicActive': 'Dirección pública — introdúcela en el teléfono:',
+  'remote.publicCgnat':
+    'Tu conexión usa NAT de operador (sin IP pública), así que este modo no puede funcionar aquí. Usa Tailscale en su lugar.',
+  'remote.publicDoubleNat':
+    'Doble NAT detectado (dos routers en cadena). Abre también el puerto en el primer router o usa Tailscale.',
+  'remote.publicManualForward':
+    'El mapeo automático de puertos falló. Redirige el puerto TCP {port} a este equipo en la administración del router y usa esta dirección:',
+  'remote.publicFailed': 'No se pudo configurar el router automáticamente. Tailscale es la alternativa fiable.',
   'remote.devices': 'Dispositivos emparejados',
   'remote.noDevices': 'Aún no hay dispositivos emparejados: empareja uno introduciendo el secreto en el teléfono.',
   'remote.revoke': 'Revocar',

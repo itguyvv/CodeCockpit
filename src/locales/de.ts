@@ -299,10 +299,23 @@ const de: Translation = {
   'remote.regenerated': 'Neues Secret erzeugt — Geräte neu koppeln',
   'remote.fingerprint': 'Zertifikat-Fingerabdruck',
   'remote.fingerprintHint': 'Vergleichen Sie ihn mit dem Fingerabdruck, den das Telefon beim ersten Verbindungsaufbau zeigt, und vertrauen Sie ihm dann.',
-  'remote.hintTitle': 'Vom Telefon aus verbinden',
-  'remote.ipsLabel': 'Geben Sie auf dem Telefon die Adresse dieses Desktops ein:',
+  'remote.hintTitle': 'Gleiches Netzwerk',
+  'remote.ipsLabel': 'Telefon und Desktop im selben WLAN, oder beide bei Tailscale — geben Sie eine dieser Adressen ein:',
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'Windows fragt beim ersten Start des Servers möglicherweise nach Netzwerkerlaubnis — zustimmen, sonst bleibt der Fernzugriff blockiert.',
+  'remote.publicTitle': 'Beliebiges Netzwerk',
+  'remote.publicToggle': 'Verbindungen aus beliebigen Netzwerken erlauben',
+  'remote.publicHint':
+    'Öffnet den Port automatisch auf dem Router (UPnP) — keine manuelle Einrichtung nötig. Das Pairing-Secret ist die einzige Schutzmaßnahme im offenen Internet, also gut aufbewahren.',
+  'remote.publicWorking': 'Router und öffentliche Adresse werden erkannt…',
+  'remote.publicActive': 'Öffentliche Adresse — geben Sie diese auf dem Telefon ein:',
+  'remote.publicCgnat':
+    'Ihr Internetanschluss verwendet Carrier-Grade-NAT (keine öffentliche IP) — dieser Modus funktioniert hier nicht. Verwenden Sie stattdessen Tailscale.',
+  'remote.publicDoubleNat':
+    'Doppel-NAT erkannt (zwei Router in Reihe). Öffnen Sie den Port auch am ersten Router oder verwenden Sie Tailscale.',
+  'remote.publicManualForward':
+    'Automatische Portweiterleitung fehlgeschlagen. Leiten Sie TCP-Port {port} in der Router-Verwaltung an diesen Rechner weiter und verwenden Sie dann diese Adresse:',
+  'remote.publicFailed': 'Der Router ließ sich nicht automatisch einrichten. Tailscale ist die zuverlässige Alternative.',
   'remote.devices': 'Gekoppelte Geräte',
   'remote.noDevices': 'Noch keine gekoppelten Geräte — koppeln Sie eines, indem Sie auf dem Telefon das Secret eingeben.',
   'remote.revoke': 'Widerrufen',

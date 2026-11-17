@@ -301,10 +301,23 @@ const fr: Translation = {
   'remote.regenerated': 'Nouveau secret généré — réappairez vos appareils',
   'remote.fingerprint': 'Empreinte du certificat',
   'remote.fingerprintHint': "Comparez-la avec l'empreinte affichée sur le téléphone lors de la première connexion, puis accordez-lui votre confiance.",
-  'remote.hintTitle': 'Connexion depuis votre téléphone',
-  'remote.ipsLabel': "Sur le téléphone, saisissez l'adresse de ce bureau :",
+  'remote.hintTitle': 'Même réseau',
+  'remote.ipsLabel': "Téléphone et bureau sur le même Wi-Fi, ou tous deux sur Tailscale — saisissez l’une de ces adresses :",
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'Windows peut demander lautorisation daccès réseau au premier démarrage du serveur — acceptez, sinon laccès à distance reste bloqué.',
+  'remote.publicTitle': 'Tous les réseaux',
+  'remote.publicToggle': 'Autoriser les connexions depuis tous les réseaux',
+  'remote.publicHint':
+    'Ouvre le port sur votre routeur automatiquement (UPnP) — aucune configuration manuelle. Le secret dappairage est la seule protection sur Internet ouvert, gardez-le secret.',
+  'remote.publicWorking': 'Détection du routeur et de l’adresse publique…',
+  'remote.publicActive': 'Adresse publique — saisissez-la sur le téléphone :',
+  'remote.publicCgnat':
+    'Votre connexion utilise un NAT porteur (CGNAT, sans IP publique) — ce mode ne peut pas fonctionner ici. Utilisez plutôt Tailscale.',
+  'remote.publicDoubleNat':
+    'Double NAT détecté (deux routeurs en série). Ouvrez aussi le port sur le premier routeur, ou utilisez Tailscale.',
+  'remote.publicManualForward':
+    'La redirection de port automatique a échoué. Redirigez le port TCP {port} vers ce poste dans l’administration du routeur, puis utilisez cette adresse :',
+  'remote.publicFailed': 'Impossible de configurer le routeur automatiquement. Tailscale reste la solution fiable.',
   'remote.devices': 'Appareils appairés',
   'remote.noDevices': 'Aucun appareil appairé — appairez-en un en saisissant le secret sur le téléphone.',
   'remote.revoke': 'Révoquer',

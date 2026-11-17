@@ -11,6 +11,7 @@ import type {
   ProviderTestResult,
   RemoteDevice,
   RemoteState,
+  PublicAccessStatus,
   UpdateStatus
 } from '../api'
 import { useT } from '../i18n'
@@ -68,6 +69,7 @@ export default function SettingsModal({
   const [remotePortInput, setRemotePortInput] = useState('')
   const [netAddrs, setNetAddrs] = useState<Array<{ address: string; iface: string; tailscale: boolean }>>([])
   const [remoteClients, setRemoteClients] = useState(0)
+  const [publicAcc, setPublicAcc] = useState<PublicAccessStatus | null>(null)
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
@@ -86,9 +88,11 @@ export default function SettingsModal({
     void refreshRemote()
     const offClients = window.api.onRemoteClients(setRemoteClients)
     const offEvent = window.api.onRemoteEvent(() => void refreshRemote())
+    const offPublic = window.api.onRemotePublic(setPublicAcc)
     return () => {
       offClients()
       offEvent()
+      offPublic()
     }
   }, [])
 
@@ -97,6 +101,7 @@ export default function SettingsModal({
       setRemote(st)
       setRemotePortInput(String(st.port))
       setNetAddrs(ips)
+      setPublicAcc(st.public)
     })
 
   const refreshProviders = (): Promise<void> =>
@@ -142,6 +147,17 @@ export default function SettingsModal({
 
   const toggleRemote = (on: boolean): void => {
     void window.api.remoteSetEnabled(on).then(() => refreshRemote())
+  }
+
+  const togglePublicRemote = (on: boolean): void => {
+    void window.api.remoteSetPublicEnabled(on).then(setPublicAcc)
+  }
+
+  const copyPublicAddress = (): void => {
+    const p = publicAcc
+    if (!p?.publicIp) return
+    window.api.copyText(`${p.publicIp}:${p.publicPort}`)
+    onNotify(t('remote.copied'))
   }
 
   const saveRemotePort = (): void => {
@@ -712,6 +728,52 @@ export default function SettingsModal({
                   </div>
                   {appInfo?.platform === 'win32' && (
                     <p className="settings-hint">{t('remote.firewallHint')}</p>
+                  )}
+                </div>
+
+                <div className="settings-section">
+                  <div className="settings-title">{t('remote.publicTitle')}</div>
+                  <div className="settings-row">
+                    <label>{t('remote.publicToggle')}</label>
+                    <label className="engine-toggle">
+                      <input
+                        type="checkbox"
+                        checked={remote?.publicEnabled === true}
+                        onChange={(e) => togglePublicRemote(e.target.checked)}
+                      />
+                    </label>
+                  </div>
+                  <p className="settings-hint">{t('remote.publicHint')}</p>
+                  {remote?.publicEnabled && publicAcc && publicAcc.state === 'discovering' && (
+                    <p className="settings-hint">{t('remote.publicWorking')}</p>
+                  )}
+                  {remote?.publicEnabled && publicAcc && publicAcc.state === 'mapped' && publicAcc.publicIp && (
+                    <>
+                      <p className="settings-hint">{t('remote.publicActive')}</p>
+                      <div className="settings-row">
+                        <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
+                        <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
+                      </div>
+                    </>
+                  )}
+                  {remote?.publicEnabled && publicAcc && publicAcc.state === 'failed' && (
+                    <>
+                      <p className="settings-hint">
+                        {publicAcc.reason === 'cgnat'
+                          ? t('remote.publicCgnat')
+                          : publicAcc.reason === 'double_nat'
+                            ? t('remote.publicDoubleNat')
+                            : publicAcc.reason === 'no_upnp'
+                              ? t('remote.publicManualForward', { port: publicAcc.publicPort })
+                              : t('remote.publicFailed')}
+                      </p>
+                      {publicAcc.reason === 'no_upnp' && publicAcc.publicIp && (
+                        <div className="settings-row">
+                          <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
+                          <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
