@@ -300,7 +300,7 @@ const en = {
   'remote.fingerprint': 'Certificate fingerprint',
   'remote.fingerprintHint': 'Compare this with the fingerprint shown on the phone at first connect, then trust it.',
   'remote.hintTitle': 'Same network',
-  'remote.ipsLabel': 'Phone and desktop on the same Wi-Fi, or both on Tailscale — enter one of these addresses:',
+  'remote.ipsLabel': 'Enter one of these addresses on the phone:',
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint':
     'Windows may ask to allow network access the first time the server starts — approve it, or remote access stays blocked.',
@@ -318,7 +318,7 @@ const en = {
     'Automatic port mapping failed. Forward TCP port {port} to this computer in your router admin page, then use this address:',
   'remote.publicFailed': 'Could not reach the router automatically. Tailscale is the reliable fallback.',
   'remote.methodsTitle': 'How to connect',
-  'remote.sameDesc': 'Phone and desktop on the same Wi-Fi, or both signed in to Tailscale.',
+  'remote.sameDesc': 'The phone connects to the desktop directly — for example, when both are signed in to Tailscale.',
   'remote.badgeOn': 'On',
   'remote.badgeOff': 'Off',
   'remote.sameReady': 'Works as soon as the phone can reach one of these addresses.',
