@@ -51,6 +51,7 @@ const api = {
     checkUpdates?: boolean
     remoteEnabled?: boolean
     remotePort?: number
+    remotePublicEnabled?: boolean
   }> => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: {
     defaultMode?: string
@@ -247,8 +248,28 @@ const api = {
     secret: string
     devices: Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>
     clientCount: number
+    publicEnabled: boolean
+    public: {
+      enabled: boolean
+      state: 'off' | 'discovering' | 'mapped' | 'failed'
+      method: 'upnp' | 'natpmp' | 'manual-forward' | 'unavailable'
+      publicIp: string
+      publicPort: number
+      gatewayIp: string
+      reflexiveIp: string
+      cgnat: boolean
+      reason: string
+    }
   }> => ipcRenderer.invoke('remote:getState'),
   remoteSetEnabled: (on: boolean): Promise<boolean> => ipcRenderer.invoke('remote:setEnabled', on),
+  remoteSetPublicEnabled: (on: boolean): Promise<{
+    enabled: boolean
+    state: string
+    method: string
+    publicIp: string
+    publicPort: number
+    reason: string
+  }> => ipcRenderer.invoke('remote:setPublicEnabled', on),
   remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
   remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),
   remoteListDevices: (): Promise<Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>> =>
@@ -260,7 +281,9 @@ const api = {
   onRemoteClients: (cb: (count: number) => void): Unsubscribe =>
     on('remote:clients', (p) => cb((p as { count: number }).count)),
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void): Unsubscribe =>
-    on('remote:event', (p) => cb(p as { kind: string; name?: string }))
+    on('remote:event', (p) => cb(p as { kind: string; name?: string })),
+  onRemotePublic: (cb: (status: unknown) => void): Unsubscribe =>
+    on('remote:public', (p) => cb(p))
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -52,6 +52,7 @@
   "dependencies": {
     "@codemirror/lang-markdown": "^6.5.2",
     "@lydell/node-pty": "^1.2.0-beta.18",
+    "@silentbot1/nat-api": "^0.4.9",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-search": "0.16.0",
     "@xterm/xterm": "^6.0.0",
@@ -62,6 +63,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "selfsigned": "^5.5.0",
+    "stun": "^2.1.0",
     "ws": "^8.23.0"
   },
   "productName": "CodeCockpit",

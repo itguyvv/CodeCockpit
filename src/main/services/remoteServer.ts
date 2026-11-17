@@ -168,7 +168,8 @@ interface ClientCtx {
 }
 
 const clients = new Set<ClientCtx>()
-const failLog = new Map<string, { n: number; until: number }>()
+/** Auth failures per peer IP: n = fails in the current window, until = ban deadline, at = last fail */
+const failLog = new Map<string, { n: number; until: number; at: number }>()
 
 let server: https.Server | null = null
 let wss: WebSocketServer | null = null
@@ -350,8 +351,16 @@ function handleAuth(ctx: ClientCtx, ip: string, msg: Record<string, unknown>): v
     ? auth.devices.some((d) => d.tokenHash === sha256(token))
     : secret && sha256(secret) === auth.secretHash
   if (!ok) {
-    const rec = failLog.get(ip) ?? { n: 0, until: 0 }
+    // Internet exposure invites scanners: keep the per-IP failure map bounded
+    const now = Date.now()
+    if (failLog.size > 200) {
+      for (const [k, v] of failLog) {
+        if (v.until < now && now - v.at > FAIL_BAN_MS) failLog.delete(k)
+      }
+    }
+    const rec = failLog.get(ip) ?? { n: 0, until: 0, at: now }
     rec.n++
+    rec.at = now
     if (rec.n >= MAX_FAILS) {
       rec.until = Date.now() + FAIL_BAN_MS
       rec.n = 0

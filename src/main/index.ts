@@ -50,6 +50,7 @@ import {
   startRemote,
   stopRemote
 } from './services/remoteServer'
+import { publicStatus, startPublicAccess, stopPublicAccess } from './services/publicAccess'
 
 interface AppSettings {
   lastCwd?: string
@@ -72,6 +73,8 @@ interface AppSettings {
   remoteEnabled?: boolean
   /** Port the remote server listens on */
   remotePort?: number
+  /** Opt-in: publish the remote server to the internet via UPnP/NAT-PMP; missing = off */
+  remotePublicEnabled?: boolean
 }
 
 let win: BrowserWindow | null = null
@@ -230,13 +233,21 @@ function registerIpc(): void {
       fp: remoteFingerprint(),
       secret: getRemoteSecret(),
       devices: listRemoteDevices(),
-      clientCount: remoteClientCount()
+      clientCount: remoteClientCount(),
+      publicEnabled: s.remotePublicEnabled === true,
+      public: publicStatus()
     }
   })
   ipcMain.handle('remote:setEnabled', async (_e, on: boolean) => {
     writeSettings({ remoteEnabled: on === true })
-    if (on) await startRemote(readSettings().remotePort ?? DEFAULT_REMOTE_PORT)
-    else stopRemote()
+    const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
+    if (on) {
+      await startRemote(port)
+      if (readSettings().remotePublicEnabled) void startPublicAccess(port)
+    } else {
+      void stopPublicAccess()
+      stopRemote()
+    }
     return remoteRunning()
   })
   ipcMain.handle('remote:setPort', async (_e, port: number) => {
@@ -246,9 +257,19 @@ function registerIpc(): void {
     const s = readSettings()
     if (s.remoteEnabled) {
       stopRemote()
+      void stopPublicAccess()
       await startRemote(valid)
+      if (s.remotePublicEnabled) void startPublicAccess(valid)
     }
     return valid
+  })
+  ipcMain.handle('remote:setPublicEnabled', async (_e, on: boolean) => {
+    const enabled = on === true
+    writeSettings({ remotePublicEnabled: enabled })
+    const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
+    if (enabled && remoteRunning()) void startPublicAccess(port)
+    else if (!enabled) void stopPublicAccess()
+    return publicStatus()
   })
   ipcMain.handle('remote:regenerateSecret', () => regenerateRemoteSecret())
   ipcMain.handle('remote:getSecret', () => getRemoteSecret())
@@ -682,8 +703,12 @@ app.whenReady().then(() => {
   }
   registerIpc()
   createWindow()
-  if (readSettings().remoteEnabled)
-    void startRemote(readSettings().remotePort ?? DEFAULT_REMOTE_PORT)
+  if (readSettings().remoteEnabled) {
+    const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
+    void startRemote(port).then(() => {
+      if (readSettings().remotePublicEnabled) void startPublicAccess(port)
+    })
+  }
   if (readSettings().checkUpdates !== false) setTimeout(checkForUpdate, 10_000)
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -698,6 +723,7 @@ app.on('window-all-closed', () => {
 // will-quit runs only after every window closed for real (a cancelled exit dialog must
 // not have killed the PTYs already, which is what before-quit would do)
 app.on('will-quit', () => {
+  void stopPublicAccess()
   stopRemote()
   shutdownAll()
 })

@@ -143,6 +143,8 @@ export interface AppSettings {
   remoteEnabled?: boolean
   /** Port the remote server listens on */
   remotePort?: number
+  /** Opt-in: publish the remote server to the internet via UPnP/NAT-PMP; missing = off */
+  remotePublicEnabled?: boolean
 }
 
 export interface UpdateStatus {
@@ -160,6 +162,19 @@ export interface RemoteDevice {
   lastSeen: number
 }
 
+export interface PublicAccessStatus {
+  enabled: boolean
+  state: 'off' | 'discovering' | 'mapped' | 'failed'
+  method: 'upnp' | 'natpmp' | 'manual-forward' | 'unavailable'
+  publicIp: string
+  publicPort: number
+  gatewayIp: string
+  reflexiveIp: string
+  cgnat: boolean
+  /** '' | cgnat | double_nat | no_upnp | error — maps to a localized message */
+  reason: string
+}
+
 export interface RemoteState {
   enabled: boolean
   running: boolean
@@ -168,6 +183,8 @@ export interface RemoteState {
   secret: string
   devices: RemoteDevice[]
   clientCount: number
+  publicEnabled: boolean
+  public: PublicAccessStatus
 }
 
 export interface WorkbenchApi {
@@ -236,6 +253,7 @@ export interface WorkbenchApi {
   updateCheck: () => Promise<UpdateStatus>
   remoteGetState: () => Promise<RemoteState>
   remoteSetEnabled: (on: boolean) => Promise<boolean>
+  remoteSetPublicEnabled: (on: boolean) => Promise<PublicAccessStatus>
   remoteSetPort: (port: number) => Promise<number>
   remoteRegenerateSecret: () => Promise<string>
   remoteListDevices: () => Promise<RemoteDevice[]>
@@ -243,6 +261,7 @@ export interface WorkbenchApi {
   remoteNetInfo: () => Promise<Array<{ address: string; iface: string; tailscale: boolean }>>
   onRemoteClients: (cb: (count: number) => void) => () => void
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void) => () => void
+  onRemotePublic: (cb: (status: PublicAccessStatus) => void) => () => void
 }
 
 declare global {
