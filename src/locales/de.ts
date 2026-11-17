@@ -316,11 +316,23 @@ const de: Translation = {
   'remote.publicManualForward':
     'Automatische Portweiterleitung fehlgeschlagen. Leiten Sie TCP-Port {port} in der Router-Verwaltung an diesen Rechner weiter und verwenden Sie dann diese Adresse:',
   'remote.publicFailed': 'Der Router ließ sich nicht automatisch einrichten. Tailscale ist die zuverlässige Alternative.',
+  'remote.methodsTitle': 'Verbindungsarten',
+  'remote.sameDesc': 'Telefon und Desktop im selben WLAN, oder beide bei Tailscale angemeldet.',
+  'remote.badgeOn': 'Ein',
+  'remote.badgeOff': 'Aus',
+  'remote.sameReady': 'Funktioniert, sobald das Telefon eine dieser Adressen erreicht.',
+  'remote.sameWaiting': 'Der Server läuft noch nicht — diese Adressen werden aktiv, sobald er startet.',
+  'remote.anyDesc': 'Von überall verbinden: Der Desktop öffnet den Port automatisch am Router (UPnP). Kein VPN nötig.',
+  'remote.detailsTitle': 'Verbindungsdetails',
   'remote.devices': 'Gekoppelte Geräte',
   'remote.noDevices': 'Noch keine gekoppelten Geräte — koppeln Sie eines, indem Sie auf dem Telefon das Secret eingeben.',
   'remote.revoke': 'Widerrufen',
   'remote.revokeConfirm': '„{name}" widerrufen? Das Gerät verliert sofort den Zugriff.',
   'remote.lastSeen': 'hinzugefügt {added}, aktiv {seen}',
+  'remote.appTitle': 'Mobile App laden',
+  'remote.appAndroidMeta': 'Verfügbar',
+  'remote.appPlannedMeta': 'Geplant',
+  'remote.appSteps': 'Installieren Sie die App auf dem Telefon, wählen Sie oben eine Verbindungsart und geben Sie Adresse und Kopplungs-Secret ein.',
   'statusbar.remote': '{n} Fernclient(s)',
   'toast.remotePaired': 'Ferngerät gekoppelt: {name}'
 }

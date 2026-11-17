@@ -317,11 +317,23 @@ const ptBR: Translation = {
   'remote.publicManualForward':
     'O mapeamento automático de portas falhou. Redirecione a porta TCP {port} para este computador na administração do roteador e use este endereço:',
   'remote.publicFailed': 'Não foi possível configurar o roteador automaticamente. O Tailscale é a alternativa confiável.',
+  'remote.methodsTitle': 'Formas de conexão',
+  'remote.sameDesc': 'Celular e desktop no mesmo Wi-Fi, ou ambos no Tailscale.',
+  'remote.badgeOn': 'Ativo',
+  'remote.badgeOff': 'Inativo',
+  'remote.sameReady': 'Funciona assim que o celular alcançar um destes endereços.',
+  'remote.sameWaiting': 'O servidor ainda não está em execução — estes endereços ficam ativos quando ele iniciar.',
+  'remote.anyDesc': 'Conecte-se de qualquer lugar: o desktop abre a porta no roteador automaticamente (UPnP). Sem VPN.',
+  'remote.detailsTitle': 'Detalhes da conexão',
   'remote.devices': 'Dispositivos pareados',
   'remote.noDevices': 'Nenhum dispositivo pareado ainda — pareie um digitando o segredo no celular.',
   'remote.revoke': 'Revogar',
   'remote.revokeConfirm': 'Revogar «{name}»? O dispositivo perde o acesso imediatamente.',
   'remote.lastSeen': 'adicionado {added}, ativo {seen}',
+  'remote.appTitle': 'Baixar o app móvel',
+  'remote.appAndroidMeta': 'Disponível',
+  'remote.appPlannedMeta': 'Planejado',
+  'remote.appSteps': 'Instale o app no celular, escolha uma forma de conexão acima e informe o endereço e o segredo de pareamento.',
   'statusbar.remote': '{n} cliente(s) remoto(s)',
   'toast.remotePaired': 'Dispositivo remoto pareado: {name}'
 }

@@ -17,6 +17,7 @@ import type {
 import { useT } from '../i18n'
 import { LOCALE_LIST, type LocaleCode } from '../../../locales'
 import logoUrl from '../assets/logo.png'
+import { WifiIcon, GlobeIcon, PhoneIcon, AndroidIcon } from './RemoteIcons'
 
 interface Props {
   appInfo: AppInfo | null
@@ -151,6 +152,12 @@ export default function SettingsModal({
 
   const togglePublicRemote = (on: boolean): void => {
     void window.api.remoteSetPublicEnabled(on).then(setPublicAcc)
+  }
+
+  const copyConnectAddress = (addr: string): void => {
+    const port = remote?.port ?? 47315
+    window.api.copyText(`${addr}:${port}`)
+    onNotify(t('remote.copied'))
   }
 
   const copyPublicAddress = (): void => {
@@ -690,7 +697,93 @@ export default function SettingsModal({
             {remote?.enabled && (
               <>
                 <div className="settings-section">
-                  <div className="settings-title">{t('remote.hintTitle')}</div>
+                  <div className="settings-title">{t('remote.methodsTitle')}</div>
+                  <div className="remote-methods">
+                    <div className={`remote-method${remote.running ? ' on' : ''}`}>
+                      <div className="remote-method-head">
+                        <WifiIcon className="remote-method-icon" />
+                        <span className="remote-method-name">{t('remote.hintTitle')}</span>
+                        <span className={`remote-method-badge${remote.running ? ' active' : ''}`}>
+                          {remote.running ? t('remote.badgeOn') : t('remote.badgeOff')}
+                        </span>
+                      </div>
+                      <p className="remote-method-desc">{t('remote.sameDesc')}</p>
+                      <p className="settings-hint">{t('remote.ipsLabel')}</p>
+                      <div className="remote-ips">
+                        {netAddrs.length === 0 && <span className="remote-device-meta">—</span>}
+                        {netAddrs.map((a) => (
+                          <span key={`${a.iface}/${a.address}`} className="remote-ip">
+                            <span className="remote-mono">{a.address}</span>
+                            {a.tailscale && <em className="provider-tag">{t('remote.tailscaleTag')}</em>}
+                            <button onClick={() => copyConnectAddress(a.address)}>{t('remote.copy')}</button>
+                          </span>
+                        ))}
+                      </div>
+                      <p className="remote-method-note">
+                        {remote.running ? t('remote.sameReady') : t('remote.sameWaiting')}
+                      </p>
+                      {appInfo?.platform === 'win32' && (
+                        <p className="settings-hint">{t('remote.firewallHint')}</p>
+                      )}
+                    </div>
+
+                    <div className={`remote-method${publicAcc?.state === 'mapped' ? ' on' : ''}`}>
+                      <div className="remote-method-head">
+                        <GlobeIcon className="remote-method-icon" />
+                        <span className="remote-method-name">{t('remote.publicTitle')}</span>
+                        <span className={`remote-method-badge${publicAcc?.state === 'mapped' ? ' active' : ''}`}>
+                          {publicAcc?.state === 'mapped' ? t('remote.badgeOn') : t('remote.badgeOff')}
+                        </span>
+                      </div>
+                      <p className="remote-method-desc">{t('remote.anyDesc')}</p>
+                      <div className="settings-row">
+                        <label>{t('remote.publicToggle')}</label>
+                        <label className="engine-toggle">
+                          <input
+                            type="checkbox"
+                            checked={remote?.publicEnabled === true}
+                            onChange={(e) => togglePublicRemote(e.target.checked)}
+                          />
+                        </label>
+                      </div>
+                      <p className="settings-hint">{t('remote.publicHint')}</p>
+                      {remote?.publicEnabled && publicAcc && publicAcc.state === 'discovering' && (
+                        <p className="settings-hint">{t('remote.publicWorking')}</p>
+                      )}
+                      {remote?.publicEnabled && publicAcc && publicAcc.state === 'mapped' && publicAcc.publicIp && (
+                        <>
+                          <p className="settings-hint">{t('remote.publicActive')}</p>
+                          <div className="settings-row">
+                            <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
+                            <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
+                          </div>
+                        </>
+                      )}
+                      {remote?.publicEnabled && publicAcc && publicAcc.state === 'failed' && (
+                        <>
+                          <p className="settings-hint">
+                            {publicAcc.reason === 'cgnat'
+                              ? t('remote.publicCgnat')
+                              : publicAcc.reason === 'double_nat'
+                                ? t('remote.publicDoubleNat')
+                                : publicAcc.reason === 'no_upnp'
+                                  ? t('remote.publicManualForward', { port: publicAcc.publicPort })
+                                  : t('remote.publicFailed')}
+                          </p>
+                          {publicAcc.reason === 'no_upnp' && publicAcc.publicIp && (
+                            <div className="settings-row">
+                              <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
+                              <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="settings-section">
+                  <div className="settings-title">{t('remote.detailsTitle')}</div>
                   <div className="settings-row">
                     <label>{t('remote.port')}</label>
                     <input
@@ -716,65 +809,33 @@ export default function SettingsModal({
                     <span className="remote-mono">{remote.fp || '—'}</span>
                   </div>
                   <p className="settings-hint">{t('remote.fingerprintHint')}</p>
-                  <p className="settings-hint">{t('remote.ipsLabel')}</p>
-                  <div className="remote-ips">
-                    {netAddrs.length === 0 && <span className="remote-device-meta">—</span>}
-                    {netAddrs.map((a) => (
-                      <span key={`${a.iface}/${a.address}`} className="remote-ip">
-                        <span className="remote-mono">{a.address}</span>
-                        {a.tailscale && <em className="provider-tag">{t('remote.tailscaleTag')}</em>}
-                      </span>
-                    ))}
-                  </div>
-                  {appInfo?.platform === 'win32' && (
-                    <p className="settings-hint">{t('remote.firewallHint')}</p>
-                  )}
                 </div>
 
                 <div className="settings-section">
-                  <div className="settings-title">{t('remote.publicTitle')}</div>
-                  <div className="settings-row">
-                    <label>{t('remote.publicToggle')}</label>
-                    <label className="engine-toggle">
-                      <input
-                        type="checkbox"
-                        checked={remote?.publicEnabled === true}
-                        onChange={(e) => togglePublicRemote(e.target.checked)}
-                      />
-                    </label>
+                  <div className="settings-title">{t('remote.appTitle')}</div>
+                  <div className="remote-apps">
+                    <a
+                      className="remote-app"
+                      href="https://github.com/itguyvv/codecockpit-remote/releases"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <AndroidIcon className="remote-app-icon" />
+                      <span className="remote-app-name">CodeCockpit Remote · Android</span>
+                      <em className="remote-app-meta">{t('remote.appAndroidMeta')}</em>
+                    </a>
+                    <div className="remote-app planned">
+                      <PhoneIcon className="remote-app-icon" />
+                      <span className="remote-app-name">iOS</span>
+                      <em className="remote-app-meta">{t('remote.appPlannedMeta')}</em>
+                    </div>
+                    <div className="remote-app planned">
+                      <PhoneIcon className="remote-app-icon" />
+                      <span className="remote-app-name">HarmonyOS</span>
+                      <em className="remote-app-meta">{t('remote.appPlannedMeta')}</em>
+                    </div>
                   </div>
-                  <p className="settings-hint">{t('remote.publicHint')}</p>
-                  {remote?.publicEnabled && publicAcc && publicAcc.state === 'discovering' && (
-                    <p className="settings-hint">{t('remote.publicWorking')}</p>
-                  )}
-                  {remote?.publicEnabled && publicAcc && publicAcc.state === 'mapped' && publicAcc.publicIp && (
-                    <>
-                      <p className="settings-hint">{t('remote.publicActive')}</p>
-                      <div className="settings-row">
-                        <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
-                        <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
-                      </div>
-                    </>
-                  )}
-                  {remote?.publicEnabled && publicAcc && publicAcc.state === 'failed' && (
-                    <>
-                      <p className="settings-hint">
-                        {publicAcc.reason === 'cgnat'
-                          ? t('remote.publicCgnat')
-                          : publicAcc.reason === 'double_nat'
-                            ? t('remote.publicDoubleNat')
-                            : publicAcc.reason === 'no_upnp'
-                              ? t('remote.publicManualForward', { port: publicAcc.publicPort })
-                              : t('remote.publicFailed')}
-                      </p>
-                      {publicAcc.reason === 'no_upnp' && publicAcc.publicIp && (
-                        <div className="settings-row">
-                          <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
-                          <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
-                        </div>
-                      )}
-                    </>
-                  )}
+                  <p className="settings-hint">{t('remote.appSteps')}</p>
                 </div>
 
                 <div className="settings-section">

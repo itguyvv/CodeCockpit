@@ -317,11 +317,23 @@ const en = {
   'remote.publicManualForward':
     'Automatic port mapping failed. Forward TCP port {port} to this computer in your router admin page, then use this address:',
   'remote.publicFailed': 'Could not reach the router automatically. Tailscale is the reliable fallback.',
+  'remote.methodsTitle': 'How to connect',
+  'remote.sameDesc': 'Phone and desktop on the same Wi-Fi, or both signed in to Tailscale.',
+  'remote.badgeOn': 'On',
+  'remote.badgeOff': 'Off',
+  'remote.sameReady': 'Works as soon as the phone can reach one of these addresses.',
+  'remote.sameWaiting': 'The server is not running yet — these addresses go live once it starts.',
+  'remote.anyDesc': 'Connect from anywhere: the desktop opens its port on your router automatically (UPnP). No VPN needed.',
+  'remote.detailsTitle': 'Connection details',
   'remote.devices': 'Paired devices',
   'remote.noDevices': 'No devices paired yet — pair one by entering the secret on the phone.',
   'remote.revoke': 'Revoke',
   'remote.revokeConfirm': 'Revoke "{name}"? The device loses access immediately.',
   'remote.lastSeen': 'added {added}, active {seen}',
+  'remote.appTitle': 'Get the mobile app',
+  'remote.appAndroidMeta': 'Available',
+  'remote.appPlannedMeta': 'Planned',
+  'remote.appSteps': 'Install the app on your phone, pick a connection method above, then enter the address and the pairing secret.',
   'statusbar.remote': '{n} remote client(s)',
   'toast.remotePaired': 'Remote device paired: {name}'
 }

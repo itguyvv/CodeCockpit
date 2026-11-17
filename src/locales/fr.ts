@@ -318,11 +318,23 @@ const fr: Translation = {
   'remote.publicManualForward':
     'La redirection de port automatique a échoué. Redirigez le port TCP {port} vers ce poste dans l’administration du routeur, puis utilisez cette adresse :',
   'remote.publicFailed': 'Impossible de configurer le routeur automatiquement. Tailscale reste la solution fiable.',
+  'remote.methodsTitle': 'Modes de connexion',
+  'remote.sameDesc': 'Téléphone et bureau sur le même Wi-Fi, ou tous deux sur Tailscale.',
+  'remote.badgeOn': 'Actif',
+  'remote.badgeOff': 'Inactif',
+  'remote.sameReady': 'Fonctionne dès que le téléphone peut joindre une de ces adresses.',
+  'remote.sameWaiting': 'Le serveur ne tourne pas encore — ces adresses deviennent actives à son démarrage.',
+  'remote.anyDesc': 'Connexion depuis partout : le bureau ouvre son port sur le routeur automatiquement (UPnP). Sans VPN.',
+  'remote.detailsTitle': 'Détails de connexion',
   'remote.devices': 'Appareils appairés',
   'remote.noDevices': 'Aucun appareil appairé — appairez-en un en saisissant le secret sur le téléphone.',
   'remote.revoke': 'Révoquer',
   'remote.revokeConfirm': 'Révoquer « {name} » ? Lappareil perd immédiatement laccès.',
   'remote.lastSeen': 'ajouté {added}, actif {seen}',
+  'remote.appTitle': 'Obtenir l’application mobile',
+  'remote.appAndroidMeta': 'Disponible',
+  'remote.appPlannedMeta': 'Prévu',
+  'remote.appSteps': 'Installez l’application sur le téléphone, choisissez un mode de connexion ci-dessus, puis saisissez l’adresse et le secret d’appairage.',
   'statusbar.remote': '{n} client(s) à distance',
   'toast.remotePaired': 'Appareil distant appairé : {name}'
 }

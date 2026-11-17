@@ -317,11 +317,23 @@ const es: Translation = {
   'remote.publicManualForward':
     'El mapeo automático de puertos falló. Redirige el puerto TCP {port} a este equipo en la administración del router y usa esta dirección:',
   'remote.publicFailed': 'No se pudo configurar el router automáticamente. Tailscale es la alternativa fiable.',
+  'remote.methodsTitle': 'Métodos de conexión',
+  'remote.sameDesc': 'Teléfono y escritorio en el mismo Wi-Fi, o ambos en Tailscale.',
+  'remote.badgeOn': 'Activo',
+  'remote.badgeOff': 'Inactivo',
+  'remote.sameReady': 'Funciona en cuanto el teléfono alcanza una de estas direcciones.',
+  'remote.sameWaiting': 'El servidor aún no está en marcha — estas direcciones se activan cuando arranque.',
+  'remote.anyDesc': 'Conéctate desde cualquier lugar: el escritorio abre su puerto en el router automáticamente (UPnP). Sin VPN.',
+  'remote.detailsTitle': 'Detalles de conexión',
   'remote.devices': 'Dispositivos emparejados',
   'remote.noDevices': 'Aún no hay dispositivos emparejados: empareja uno introduciendo el secreto en el teléfono.',
   'remote.revoke': 'Revocar',
   'remote.revokeConfirm': '¿Revocar «{name}»? El dispositivo pierde el acceso de inmediato.',
   'remote.lastSeen': 'añadido {added}, activo {seen}',
+  'remote.appTitle': 'Obtener la app móvil',
+  'remote.appAndroidMeta': 'Disponible',
+  'remote.appPlannedMeta': 'Planeado',
+  'remote.appSteps': 'Instala la app en el teléfono, elige un método de conexión arriba e introduce la dirección y el secreto de emparejamiento.',
   'statusbar.remote': '{n} cliente(s) remoto(s)',
   'toast.remotePaired': 'Dispositivo remoto emparejado: {name}'
 }

@@ -316,11 +316,23 @@ const ru: Translation = {
   'remote.publicManualForward':
     'Автоматическое пробрасывание порта не удалось. Пробросьте TCP-порт {port} на этот компьютер в настройках роутера и используйте этот адрес:',
   'remote.publicFailed': 'Не удалось настроить роутер автоматически. Tailscale — надёжная альтернатива.',
+  'remote.methodsTitle': 'Способы подключения',
+  'remote.sameDesc': 'Телефон и компьютер в одной Wi-Fi сети, или оба в Tailscale.',
+  'remote.badgeOn': 'Вкл',
+  'remote.badgeOff': 'Выкл',
+  'remote.sameReady': 'Работает, как только телефон достигает одного из этих адресов.',
+  'remote.sameWaiting': 'Сервер ещё не запущен — эти адреса станут доступны после его запуска.',
+  'remote.anyDesc': 'Подключение откуда угодно: компьютер сам открывает порт на роутере (UPnP). Без VPN.',
+  'remote.detailsTitle': 'Сведения о подключении',
   'remote.devices': 'Сопряжённые устройства',
   'remote.noDevices': 'Пока нет сопряжённых устройств — сопрягите одно, введя секрет на телефоне.',
   'remote.revoke': 'Отозвать',
   'remote.revokeConfirm': 'Отозвать «{name}»? Устройство сразу потеряет доступ.',
   'remote.lastSeen': 'добавлено {added}, активность {seen}',
+  'remote.appTitle': 'Скачать мобильное приложение',
+  'remote.appAndroidMeta': 'Доступно',
+  'remote.appPlannedMeta': 'Планируется',
+  'remote.appSteps': 'Установите приложение на телефон, выберите способ подключения выше и введите адрес и секрет сопряжения.',
   'statusbar.remote': 'Удалённых клиентов: {n}',
   'toast.remotePaired': 'Устройство сопряжено: {name}'
 }
