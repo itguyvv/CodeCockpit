@@ -97,44 +97,96 @@ const IS_MAC = /Mac/i.test(navigator.platform)
 
 // While an IME composition is active, xterm repositions its hidden helper textarea and the
 // composition view to the live cursor cell on every render (CompositionHelper
-// .updateCompositionElements). During streaming output the cursor cell changes constantly, and
-// the Windows IME candidate window anchors to the textarea rect — so it jumps around wildly.
-// Freeze both elements: let the first position write after compositionstart through, then drop
-// every further write until compositionend. register() may run twice per terminal (renameSlot),
-// hence the installed guard.
+// .updateCompositionElements, driven by onRender). During streaming output the cursor cell
+// changes constantly, and the Windows IME candidate window anchors to the textarea rect — so it
+// jumps around wildly. Freeze both elements at the cursor cell captured on compositionstart and
+// drop every further position write until compositionend. Style accessors live on
+// CSSStyleDeclaration.prototype, so the descriptor must be read there and shadowed with an own
+// accessor on the instance — looking it up on the instance itself finds nothing, which made the
+// first version of this guard a silent no-op. register() may run twice per terminal
+// (renameSlot), hence the installed guard.
+//
+// Two more IME failure modes are handled here:
+// - Dictation/voice IMEs commit the composed text twice: xterm sends it from the textarea value
+//   on compositionend, and the IME then fires a plain insertText input event with the same text
+//   which CoreBrowserTerminal._inputEvent also forwards. Drop insertText input events arriving
+//   in a short window after compositionend. Regular keystrokes are unaffected: xterm already
+//   ignores insertText input events that follow a keydown.
+// - Composing while the viewport is scrolled up leaves the cursor outside the viewport, in which
+//   case xterm never positions the textarea and the OS IME window pins to its offscreen
+//   (-9999em) rect, clamped to the window's top-left corner. Snap to the live prompt before
+//   anchoring, and pre-anchor the textarea/composition view ourselves (same cursor-cell math as
+//   xterm) so the IME window lands at the prompt from the first keystroke.
 const imeAnchored = new WeakSet<HTMLElement>()
+const DUPLICATE_INPUT_WINDOW_MS = 100
+
 function installImeAnchor(term: Terminal): void {
   const ta = term.textarea
   if (!ta || imeAnchored.has(ta)) return
   imeAnchored.add(ta)
-  const view = ta.parentElement?.querySelector('.composition-view') as HTMLElement | null
+  const host = term.element ?? ta.parentElement
+  if (!host) return
+  const view = host.querySelector('.composition-view') as HTMLElement | null
   const restore: Array<() => void> = []
-  const lockProp = (style: CSSStyleDeclaration, prop: string): void => {
-    const desc = Object.getOwnPropertyDescriptor(style, prop)
-    if (!desc?.configurable) return
-    let captured = false
+  const lockProp = (style: CSSStyleDeclaration, prop: string, preCaptured: boolean): void => {
+    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(style), prop)
+    if (!desc?.get || !desc.set || !desc.configurable) return
+    let captured = preCaptured
     Object.defineProperty(style, prop, {
-      get: desc.get,
+      get: (): string => desc.get!.call(style) as string,
       set: (v: string): void => {
         if (captured) return
         captured = true
-        desc.set?.call(style, v)
+        desc.set!.call(style, v)
       },
-      configurable: true
+      configurable: true,
+      enumerable: true
     })
-    restore.push(() => Object.defineProperty(style, prop, desc))
+    // Removing the own accessor restores the prototype descriptor
+    restore.push(() => { delete (style as unknown as Record<string, unknown>)[prop] })
+  }
+  // Anchor textarea + composition view at the current cursor cell; false when the cell metrics
+  // are not measured yet (terminal never rendered), letting xterm's own pass do the anchoring
+  const anchorAtCursor = (): boolean => {
+    const dims = (term as unknown as { _core?: { _renderService?: { dimensions?: { css?: { cell?: { width?: number; height?: number } } } } } })
+      ._core?._renderService?.dimensions?.css?.cell
+    if (!dims?.width || !dims.height) return false
+    const b = term.buffer.active
+    const cursorLeft = Math.min(b.cursorX, term.cols - 1) * dims.width
+    const cursorTop = b.cursorY * dims.height
+    ta.style.left = `${cursorLeft}px`
+    ta.style.top = `${cursorTop}px`
+    if (view) {
+      view.style.left = `${cursorLeft}px`
+      view.style.top = `${cursorTop}px`
+    }
+    return true
   }
   ta.addEventListener('compositionstart', () => {
-    lockProp(ta.style, 'left')
-    lockProp(ta.style, 'top')
+    // Snap to the live prompt when the cursor is scrolled out of the viewport
+    const b = term.buffer.active
+    const cursorRow = b.baseY + b.cursorY
+    if (b.viewportY > cursorRow || b.viewportY + term.rows <= cursorRow) term.scrollToBottom()
+    const anchored = anchorAtCursor()
+    lockProp(ta.style, 'left', anchored)
+    lockProp(ta.style, 'top', anchored)
     if (view) {
-      lockProp(view.style, 'left')
-      lockProp(view.style, 'top')
+      lockProp(view.style, 'left', anchored)
+      lockProp(view.style, 'top', anchored)
     }
   })
   ta.addEventListener('compositionend', () => {
     while (restore.length) restore.pop()?.()
   })
+  // Capture phase on the terminal element: fires before xterm's own textarea listeners
+  let compositionEndAt = 0
+  host.addEventListener('compositionend', () => { compositionEndAt = Date.now() }, true)
+  host.addEventListener('input', (ev) => {
+    const e = ev as InputEvent
+    if (e.inputType !== 'insertText' || !e.data) return
+    if (Date.now() - compositionEndAt > DUPLICATE_INPUT_WINDOW_MS) return
+    e.stopPropagation()
+  }, true)
 }
 
 const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: (id: string) => EngineId }>((props, ref) => {
