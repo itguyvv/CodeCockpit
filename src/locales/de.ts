@@ -304,7 +304,6 @@ const de: Translation = {
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'Windows fragt beim ersten Start des Servers möglicherweise nach Netzwerkerlaubnis — zustimmen, sonst bleibt der Fernzugriff blockiert.',
   'remote.publicTitle': 'Beliebiges Netzwerk',
-  'remote.publicToggle': 'Verbindungen aus beliebigen Netzwerken erlauben',
   'remote.publicHint':
     'Öffnet den Port automatisch auf dem Router (UPnP) — keine manuelle Einrichtung nötig. Zum Ermitteln der öffentlichen Adresse werden zwei öffentliche STUN-Server abgefragt: Cloudflare (global) und Xiaomi (China). Das Pairing-Secret ist die einzige Schutzmaßnahme, also gut aufbewahren.',
   'remote.publicWorking': 'Router und öffentliche Adresse werden erkannt…',
@@ -317,9 +316,8 @@ const de: Translation = {
     'Automatische Portweiterleitung fehlgeschlagen. Leiten Sie TCP-Port {port} in der Router-Verwaltung an diesen Rechner weiter und verwenden Sie dann diese Adresse:',
   'remote.publicFailed': 'Der Router ließ sich nicht automatisch einrichten. Tailscale ist die zuverlässige Alternative.',
   'remote.methodsTitle': 'Verbindungsarten',
+  'remote.methodsHint': 'Wählen Sie, wie sich das Telefon verbindet, und tragen Sie die angezeigte Adresse in der App ein.',
   'remote.sameDesc': 'Das Telefon verbindet sich direkt mit dem Desktop — zum Beispiel, wenn beide bei Tailscale angemeldet sind.',
-  'remote.badgeOn': 'Ein',
-  'remote.badgeOff': 'Aus',
   'remote.sameReady': 'Funktioniert, sobald das Telefon eine dieser Adressen erreicht.',
   'remote.sameWaiting': 'Der Server läuft noch nicht — diese Adressen werden aktiv, sobald er startet.',
   'remote.anyDesc': 'Von überall verbinden: Der Desktop öffnet den Port automatisch am Router (UPnP). Kein VPN nötig.',

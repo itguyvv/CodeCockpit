@@ -305,7 +305,6 @@ const ptBR: Translation = {
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'O Windows pode pedir permissão de acesso à rede na primeira vez que o servidor inicia — aprove, ou o acesso remoto ficará bloqueado.',
   'remote.publicTitle': 'Qualquer rede',
-  'remote.publicToggle': 'Permitir conexões de qualquer rede',
   'remote.publicHint':
     'Abre a porta no seu roteador automaticamente (UPnP) — sem configuração manual. Para descobrir seu endereço público, consulta dois servidores STUN públicos: Cloudflare (global) e Xiaomi (China). O segredo de pareamento é a única proteção: guarde-o bem.',
   'remote.publicWorking': 'Detectando o roteador e o endereço público…',
@@ -318,9 +317,8 @@ const ptBR: Translation = {
     'O mapeamento automático de portas falhou. Redirecione a porta TCP {port} para este computador na administração do roteador e use este endereço:',
   'remote.publicFailed': 'Não foi possível configurar o roteador automaticamente. O Tailscale é a alternativa confiável.',
   'remote.methodsTitle': 'Formas de conexão',
+  'remote.methodsHint': 'Escolha como o celular vai se conectar e informe no app o endereço exibido.',
   'remote.sameDesc': 'O celular se conecta diretamente ao desktop — por exemplo, quando ambos estão no Tailscale.',
-  'remote.badgeOn': 'Ativo',
-  'remote.badgeOff': 'Inativo',
   'remote.sameReady': 'Funciona assim que o celular alcançar um destes endereços.',
   'remote.sameWaiting': 'O servidor ainda não está em execução — estes endereços ficam ativos quando ele iniciar.',
   'remote.anyDesc': 'Conecte-se de qualquer lugar: o desktop abre a porta no roteador automaticamente (UPnP). Sem VPN.',

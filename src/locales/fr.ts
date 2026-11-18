@@ -306,7 +306,6 @@ const fr: Translation = {
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'Windows peut demander lautorisation daccès réseau au premier démarrage du serveur — acceptez, sinon laccès à distance reste bloqué.',
   'remote.publicTitle': 'Tous les réseaux',
-  'remote.publicToggle': 'Autoriser les connexions depuis tous les réseaux',
   'remote.publicHint':
     'Ouvre le port sur votre routeur automatiquement (UPnP) — aucune configuration manuelle. Pour trouver votre adresse publique, deux serveurs STUN publics sont interrogés : Cloudflare (mondial) et Xiaomi (Chine). Le secret dappairage est la seule protection du port, gardez-le secret.',
   'remote.publicWorking': 'Détection du routeur et de l’adresse publique…',
@@ -319,9 +318,8 @@ const fr: Translation = {
     'La redirection de port automatique a échoué. Redirigez le port TCP {port} vers ce poste dans l’administration du routeur, puis utilisez cette adresse :',
   'remote.publicFailed': 'Impossible de configurer le routeur automatiquement. Tailscale reste la solution fiable.',
   'remote.methodsTitle': 'Modes de connexion',
+  'remote.methodsHint': 'Choisissez comment le téléphone se connecte, puis saisissez l’adresse affichée dans l’application.',
   'remote.sameDesc': 'Le téléphone se connecte directement au bureau — par exemple, quand tous deux sont sur Tailscale.',
-  'remote.badgeOn': 'Actif',
-  'remote.badgeOff': 'Inactif',
   'remote.sameReady': 'Fonctionne dès que le téléphone peut joindre une de ces adresses.',
   'remote.sameWaiting': 'Le serveur ne tourne pas encore — ces adresses deviennent actives à son démarrage.',
   'remote.anyDesc': 'Connexion depuis partout : le bureau ouvre son port sur le routeur automatiquement (UPnP). Sans VPN.',

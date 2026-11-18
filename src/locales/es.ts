@@ -305,7 +305,6 @@ const es: Translation = {
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint': 'Windows puede pedir permiso de acceso a la red la primera vez que arranca el servidor: acéptalo o el acceso remoto quedará bloqueado.',
   'remote.publicTitle': 'Cualquier red',
-  'remote.publicToggle': 'Permitir conexiones desde cualquier red',
   'remote.publicHint':
     'Abre el puerto en tu router automáticamente (UPnP), sin configuración manual. Para hallar tu dirección pública consulta dos servidores STUN públicos: Cloudflare (global) y Xiaomi (China). El secreto de emparejamiento es la única barrera: guárdalo bien.',
   'remote.publicWorking': 'Detectando el router y la dirección pública…',
@@ -318,9 +317,8 @@ const es: Translation = {
     'El mapeo automático de puertos falló. Redirige el puerto TCP {port} a este equipo en la administración del router y usa esta dirección:',
   'remote.publicFailed': 'No se pudo configurar el router automáticamente. Tailscale es la alternativa fiable.',
   'remote.methodsTitle': 'Métodos de conexión',
+  'remote.methodsHint': 'Elige cómo se conectará el teléfono e introduce en la app la dirección que se muestre.',
   'remote.sameDesc': 'El teléfono se conecta directamente al escritorio — por ejemplo, cuando ambos están en Tailscale.',
-  'remote.badgeOn': 'Activo',
-  'remote.badgeOff': 'Inactivo',
   'remote.sameReady': 'Funciona en cuanto el teléfono alcanza una de estas direcciones.',
   'remote.sameWaiting': 'El servidor aún no está en marcha — estas direcciones se activan cuando arranque.',
   'remote.anyDesc': 'Conéctate desde cualquier lugar: el escritorio abre su puerto en el router automáticamente (UPnP). Sin VPN.',

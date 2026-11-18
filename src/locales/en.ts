@@ -305,7 +305,6 @@ const en = {
   'remote.firewallHint':
     'Windows may ask to allow network access the first time the server starts — approve it, or remote access stays blocked.',
   'remote.publicTitle': 'Any network',
-  'remote.publicToggle': 'Allow connections from any network',
   'remote.publicHint':
     'Opens the port on your router automatically (UPnP) — no manual configuration. To find your public address it queries two public STUN servers: Cloudflare (global) and Xiaomi (China). Your pairing secret is the only thing guarding the port, so keep it private.',
   'remote.publicWorking': 'Detecting your router and public address…',
@@ -318,9 +317,8 @@ const en = {
     'Automatic port mapping failed. Forward TCP port {port} to this computer in your router admin page, then use this address:',
   'remote.publicFailed': 'Could not reach the router automatically. Tailscale is the reliable fallback.',
   'remote.methodsTitle': 'How to connect',
+  'remote.methodsHint': 'Pick how your phone will connect, then enter the address shown below in the app.',
   'remote.sameDesc': 'The phone connects to the desktop directly — for example, when both are signed in to Tailscale.',
-  'remote.badgeOn': 'On',
-  'remote.badgeOff': 'Off',
   'remote.sameReady': 'Works as soon as the phone can reach one of these addresses.',
   'remote.sameWaiting': 'The server is not running yet — these addresses go live once it starts.',
   'remote.anyDesc': 'Connect from anywhere: the desktop opens its port on your router automatically (UPnP). No VPN needed.',

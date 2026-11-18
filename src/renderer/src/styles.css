@@ -1728,65 +1728,67 @@ input:focus {
 
 /* ── Remote connection methods ── */
 .remote-methods {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 8px 0;
 }
 
-.remote-method {
-  min-width: 0;
+.remote-option {
+  display: flex;
+  gap: 10px;
   padding: 12px 14px;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 8px;
+  cursor: pointer;
 }
 
-.remote-method.on {
+.remote-option.selected {
+  background: var(--bg3);
   border-color: rgba(223, 225, 232, 0.18);
 }
 
-.remote-method-head {
+.remote-option-dot {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(223, 225, 232, 0.35);
+  flex-shrink: 0;
+}
+
+.remote-option.selected .remote-option-dot {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 4px, transparent 4.5px);
+}
+
+.remote-option-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.remote-option-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
 }
 
-.remote-method-icon {
-  width: 16px;
-  height: 16px;
+.remote-option-icon {
+  width: 15px;
+  height: 15px;
   color: var(--fg-dim, #8b8fa3);
   flex-shrink: 0;
 }
 
-.remote-method.on .remote-method-icon {
+.remote-option.selected .remote-option-icon {
   color: var(--accent);
 }
 
-.remote-method-name {
+.remote-option-name {
   font-size: 13px;
   font-weight: 600;
   color: #dfe1e8;
-}
-
-.remote-method-badge {
-  margin-left: auto;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(223, 225, 232, 0.55);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-}
-
-.remote-method-badge.active {
-  color: var(--ok);
-  background: rgba(87, 171, 90, 0.12);
-  border-color: rgba(87, 171, 90, 0.35);
 }
 
 .remote-method-desc {
