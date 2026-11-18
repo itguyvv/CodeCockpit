@@ -283,7 +283,10 @@ const api = {
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void): Unsubscribe =>
     on('remote:event', (p) => cb(p as { kind: string; name?: string })),
   onRemotePublic: (cb: (status: unknown) => void): Unsubscribe =>
-    on('remote:public', (p) => cb(p))
+    on('remote:public', (p) => cb(p)),
+  linkBridgeSend: (evt: unknown): Promise<void> => ipcRenderer.invoke('link-bridge:evt', evt),
+  onLinkBridgeCommand: (cb: (cmd: unknown) => void): Unsubscribe =>
+    on('link-bridge:cmd', (p) => cb(p))
 }
 
 contextBridge.exposeInMainWorld('api', api)

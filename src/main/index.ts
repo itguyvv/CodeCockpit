@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
 import { execFile } from 'node:child_process'
+import crypto from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -51,6 +52,7 @@ import {
   stopRemote
 } from './services/remoteServer'
 import { publicStatus, startPublicAccess, stopPublicAccess } from './services/publicAccess'
+import { disableLink, enableLink, linkStatus } from './services/linkBridge'
 
 interface AppSettings {
   lastCwd?: string
@@ -75,6 +77,12 @@ interface AppSettings {
   remotePort?: number
   /** Opt-in: publish the remote server to the internet via UPnP/NAT-PMP; missing = off */
   remotePublicEnabled?: boolean
+  /** Link mode (numeric ID + WebRTC); missing = off */
+  remoteLinkEnabled?: boolean
+  /** 8-digit public rendezvous ID for link mode; generated on first enable */
+  remoteLinkId?: string
+  /** Signaling worker base URL; empty = link mode unavailable */
+  remoteLinkServer?: string
 }
 
 let win: BrowserWindow | null = null
@@ -100,6 +108,37 @@ function rememberCwd(cwd: string): void {
 function writeSettings(patch: Record<string, unknown>): void {
   const next = { ...readSettings(), ...patch }
   writeJsonAtomic(dataFile('settings.json'), next)
+}
+
+function newLinkId(): string {
+  return crypto.randomInt(10_000_000, 100_000_000).toString()
+}
+
+function startLink(): void {
+  const s = readSettings()
+  const server = (s.remoteLinkServer ?? '').trim()
+  if (!server) {
+    for (const w of BrowserWindow.getAllWindows()) {
+      w.webContents.send('remote:link', { state: 'offline', linkId: '', enabled: true })
+    }
+    return
+  }
+  let id = s.remoteLinkId ?? ''
+  if (!/^\d{8}$/.test(id)) {
+    id = newLinkId()
+    writeSettings({ remoteLinkId: id })
+  }
+  enableLink({
+    server,
+    secret: getRemoteSecret(),
+    linkId: id,
+    rotateId: (taken: string) => {
+      void taken
+      const next = newLinkId()
+      writeSettings({ remoteLinkId: next })
+      return next
+    }
+  })
 }
 
 function registerIpc(): void {
@@ -235,7 +274,11 @@ function registerIpc(): void {
       devices: listRemoteDevices(),
       clientCount: remoteClientCount(),
       publicEnabled: s.remotePublicEnabled === true,
-      public: publicStatus()
+      public: publicStatus(),
+      linkEnabled: s.remoteLinkEnabled === true,
+      linkId: s.remoteLinkId ?? '',
+      linkServer: s.remoteLinkServer ?? '',
+      link: linkStatus()
     }
   })
   ipcMain.handle('remote:setEnabled', async (_e, on: boolean) => {
@@ -244,7 +287,9 @@ function registerIpc(): void {
     if (on) {
       await startRemote(port)
       if (readSettings().remotePublicEnabled) void startPublicAccess(port)
+      if (readSettings().remoteLinkEnabled) startLink()
     } else {
+      disableLink()
       void stopPublicAccess()
       stopRemote()
     }
@@ -271,7 +316,25 @@ function registerIpc(): void {
     else if (!enabled) void stopPublicAccess()
     return publicStatus()
   })
-  ipcMain.handle('remote:regenerateSecret', () => regenerateRemoteSecret())
+  ipcMain.handle('remote:setLinkEnabled', async (_e, on: boolean) => {
+    const enabled = on === true
+    writeSettings({ remoteLinkEnabled: enabled })
+    if (enabled && remoteRunning()) startLink()
+    else disableLink()
+    return linkStatus()
+  })
+  ipcMain.handle('remote:setLinkServer', async (_e, url: string) => {
+    const clean = String(url ?? '').trim().replace(/\/+$/, '')
+    writeSettings({ remoteLinkServer: clean })
+    if (readSettings().remoteLinkEnabled && remoteRunning()) startLink()
+    return clean
+  })
+  ipcMain.handle('remote:regenerateSecret', () => {
+    const next = regenerateRemoteSecret()
+    // Link registration keys derive from the secret; re-register under the new one
+    if (readSettings().remoteLinkEnabled && remoteRunning()) startLink()
+    return next
+  })
   ipcMain.handle('remote:getSecret', () => getRemoteSecret())
   ipcMain.handle('remote:listDevices', () => listRemoteDevices())
   ipcMain.handle('remote:revokeDevice', (_e, tokenHash: string) => revokeRemoteDevice(String(tokenHash ?? '')))
@@ -705,9 +768,12 @@ app.whenReady().then(() => {
   createWindow()
   if (readSettings().remoteEnabled) {
     const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
-    void startRemote(port).then(() => {
-      if (readSettings().remotePublicEnabled) void startPublicAccess(port)
-    })
+    void startRemote(port)
+      .then(() => {
+        if (readSettings().remotePublicEnabled) void startPublicAccess(port)
+        if (readSettings().remoteLinkEnabled) startLink()
+      })
+      .catch((e) => console.log('[remote] failed to start:', String(e)))
   }
   if (readSettings().checkUpdates !== false) setTimeout(checkForUpdate, 10_000)
   app.on('activate', () => {
@@ -723,6 +789,7 @@ app.on('window-all-closed', () => {
 // will-quit runs only after every window closed for real (a cancelled exit dialog must
 // not have killed the PTYs already, which is what before-quit would do)
 app.on('will-quit', () => {
+  disableLink()
   void stopPublicAccess()
   stopRemote()
   shutdownAll()

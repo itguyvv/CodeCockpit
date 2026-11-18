@@ -145,6 +145,12 @@ export interface AppSettings {
   remotePort?: number
   /** Opt-in: publish the remote server to the internet via UPnP/NAT-PMP; missing = off */
   remotePublicEnabled?: boolean
+  /** Link mode (numeric ID + WebRTC); missing = off */
+  remoteLinkEnabled?: boolean
+  /** 8-digit public rendezvous ID for link mode */
+  remoteLinkId?: string
+  /** Signaling worker base URL; empty = link mode unavailable */
+  remoteLinkServer?: string
 }
 
 export interface UpdateStatus {
@@ -175,6 +181,13 @@ export interface PublicAccessStatus {
   reason: string
 }
 
+export interface LinkStatus {
+  enabled: boolean
+  online: boolean
+  state: 'off' | 'connecting' | 'online' | 'offline'
+  linkId: string
+}
+
 export interface RemoteState {
   enabled: boolean
   running: boolean
@@ -185,6 +198,10 @@ export interface RemoteState {
   clientCount: number
   publicEnabled: boolean
   public: PublicAccessStatus
+  linkEnabled: boolean
+  linkId: string
+  linkServer: string
+  link: LinkStatus
 }
 
 export interface WorkbenchApi {
@@ -262,6 +279,10 @@ export interface WorkbenchApi {
   onRemoteClients: (cb: (count: number) => void) => () => void
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void) => () => void
   onRemotePublic: (cb: (status: PublicAccessStatus) => void) => () => void
+  remoteSetLinkEnabled: (on: boolean) => Promise<LinkStatus>
+  remoteSetLinkServer: (url: string) => Promise<string>
+  linkBridgeSend: (evt: unknown) => Promise<void>
+  onLinkBridgeCommand: (cb: (cmd: unknown) => void) => () => void
 }
 
 declare global {

@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CodeCockpit link debug (phone simulator)</title>
+<style>
+  body { font: 13px/1.5 monospace; background: #14161a; color: #d4d4d4; margin: 24px; }
+  h1 { font-size: 15px; color: #9cdcfe; }
+  label { display: inline-block; width: 110px; color: #9cdcfe; }
+  input { width: 320px; background: #1e1e1e; color: #d4d4d4; border: 1px solid #333; padding: 4px 6px; }
+  button { background: #0e639c; color: #fff; border: 0; padding: 6px 14px; margin: 8px 6px 8px 0; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #log { background: #1e1e1e; border: 1px solid #333; height: 300px; overflow-y: auto; padding: 8px; white-space: pre-wrap; }
+  .ok { color: #4ec9b0; } .err { color: #f48771; } .dim { color: #808080; }
+  #sessions { background: #1e1e1e; border: 1px solid #333; padding: 8px; margin-top: 8px; }
+  .row { padding: 2px 0; cursor: pointer; } .row:hover { background: #264f78; }
+</style>
+</head>
+<body>
+<h1>CodeCockpit link debug — simulates the phone side</h1>
+<div>
+  <label>Signaling</label><input id="server" value="http://127.0.0.1:8787">
+</div>
+<div>
+  <label>Device ID</label><input id="devid" placeholder="8 digits">
+</div>
+<div>
+  <label>Secret</label><input id="secret" placeholder="pairing secret">
+</div>
+<div>
+  <button id="btnConn">Connect</button>
+  <button id="btnDisc" disabled>Disconnect</button>
+  <span id="state" class="dim">idle</span>
+</div>
+<div id="sessions"></div>
+<div>
+  <input id="cmd" placeholder="terminal input, Enter sends" style="width:480px" disabled>
+</div>
+<div id="log"></div>
+<script>
+const $ = (id) => document.getElementById(id)
+const log = (msg, cls) => {
+  const d = document.createElement('div')
+  if (cls) d.className = cls
+  d.textContent = msg
+  $('log').appendChild(d)
+  $('log').scrollTop = $('log').scrollHeight
+}
+
+const CHUNK = 16384
+let sig = null
+let pc = null
+let dc = null
+let cid = null
+let buf = new Uint8Array(0)
+let attachedId = null
+
+function frame(msg) {
+  const payload = new TextEncoder().encode(msg)
+  const full = new Uint8Array(4 + payload.length)
+  new DataView(full.buffer).setUint32(0, payload.length, false)
+  full.set(payload, 4)
+  const out = []
+  for (let o = 0; o < full.length; o += CHUNK) out.push(full.subarray(o, Math.min(o + CHUNK, full.length)))
+  return out
+}
+
+function dcSend(msg) {
+  if (!dc || dc.readyState !== 'open') return
+  for (const c of frame(msg)) dc.send(c)
+}
+
+async function onFrame(chunk) {
+  const merged = new Uint8Array(buf.length + chunk.byteLength)
+  merged.set(buf)
+  merged.set(new Uint8Array(chunk instanceof ArrayBuffer ? chunk : chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength)), buf.length)
+  if (merged.length < 4) { buf = merged; return }
+  const want = new DataView(merged.buffer).getUint32(0, false)
+  if (merged.length < 4 + want) { buf = merged; return }
+  const msg = new TextDecoder().decode(merged.slice(4, 4 + want))
+  buf = merged.slice(4 + want)
+  let m
+  try { m = JSON.parse(msg) } catch { log('bad json: ' + msg.slice(0, 120), 'err'); return }
+  log('<< ' + msg.slice(0, 300), 'dim')
+  if (m.type === 'auth_ok') { log('authenticated, listing sessions', 'ok'); dcSend(JSON.stringify({ type: 'list' })) }
+  else if (m.type === 'auth_fail') log('AUTH FAILED: ' + m.reason, 'err')
+  else if (m.type === 'sessions') renderSessions(m.sessions || [])
+  else if (m.type === 'conv_snapshot') { attachedId = m.id; $('cmd').disabled = false; log('attached ' + m.id + ' (' + (m.messages || []).length + ' msgs)', 'ok') }
+  else if (m.type === 'conv_append') log('append[' + m.id + ']: ' + (m.messages || []).map((x) => x.t || x.type || '?').join(',').slice(0, 200), 'dim')
+  else if (m.type === 'error') log('error: ' + m.message, 'err')
+}
+
+function renderSessions(list) {
+  const box = $('sessions')
+  box.innerHTML = ''
+  log('sessions: ' + list.length, 'ok')
+  for (const s of list) {
+    const d = document.createElement('div')
+    d.className = 'row'
+    d.textContent = (s.title || s.id) + '  [' + (s.engine || '?') + ' / ' + (s.mode || '?') + ']  ' + s.id.slice(0, 8)
+    d.onclick = () => { dcSend(JSON.stringify({ type: 'attach', id: s.id })); log('attaching ' + s.id, 'ok') }
+    box.appendChild(d)
+  }
+}
+
+async function connect() {
+  const server = $('server').value.trim().replace(/\/+$/, '')
+  const id = $('devid').value.trim()
+  const secret = $('secret').value.trim()
+  if (!/^\d{8}$/.test(id) || !secret) { log('need ID + secret', 'err'); return }
+  $('state').textContent = 'joining'
+  let iceServers = []
+  try {
+    const r = await fetch(server + '/ice')
+    iceServers = (await r.json()).iceServers || []
+    log('ice servers: ' + JSON.stringify(iceServers), 'dim')
+  } catch (e) { log('ice fetch failed: ' + e.message, 'err') }
+
+  sig = new WebSocket(server.replace(/^http/, 'ws') + '/ws?role=client&id=' + encodeURIComponent(id))
+  sig.onopen = () => log('signaling connected', 'ok')
+  sig.onclose = (ev) => { log('signaling closed ' + ev.code + ' ' + ev.reason, 'err'); $('state').textContent = 'closed' }
+  sig.onerror = () => log('signaling error (offline or bad id?)', 'err')
+  sig.onmessage = async (ev) => {
+    const f = JSON.parse(ev.data)
+    log('sig << ' + ev.data.slice(0, 200), 'dim')
+    if (f.t === 'joined') {
+      cid = f.cid
+      $('state').textContent = 'joined ' + cid.slice(0, 8)
+      // Phone is the initiator: create the offer and relay it through signaling
+      pc = new RTCPeerConnection({ iceServers })
+      pc.onicecandidate = (e) => { if (e.candidate) sig.send(JSON.stringify({ t: 'ice', data: e.candidate.toJSON(), cid })) }
+      pc.onconnectionstatechange = () => log('pc: ' + pc.connectionState, 'dim')
+      // The initiator must create the data channel BEFORE the offer, or the
+      // SDP carries no m=application section and the desktop cannot answer one.
+      dc = pc.createDataChannel('cc')
+      dc.binaryType = 'arraybuffer'
+      dc.onopen = () => { log('datachannel OPEN', 'ok'); $('state').textContent = 'dc open'; $('btnDisc').disabled = false
+        dcSend(JSON.stringify({ type: 'auth', secret: $('secret').value.trim(), name: 'DebugPhone' })) }
+      dc.onclose = () => { log('datachannel closed', 'err'); $('state').textContent = 'dc closed'; $('cmd').disabled = true }
+      dc.onmessage = (me) => onFrame(me.data)
+      const offer = await pc.createOffer()
+      await pc.setLocalDescription(offer)
+      sig.send(JSON.stringify({ t: 'offer', data: { type: offer.type, sdp: offer.sdp }, cid }))
+      log('offer sent', 'ok')
+    } else if (f.t === 'answer') {
+      $('state').textContent = 'got answer'
+      await pc.setRemoteDescription(new RTCSessionDescription(f.data))
+      log('remote description set', 'ok')
+    } else if (f.t === 'ice') {
+      try { await pc.addIceCandidate(new RTCIceCandidate(f.data)) } catch (e) { log('ice err ' + e.message, 'err') }
+    } else if (f.t === 'close' || f.t === 'offline') {
+      log('remote: ' + f.t, 'err'); if (pc) pc.close(); $('state').textContent = f.t
+    }
+  }
+}
+
+function disconnect() {
+  try { dc && dc.close(); pc && pc.close(); sig && sig.close() } catch {}
+  dc = null; pc = null; sig = null; buf = new Uint8Array(0); attachedId = null
+  $('cmd').disabled = true; $('btnDisc').disabled = true; $('state').textContent = 'idle'
+}
+
+$('btnConn').onclick = () => connect()
+$('btnDisc').onclick = () => disconnect()
+$('cmd').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && attachedId) {
+    const data = $('cmd').value
+    $('cmd').value = ''
+    dcSend(JSON.stringify({ type: 'input', id: attachedId, data }))
+    log('>> input: ' + data, 'dim')
+  }
+})
+log('ready — fill in ID + secret (shown in desktop settings), then Connect', 'dim')
+</script>
+</body>
+</html>

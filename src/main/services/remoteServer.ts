@@ -252,12 +252,24 @@ export async function startRemote(port = DEFAULT_REMOTE_PORT): Promise<void> {
   const srv = https.createServer({ key, cert })
   const pool = new WebSocketServer({ server: srv, maxPayload: 1024 * 1024 })
   pool.on('connection', (ws, req) => onConnection(ws, req))
-  srv.listen(port, '0.0.0.0', () => {
-    runningPort = (srv.address() as { port: number }).port
-  })
   srv.on('error', () => {
     // Port taken / listener dropped — surface as stopped; the settings tab polls remoteState
     stopRemote()
+  })
+  // Await the bind so callers can tell "running" from "port taken" before linking
+  await new Promise<void>((resolve, reject) => {
+    const onUp = (): void => {
+      srv.off('error', onErr)
+      runningPort = (srv.address() as { port: number }).port
+      resolve()
+    }
+    const onErr = (e: Error): void => {
+      srv.off('listening', onUp)
+      reject(e)
+    }
+    srv.once('listening', onUp)
+    srv.once('error', onErr)
+    srv.listen(port, '0.0.0.0')
   })
   server = srv
   wss = pool
