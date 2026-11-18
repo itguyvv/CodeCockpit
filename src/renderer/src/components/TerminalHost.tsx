@@ -132,6 +132,10 @@ const KEYDOWN_FRESH_MS = 300
 const QUIET_EMOJI_MS = 350
 const QUIET_VOICE_MS = 2500
 const QUIET_SHRINK_MS = 400
+// A voice compositionend IS the commit: its value is already the final transcription. Flush it
+// after this quiet gap; if the IME still does a delete+insert finalize right after, the shrink
+// path re-arms and only the final text goes out.
+const QUIET_COMMIT_MS = 500
 const CJK_RE = /[\u{3000}-\u{9fff}\u{3040}-\u{30ff}\u{ac00}-\u{d7af}]/u
 
 function installImeAnchor(term: Terminal): void {
@@ -184,7 +188,9 @@ function installImeAnchor(term: Terminal): void {
   // from the live textarea value, so IME deletes shrink it automatically.
   let holdPrefix: string | null = null
   let compActive = false
-  let compKeyDownSeen = false
+  // Composition that started with no recent keydown is dictation (voice/ASR): hide its interim
+  // updates entirely (CMD-like — nothing appears until the final text commits)
+  let compIsVoice = false
   let compStartValue = ''
   let compositionEndAt = 0
   let lastCompKeyboardDriven = false
@@ -269,18 +275,30 @@ function installImeAnchor(term: Terminal): void {
     // otherwise keep the keyboard-freshness gate closed and hide the voice flow
     if ((ev as KeyboardEvent).repeat) return
     lastKeyDownAt = Date.now()
-    if (compActive) compKeyDownSeen = true
     // Flush held text before the keystroke is processed so the ordering is preserved
     flush()
+    // IME-synthetic non-composition keydowns (WeChat voice release fires key='Unidentified'
+    // keyCode 252): xterm's CompositionHelper treats any non-229 keydown during composition as
+    // "commit now" and sends the interim text to the PTY — block it and let the real
+    // compositionend drive the commit
+    if (compActive && (ev as KeyboardEvent).key === 'Unidentified' &&
+        ![16, 17, 18, 20, 229].includes((ev as KeyboardEvent).keyCode)) {
+      ev.stopPropagation()
+    }
   }, true)
 
   host.addEventListener('compositionstart', () => {
     compActive = true
-    compKeyDownSeen = false
+    compIsVoice = Date.now() - lastKeyDownAt > KEYDOWN_FRESH_MS
     compStartValue = ta.value
     // A composition starting while text is held is the dictation finalize (a second composition
     // redoing the interim text): keep the same hold prefix — the held text is re-derived from
     // the value, so the composition's replacement flows through automatically
+  }, true)
+
+  host.addEventListener('compositionupdate', (ev) => {
+    // Dictation interim must stay invisible (xterm's composition view would display it)
+    if (compIsVoice) ev.stopPropagation()
   }, true)
 
   host.addEventListener('compositionend', (ev) => {
@@ -289,7 +307,10 @@ function installImeAnchor(term: Terminal): void {
     // own textarea-level compositionend handler never runs
     while (restore.length) restore.pop()?.()
     compositionEndAt = Date.now()
-    const keyboardDriven = compKeyDownSeen || Date.now() - lastKeyDownAt <= KEYDOWN_FRESH_MS
+    // Keyboard compositions always commit through xterm's own compositionend path; voice
+    // compositions commit through the hold engine below (their release keydowns are IME noise)
+    const keyboardDriven = !compIsVoice
+    compIsVoice = false
     lastCompKeyboardDriven = keyboardDriven
     if (holdPrefix !== null) {
       resetXtermComposition()
@@ -298,9 +319,8 @@ function installImeAnchor(term: Terminal): void {
       return
     }
     if (!keyboardDriven) {
-      // Voice-style composition (no keyboard involved): hold what it added instead of letting
-      // xterm send the textarea value at once — dictation IMEs usually delete/replace the
-      // committed text right after
+      // Voice-style composition: hold what it added instead of letting xterm send the textarea
+      // value at once — this compositionend is the commit, so flush shortly after it settles
       const pre = compStartValue
       const cur = ta.value
       let p = 0
@@ -310,7 +330,7 @@ function installImeAnchor(term: Terminal): void {
       anchorAtCursor()
       showHold()
       sawShrink = false
-      scheduleFlush(QUIET_VOICE_MS)
+      scheduleFlush(QUIET_COMMIT_MS)
       resetXtermComposition()
       ev.stopPropagation()
     }
