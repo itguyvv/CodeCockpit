@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import https from 'node:https'
+import type { IncomingMessage } from 'node:http'
 import crypto from 'node:crypto'
 import os from 'node:os'
 import fs from 'node:fs'
@@ -38,6 +39,13 @@ function newSecret(): string {
   return crypto.randomBytes(16).toString('hex')
 }
 
+/** Constant-time comparison of two same-purpose hex digests (auth inputs are attacker-visible) */
+function digestEq(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'utf-8')
+  const bb = Buffer.from(b, 'utf-8')
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb)
+}
+
 function loadAuth(): RemoteAuth {
   try {
     const a = JSON.parse(fs.readFileSync(dataFile('remote-auth.json'), 'utf-8')) as RemoteAuth
@@ -71,7 +79,7 @@ export function regenerateRemoteSecret(): string {
   a.devices = []
   saveAuth(a)
   for (const c of clients) {
-    if (c.authed) c.ws.close()
+    if (c.authed) c.tr.close()
   }
   return a.secret
 }
@@ -83,7 +91,7 @@ export function revokeRemoteDevice(tokenHash: string): boolean {
   if (a.devices.length === before) return false
   saveAuth(a)
   for (const c of clients) {
-    if (c.authed && c.tokenHash === tokenHash) c.ws.close()
+    if (c.authed && c.tokenHash === tokenHash) c.tr.close()
   }
   return true
 }
@@ -159,8 +167,34 @@ const AUTH_WINDOW_MS = 10_000
 const MAX_FAILS = 5
 const FAIL_BAN_MS = 60_000
 
+/**
+ * A remote client rides on either a direct WSS socket or a WebRTC DataChannel
+ * (link mode). The protocol layer only sees this interface; the same JSON
+ * message handling applies to both.
+ */
+export interface RemoteTransport {
+  /** Stable key for logs and the auth-failure ban map, e.g. 'ws:1.2.3.4' or 'link:<cid>' */
+  id(): string
+  send(data: string): void
+  close(): void
+  isOpen(): boolean
+  onData(cb: (data: string) => void): void
+  onClose(cb: () => void): void
+}
+
+function wrapWs(ws: WebSocket, ip: string): RemoteTransport {
+  return {
+    id: () => `ws:${ip}`,
+    send: (data) => ws.send(data),
+    close: () => ws.close(),
+    isOpen: () => ws.readyState === WebSocket.OPEN,
+    onData: (cb) => ws.on('message', (data) => cb(String(data))),
+    onClose: (cb) => ws.on('close', () => cb())
+  }
+}
+
 interface ClientCtx {
-  ws: WebSocket
+  tr: RemoteTransport
   authed: boolean
   tokenHash: string
   attached: Set<string>
@@ -168,7 +202,7 @@ interface ClientCtx {
 }
 
 const clients = new Set<ClientCtx>()
-/** Auth failures per peer IP: n = fails in the current window, until = ban deadline, at = last fail */
+/** Auth failures per transport identity: n = fails in the current window, until = ban deadline, at = last fail */
 const failLog = new Map<string, { n: number; until: number; at: number }>()
 
 let server: https.Server | null = null
@@ -202,7 +236,7 @@ function notifyWindows(channel: string, payload: unknown): void {
 }
 
 function sendTo(c: ClientCtx, msg: Record<string, unknown>): void {
-  if (c.ws.readyState === WebSocket.OPEN) c.ws.send(JSON.stringify(msg))
+  if (c.tr.isOpen()) c.tr.send(JSON.stringify(msg))
 }
 
 function sendAttached(sessionId: string, msg: Record<string, unknown>): void {
@@ -217,7 +251,7 @@ export async function startRemote(port = DEFAULT_REMOTE_PORT): Promise<void> {
   const { key, cert } = await ensureCert()
   const srv = https.createServer({ key, cert })
   const pool = new WebSocketServer({ server: srv, maxPayload: 1024 * 1024 })
-  pool.on('connection', (ws, req) => onConnection(ws, req.socket.remoteAddress ?? ''))
+  pool.on('connection', (ws, req) => onConnection(ws, req))
   srv.listen(port, '0.0.0.0', () => {
     runningPort = (srv.address() as { port: number }).port
   })
@@ -251,7 +285,7 @@ export function stopRemote(): void {
   unsubEvents?.()
   unsubConv = null
   unsubEvents = null
-  for (const c of clients) c.ws.close()
+  for (const c of clients) c.tr.close()
   clients.clear()
   wss?.close()
   server?.close()
@@ -261,39 +295,48 @@ export function stopRemote(): void {
   notifyWindows('remote:clients', { count: 0 })
 }
 
-function onConnection(ws: WebSocket, ip: string): void {
-  const ctx: ClientCtx = { ws, authed: false, tokenHash: '', attached: new Set() }
+/** Entry point for link-mode (WebRTC DataChannel) clients built by the link bridge */
+export function attachLinkClient(tr: RemoteTransport): void {
+  addClient(tr)
+}
+
+function addClient(tr: RemoteTransport): void {
+  const ctx: ClientCtx = { tr, authed: false, tokenHash: '', attached: new Set() }
   clients.add(ctx)
   ctx.authTimer = setTimeout(() => {
-    ws.close() // Never authenticated within the window — drop the connection
+    tr.close() // Never authenticated within the window — drop the connection
   }, AUTH_WINDOW_MS)
-  ws.on('message', (data) => {
+  tr.onData((data) => {
     let msg: Record<string, unknown>
     try {
-      msg = JSON.parse(String(data)) as Record<string, unknown>
+      msg = JSON.parse(data) as Record<string, unknown>
     } catch {
       return
     }
     try {
-      handleMessage(ctx, ip, msg)
+      handleMessage(ctx, msg)
     } catch {
       sendTo(ctx, { type: 'error', message: 'internal error' })
     }
   })
-  ws.on('close', () => {
+  tr.onClose(() => {
     if (ctx.authTimer) clearTimeout(ctx.authTimer)
     clients.delete(ctx)
     if (ctx.authed) notifyWindows('remote:clients', { count: authedCount() })
   })
 }
 
-function handleMessage(ctx: ClientCtx, ip: string, msg: Record<string, unknown>): void {
+function onConnection(ws: WebSocket, req: IncomingMessage): void {
+  addClient(wrapWs(ws, req.socket.remoteAddress ?? ''))
+}
+
+function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
   const type = msg.type
   if (type === 'ping') {
     sendTo(ctx, { type: 'pong' })
     return
   }
-  if (type === 'auth') return handleAuth(ctx, ip, msg)
+  if (type === 'auth') return handleAuth(ctx, msg)
   if (!ctx.authed) {
     sendTo(ctx, { type: 'error', message: 'auth required' })
     return
@@ -336,11 +379,12 @@ function handleMessage(ctx: ClientCtx, ip: string, msg: Record<string, unknown>)
   }
 }
 
-function handleAuth(ctx: ClientCtx, ip: string, msg: Record<string, unknown>): void {
-  const ban = failLog.get(ip)
+function handleAuth(ctx: ClientCtx, msg: Record<string, unknown>): void {
+  const peer = ctx.tr.id()
+  const ban = failLog.get(peer)
   if (ban && ban.until > Date.now()) {
     sendTo(ctx, { type: 'auth_fail', reason: 'banned' })
-    ctx.ws.close()
+    ctx.tr.close()
     return
   }
   const auth = loadAuth()
@@ -348,32 +392,32 @@ function handleAuth(ctx: ClientCtx, ip: string, msg: Record<string, unknown>): v
   const token = typeof msg.token === 'string' ? msg.token : ''
   const secret = typeof msg.secret === 'string' ? msg.secret : ''
   const ok = token
-    ? auth.devices.some((d) => d.tokenHash === sha256(token))
-    : secret && sha256(secret) === auth.secretHash
+    ? auth.devices.some((d) => digestEq(d.tokenHash, sha256(token)))
+    : secret !== '' && digestEq(sha256(secret), auth.secretHash)
   if (!ok) {
-    // Internet exposure invites scanners: keep the per-IP failure map bounded
+    // Internet exposure invites scanners: keep the per-peer failure map bounded
     const now = Date.now()
     if (failLog.size > 200) {
       for (const [k, v] of failLog) {
         if (v.until < now && now - v.at > FAIL_BAN_MS) failLog.delete(k)
       }
     }
-    const rec = failLog.get(ip) ?? { n: 0, until: 0, at: now }
+    const rec = failLog.get(peer) ?? { n: 0, until: 0, at: now }
     rec.n++
     rec.at = now
     if (rec.n >= MAX_FAILS) {
       rec.until = Date.now() + FAIL_BAN_MS
       rec.n = 0
     }
-    failLog.set(ip, rec)
+    failLog.set(peer, rec)
     sendTo(ctx, { type: 'auth_fail', reason: token ? 'bad_token' : 'bad_secret' })
-    ctx.ws.close()
+    ctx.tr.close()
     return
   }
-  failLog.delete(ip)
+  failLog.delete(peer)
   if (authedCount() >= MAX_CLIENTS) {
     sendTo(ctx, { type: 'auth_fail', reason: 'too_many_clients' })
-    ctx.ws.close()
+    ctx.tr.close()
     return
   }
   if (ctx.authTimer) clearTimeout(ctx.authTimer)
