@@ -117,9 +117,11 @@ function parseXorMappedAddress(buf: Buffer, txid: Buffer): string | null {
   while (off + 4 <= end) {
     const attr = buf.readUInt16BE(off)
     const alen = buf.readUInt16BE(off + 2)
-    if (attr === 0x0020 && alen >= 8 && buf[off + 5] === 0x01) {
-      // XOR-MAPPED-ADDRESS, family IPv4: address is XORed with the magic cookie
-      const ip = buf.readUInt32BE(off + 8) ^ MAGIC_COOKIE
+    // Accept XOR-MAPPED-ADDRESS (RFC 5389) and plain MAPPED-ADDRESS (RFC 3489 —
+    // e.g. Xiaomi's server replies with the latter); both carry family + IPv4
+    if ((attr === 0x0020 || attr === 0x0001) && alen >= 8 && buf[off + 5] === 0x01) {
+      let ip = buf.readUInt32BE(off + 8)
+      if (attr === 0x0020) ip ^= MAGIC_COOKIE // XOR flavor stores it obfuscated
       return `${(ip >>> 24) & 0xff}.${(ip >>> 16) & 0xff}.${(ip >>> 8) & 0xff}.${ip & 0xff}`
     }
     off += 4 + ((alen + 3) & ~3)
