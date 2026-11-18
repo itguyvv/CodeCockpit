@@ -125,8 +125,14 @@ const IS_MAC = /Mac/i.test(navigator.platform)
 const imeAnchored = new WeakSet<HTMLElement>()
 const DUPLICATE_INPUT_WINDOW_MS = 100
 const KEYDOWN_FRESH_MS = 300
-const FLUSH_FIRST_MS = 350
-const FLUSH_ONGOING_MS = 600
+// Flush delays. The dictation finalize (the IME deleting the interim text and inserting the
+// final transcription) can arrive seconds after the hold starts, so held text must NOT be sent
+// on a short timer — quiet-flush only applies to single symbol/emoji inserts, to text the IME
+// has rebuilt after a delete (the finalize signal), and to a long safety fallback.
+const QUIET_EMOJI_MS = 350
+const QUIET_VOICE_MS = 2500
+const QUIET_SHRINK_MS = 400
+const CJK_RE = /[\u{3000}-\u{9fff}\u{3040}-\u{30ff}\u{ac00}-\u{d7af}]/u
 
 function installImeAnchor(term: Terminal): void {
   const ta = term.textarea
@@ -182,6 +188,8 @@ function installImeAnchor(term: Terminal): void {
   let compStartValue = ''
   let compositionEndAt = 0
   let lastCompKeyboardDriven = false
+  let lastValueLen = ta.value.length
+  let sawShrink = false
 
   const held = (): string =>
     holdPrefix !== null && ta.value.startsWith(holdPrefix) ? ta.value.slice(holdPrefix.length) : ''
@@ -255,7 +263,11 @@ function installImeAnchor(term: Terminal): void {
 
   // Capture phase on the terminal element: these fire before xterm's own textarea listeners,
   // so intercepted events can be withheld from xterm entirely via stopPropagation.
-  host.addEventListener('keydown', () => {
+  host.addEventListener('keydown', (ev) => {
+    // Auto-repeat keydowns (holding a key) must not count as typing activity: hold-to-talk
+    // dictation IMEs keep the space bar pressed while recording, and their repeats would
+    // otherwise keep the keyboard-freshness gate closed and hide the voice flow
+    if ((ev as KeyboardEvent).repeat) return
     lastKeyDownAt = Date.now()
     if (compActive) compKeyDownSeen = true
     // Flush held text before the keystroke is processed so the ordering is preserved
@@ -266,13 +278,9 @@ function installImeAnchor(term: Terminal): void {
     compActive = true
     compKeyDownSeen = false
     compStartValue = ta.value
-    if (holdPrefix !== null) {
-      // The IME is redoing the held text (dictation finalizing via a second composition) —
-      // discard it unsent; the new composition will be held on its own compositionend
-      holdPrefix = null
-      clearHoldTimer()
-      hideHoldView()
-    }
+    // A composition starting while text is held is the dictation finalize (a second composition
+    // redoing the interim text): keep the same hold prefix — the held text is re-derived from
+    // the value, so the composition's replacement flows through automatically
   }, true)
 
   host.addEventListener('compositionend', (ev) => {
@@ -286,7 +294,7 @@ function installImeAnchor(term: Terminal): void {
     if (holdPrefix !== null) {
       resetXtermComposition()
       ev.stopPropagation()
-      scheduleFlush(FLUSH_ONGOING_MS)
+      if (!keyboardDriven) scheduleFlush(QUIET_VOICE_MS)
       return
     }
     if (!keyboardDriven) {
@@ -301,7 +309,8 @@ function installImeAnchor(term: Terminal): void {
       holdPrefix = cur.slice(0, p)
       anchorAtCursor()
       showHold()
-      scheduleFlush(FLUSH_ONGOING_MS)
+      sawShrink = false
+      scheduleFlush(QUIET_VOICE_MS)
       resetXtermComposition()
       ev.stopPropagation()
     }
@@ -323,10 +332,17 @@ function installImeAnchor(term: Terminal): void {
       return
     }
     if (holdPrefix !== null) {
-      // Value changed while holding — re-derive the surviving text and keep the view in sync
+      // Value changed while holding — re-derive the surviving text. Flush promptly only once
+      // the IME has rebuilt the text after a delete (the dictation finalize signal); while the
+      // transcription is still streaming or pending, no timer may fire — the final text can
+      // arrive seconds after the interim stopped.
+      if (e.inputType.startsWith('delete') || ta.value.length < lastValueLen) sawShrink = true
       showHold()
-      scheduleFlush(FLUSH_ONGOING_MS)
+      if (sawShrink) scheduleFlush(QUIET_SHRINK_MS)
+      else if (e.inputType === 'insertText' && e.data && !CJK_RE.test(e.data)) scheduleFlush(QUIET_EMOJI_MS)
+      else clearHoldTimer()
     }
+    lastValueLen = ta.value.length
     if (e.inputType !== 'insertText' || !e.data || compActive) return
     if (Date.now() - lastKeyDownAt <= KEYDOWN_FRESH_MS) return
     if (holdPrefix === null) {
@@ -337,7 +353,8 @@ function installImeAnchor(term: Terminal): void {
       holdPrefix = v.slice(0, v.length - e.data.length)
       anchorAtCursor()
       showHold()
-      scheduleFlush(FLUSH_FIRST_MS)
+      sawShrink = false
+      scheduleFlush(CJK_RE.test(e.data) ? QUIET_VOICE_MS : QUIET_EMOJI_MS)
     } else {
       e.stopPropagation()
     }
