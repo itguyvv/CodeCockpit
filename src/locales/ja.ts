@@ -83,6 +83,7 @@ const ja: Translation = {
   'ctx.pinProject': '📌 プロジェクトをピン留め',
   'ctx.unpinProject': '📌 プロジェクトのピン留めを解除',
   'ctx.projectRules': '📝 プロジェクトのルールファイル…',
+  'ctx.newSession': '✚ ここで新規セッション',
   'rules.title': '📝 ルールファイル',
   'rules.tabGlobalClaude': 'グローバル CLAUDE.md',
   'rules.tabGlobalOpencode': 'グローバル AGENTS.md',

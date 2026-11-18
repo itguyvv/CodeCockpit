@@ -82,6 +82,7 @@ const ko: Translation = {
   'ctx.pinProject': '📌 프로젝트 고정',
   'ctx.unpinProject': '📌 프로젝트 고정 해제',
   'ctx.projectRules': '📝 프로젝트 규칙 파일…',
+  'ctx.newSession': '✚ 여기서 새 세션',
   'rules.title': '📝 규칙 파일',
   'rules.tabGlobalClaude': '전역 CLAUDE.md',
   'rules.tabGlobalOpencode': '전역 AGENTS.md',

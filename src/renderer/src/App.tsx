@@ -266,6 +266,23 @@ function AppInner(): JSX.Element {
     [launch]
   )
 
+  // New session straight from a sidebar history group: apply the same defaults the
+  // new-session modal would pick (saved default mode/model + the engine's active provider)
+  const handleNewInDir = useCallback(
+    (cwd: string) => {
+      void Promise.all([window.api.getSettings(), window.api.providersList()]).then(([s, r]) => {
+        launch({
+          cwd,
+          mode: s.defaultMode || 'default',
+          model: engineTab === 'claude' ? s.defaultModel || '' : '',
+          engine: engineTab,
+          providerId: r.activeByEngine[engineTab] || 'builtin-default'
+        })
+      })
+    },
+    [launch, engineTab]
+  )
+
   const handleResume = useCallback(
     (ns: NativeSessionInfo) => {
       const engine: EngineId = ns.engine ?? (ns.sessionId.startsWith('ses_') ? 'opencode' : 'claude')
@@ -514,6 +531,7 @@ function AppInner(): JSX.Element {
             onSetAlias={handleSetAlias}
             onPinProject={handlePinProject}
             onProjectRules={(cwd) => setShowRules({ projectCwd: cwd })}
+            onNewSession={handleNewInDir}
             onDelete={handleDelete}
             onRemoveActive={handleRemoveActive}
             onRemoveAllActive={handleRemoveAllActive}

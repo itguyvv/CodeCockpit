@@ -87,6 +87,7 @@ const ptBR: Translation = {
   'ctx.pinProject': '📌 Fixar projeto',
   'ctx.unpinProject': '📌 Desafixar projeto',
   'ctx.projectRules': '📝 Regras do projeto…',
+  'ctx.newSession': '✚ Nova sessão aqui',
   'rules.title': '📝 Arquivos de regras',
   'rules.tabGlobalClaude': 'CLAUDE.md global',
   'rules.tabGlobalOpencode': 'AGENTS.md global',

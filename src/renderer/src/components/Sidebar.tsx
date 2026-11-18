@@ -70,6 +70,8 @@ interface Props {
   onPinProject: (cwd: string, pinned: boolean) => void
   /** Open the rule-file editor on this project's CLAUDE.md / AGENTS.md */
   onProjectRules: (cwd: string) => void
+  /** Start (and switch to) a fresh session in this group's directory */
+  onNewSession: (cwd: string) => void
   /** Normalized cwd → pinned state (for the group menu label) */
   pinnedProjects: Record<string, boolean>
   onDelete: (claudeSessionId: string) => void
@@ -98,6 +100,7 @@ export default function Sidebar({
   onSetAlias,
   onPinProject,
   onProjectRules,
+  onNewSession,
   pinnedProjects,
   onDelete,
   onRemoveActive,
@@ -523,6 +526,14 @@ export default function Sidebar({
         >
           {menu.kind === 'group' ? (
             <>
+              <button
+                onClick={() => {
+                  onNewSession(menu.cwd)
+                  setMenu(null)
+                }}
+              >
+                {t('ctx.newSession')}
+              </button>
               <button
                 onClick={() => {
                   setAliasing({ cwd: menu.cwd, initial: aliases[normalizeCwd(menu.cwd, isWin)] ?? '' })

@@ -79,6 +79,7 @@ const zhTW: Translation = {
   'ctx.pinProject': '📌 釘選專案',
   'ctx.unpinProject': '📌 取消釘選專案',
   'ctx.projectRules': '📝 專案規則檔案…',
+  'ctx.newSession': '✚ 在此新增會話',
   'rules.title': '📝 規則檔案',
   'rules.tabGlobalClaude': '全域 CLAUDE.md',
   'rules.tabGlobalOpencode': '全域 AGENTS.md',

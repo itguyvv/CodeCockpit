@@ -84,6 +84,7 @@ const en = {
   'ctx.pinProject': '📌 Pin project',
   'ctx.unpinProject': '📌 Unpin project',
   'ctx.projectRules': '📝 Project rules…',
+  'ctx.newSession': '✚ New session here',
   'rules.title': '📝 Rule files',
   'rules.tabGlobalClaude': 'Global CLAUDE.md',
   'rules.tabGlobalOpencode': 'Global AGENTS.md',

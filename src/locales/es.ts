@@ -87,6 +87,7 @@ const es: Translation = {
   'ctx.pinProject': '📌 Fijar proyecto',
   'ctx.unpinProject': '📌 Quitarlo de fijados',
   'ctx.projectRules': '📝 Reglas del proyecto…',
+  'ctx.newSession': '✚ Nueva sesión aquí',
   'rules.title': '📝 Archivos de reglas',
   'rules.tabGlobalClaude': 'CLAUDE.md global',
   'rules.tabGlobalOpencode': 'AGENTS.md global',

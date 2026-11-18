@@ -79,6 +79,7 @@ const zhCN: Translation = {
   'ctx.pinProject': '📌 固定项目',
   'ctx.unpinProject': '📌 取消固定项目',
   'ctx.projectRules': '📝 项目规则文件…',
+  'ctx.newSession': '✚ 在此新建会话',
   'rules.title': '📝 规则文件',
   'rules.tabGlobalClaude': '全局 CLAUDE.md',
   'rules.tabGlobalOpencode': '全局 AGENTS.md',

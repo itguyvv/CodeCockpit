@@ -86,6 +86,7 @@ const de: Translation = {
   'ctx.pinProject': '📌 Projekt anheften',
   'ctx.unpinProject': '📌 Projekt lösen',
   'ctx.projectRules': '📝 Projektregeln…',
+  'ctx.newSession': '✚ Neue Sitzung hier',
   'rules.title': '📝 Regeldateien',
   'rules.tabGlobalClaude': 'Globale CLAUDE.md',
   'rules.tabGlobalOpencode': 'Globale AGENTS.md',
