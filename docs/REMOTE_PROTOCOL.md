@@ -15,12 +15,17 @@ over a TLS WebSocket.
 - **Which address to use** — the protocol itself is identical on every path:
   - *Same network*: a LAN address of the desktop, or its Tailscale address
     (100.64/10) when both devices are on the same tailnet.
-  - *Any network*: the desktop can publish itself on the open internet via
-    UPnP/NAT-PMP router mapping (with STUN used to display the public address and
-    diagnose CGNAT / double NAT). When enabled, the desktop's Settings → Remote
-    access tab shows a public `ip:port` address — connect to that exactly like a
-    LAN address. The same TLS + secret/token auth protects this exposure; there
-    is no server-side infrastructure.
+  - *Any network (link mode)*: the desktop registers an 8-digit **device ID**
+    with a lightweight signaling relay (Cloudflare Workers). The phone only
+    enters the ID and the pairing secret; the raw secret never reaches the relay
+    (the relay sees only a SHA-256-derived registration key). The relay
+    introduces the peers, then the phone offers a **WebRTC connection** whose
+    reliable ordered DataChannel carries this protocol as JSON messages wrapped
+    in a 4-byte big-endian length prefix and split into ≤16 KiB chunks
+    (reassembled transparently on both ends). Direct P2P is attempted first, a
+    TURN relay is the fallback. The TLS notes above do not apply on this path —
+    authentication happens end-to-end inside the DataChannel, with the same
+    auth rules (10 s timeout, 5 failures → 60 s ban, max 4 clients).
 
 ## Authentication
 

@@ -11,7 +11,6 @@ import type {
   ProviderTestResult,
   RemoteDevice,
   RemoteState,
-  PublicAccessStatus,
   UpdateStatus
 } from '../api'
 import { useT } from '../i18n'
@@ -70,7 +69,7 @@ export default function SettingsModal({
   const [remotePortInput, setRemotePortInput] = useState('')
   const [netAddrs, setNetAddrs] = useState<Array<{ address: string; iface: string; tailscale: boolean }>>([])
   const [remoteClients, setRemoteClients] = useState(0)
-  const [publicAcc, setPublicAcc] = useState<PublicAccessStatus | null>(null)
+  const [linkServerInput, setLinkServerInput] = useState('')
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
@@ -89,11 +88,11 @@ export default function SettingsModal({
     void refreshRemote()
     const offClients = window.api.onRemoteClients(setRemoteClients)
     const offEvent = window.api.onRemoteEvent(() => void refreshRemote())
-    const offPublic = window.api.onRemotePublic(setPublicAcc)
+    const offLink = window.api.onRemoteLink(() => void refreshRemote())
     return () => {
       offClients()
       offEvent()
-      offPublic()
+      offLink()
     }
   }, [])
 
@@ -102,7 +101,7 @@ export default function SettingsModal({
       setRemote(st)
       setRemotePortInput(String(st.port))
       setNetAddrs(ips)
-      setPublicAcc(st.public)
+      setLinkServerInput(st.linkServer)
     })
 
   const refreshProviders = (): Promise<void> =>
@@ -150,9 +149,9 @@ export default function SettingsModal({
     void window.api.remoteSetEnabled(on).then(() => refreshRemote())
   }
 
-  const setPublicMethod = (anyNetwork: boolean): void => {
-    if ((remote?.publicEnabled === true) === anyNetwork) return
-    void window.api.remoteSetPublicEnabled(anyNetwork).then(() => refreshRemote())
+  const setLinkMethod = (anyNetwork: boolean): void => {
+    if ((remote?.linkEnabled === true) === anyNetwork) return
+    void window.api.remoteSetLinkEnabled(anyNetwork).then(() => refreshRemote())
   }
 
   const copyConnectAddress = (addr: string): void => {
@@ -161,11 +160,20 @@ export default function SettingsModal({
     onNotify(t('remote.copied'))
   }
 
-  const copyPublicAddress = (): void => {
-    const p = publicAcc
-    if (!p?.publicIp) return
-    window.api.copyText(`${p.publicIp}:${p.publicPort}`)
+  const formatLinkId = (id: string): string => (id.length === 8 ? `${id.slice(0, 4)} ${id.slice(4)}` : id)
+
+  const copyLinkId = (): void => {
+    const id = remote?.linkId
+    if (!id) return
+    window.api.copyText(id)
     onNotify(t('remote.copied'))
+  }
+
+  const saveLinkServer = (): void => {
+    void window.api.remoteSetLinkServer(linkServerInput).then(() => {
+      refreshRemote()
+      onNotify(t('remote.linkServerSaved'))
+    })
   }
 
   const saveRemotePort = (): void => {
@@ -702,10 +710,10 @@ export default function SettingsModal({
                   <p className="settings-hint">{t('remote.methodsHint')}</p>
                   <div className="remote-methods" role="radiogroup">
                     <div
-                      className={`remote-option${remote?.publicEnabled !== true ? ' selected' : ''}`}
+                      className={`remote-option${remote?.linkEnabled !== true ? ' selected' : ''}`}
                       role="radio"
-                      aria-checked={remote?.publicEnabled !== true}
-                      onClick={() => setPublicMethod(false)}
+                      aria-checked={remote?.linkEnabled !== true}
+                      onClick={() => setLinkMethod(false)}
                     >
                       <span className="remote-option-dot" />
                       <div className="remote-option-body">
@@ -714,7 +722,7 @@ export default function SettingsModal({
                           <span className="remote-option-name">{t('remote.hintTitle')}</span>
                         </div>
                         <p className="remote-method-desc">{t('remote.sameDesc')}</p>
-                        {remote?.publicEnabled !== true && (
+                        {remote?.linkEnabled !== true && (
                           <>
                             <p className="settings-hint">{t('remote.ipsLabel')}</p>
                             <div className="remote-ips">
@@ -746,52 +754,38 @@ export default function SettingsModal({
                     </div>
 
                     <div
-                      className={`remote-option${remote?.publicEnabled === true ? ' selected' : ''}`}
+                      className={`remote-option${remote?.linkEnabled === true ? ' selected' : ''}`}
                       role="radio"
-                      aria-checked={remote?.publicEnabled === true}
-                      onClick={() => setPublicMethod(true)}
+                      aria-checked={remote?.linkEnabled === true}
+                      onClick={() => setLinkMethod(true)}
                     >
                       <span className="remote-option-dot" />
                       <div className="remote-option-body">
                         <div className="remote-option-head">
                           <GlobeIcon className="remote-option-icon" />
-                          <span className="remote-option-name">{t('remote.publicTitle')}</span>
+                          <span className="remote-option-name">{t('remote.linkTitle')}</span>
                         </div>
-                        <p className="remote-method-desc">{t('remote.anyDesc')}</p>
-                        {remote?.publicEnabled === true && (
+                        <p className="remote-method-desc">{t('remote.linkDesc')}</p>
+                        {remote?.linkEnabled === true && (
                           <div onClick={(e) => e.stopPropagation()}>
-                            <p className="settings-hint">{t('remote.publicHint')}</p>
-                            {publicAcc && publicAcc.state === 'discovering' && (
-                              <p className="settings-hint">{t('remote.publicWorking')}</p>
-                            )}
-                            {publicAcc && publicAcc.state === 'mapped' && publicAcc.publicIp && (
-                              <>
-                                <p className="settings-hint">{t('remote.publicActive')}</p>
-                                <div className="remote-ip">
-                                  <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
-                                  <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
-                                </div>
-                              </>
-                            )}
-                            {publicAcc && publicAcc.state === 'failed' && (
-                              <>
-                                <p className="settings-hint">
-                                  {publicAcc.reason === 'cgnat'
-                                    ? t('remote.publicCgnat')
-                                    : publicAcc.reason === 'double_nat'
-                                      ? t('remote.publicDoubleNat')
-                                      : publicAcc.reason === 'no_upnp'
-                                        ? t('remote.publicManualForward', { port: publicAcc.publicPort })
-                                        : t('remote.publicFailed')}
-                                </p>
-                                {publicAcc.reason === 'no_upnp' && publicAcc.publicIp && (
-                                  <div className="remote-ip">
-                                    <span className="remote-mono">{`${publicAcc.publicIp}:${publicAcc.publicPort}`}</span>
-                                    <button onClick={copyPublicAddress}>{t('remote.copy')}</button>
-                                  </div>
-                                )}
-                              </>
-                            )}
+                            <p className="settings-hint">{t('remote.linkHint')}</p>
+                            <div className="remote-ip">
+                              <span className="remote-mono">{formatLinkId(remote.linkId)}</span>
+                              <button onClick={copyLinkId}>{t('remote.copy')}</button>
+                            </div>
+                            <p className="settings-hint">
+                              {remote.link.online ? t('remote.linkOnline') : t('remote.linkOffline')}
+                            </p>
+                            <p className="settings-hint">{t('remote.linkServerLabel')}</p>
+                            <div className="remote-ip">
+                              <input
+                                className="remote-port"
+                                value={linkServerInput}
+                                onChange={(e) => setLinkServerInput(e.target.value)}
+                                spellCheck={false}
+                              />
+                              <button onClick={saveLinkServer}>{t('common.save')}</button>
+                            </div>
                           </div>
                         )}
                       </div>

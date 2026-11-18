@@ -51,7 +51,9 @@ const api = {
     checkUpdates?: boolean
     remoteEnabled?: boolean
     remotePort?: number
-    remotePublicEnabled?: boolean
+    remoteLinkEnabled?: boolean
+    remoteLinkId?: string
+    remoteLinkServer?: string
   }> => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: {
     defaultMode?: string
@@ -248,28 +250,12 @@ const api = {
     secret: string
     devices: Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>
     clientCount: number
-    publicEnabled: boolean
-    public: {
-      enabled: boolean
-      state: 'off' | 'discovering' | 'mapped' | 'failed'
-      method: 'upnp' | 'natpmp' | 'manual-forward' | 'unavailable'
-      publicIp: string
-      publicPort: number
-      gatewayIp: string
-      reflexiveIp: string
-      cgnat: boolean
-      reason: string
-    }
+    linkEnabled: boolean
+    linkId: string
+    linkServer: string
+    link: { enabled: boolean; online: boolean; state: 'off' | 'connecting' | 'online' | 'offline'; linkId: string }
   }> => ipcRenderer.invoke('remote:getState'),
   remoteSetEnabled: (on: boolean): Promise<boolean> => ipcRenderer.invoke('remote:setEnabled', on),
-  remoteSetPublicEnabled: (on: boolean): Promise<{
-    enabled: boolean
-    state: string
-    method: string
-    publicIp: string
-    publicPort: number
-    reason: string
-  }> => ipcRenderer.invoke('remote:setPublicEnabled', on),
   remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
   remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),
   remoteListDevices: (): Promise<Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>> =>
@@ -282,8 +268,8 @@ const api = {
     on('remote:clients', (p) => cb((p as { count: number }).count)),
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void): Unsubscribe =>
     on('remote:event', (p) => cb(p as { kind: string; name?: string })),
-  onRemotePublic: (cb: (status: unknown) => void): Unsubscribe =>
-    on('remote:public', (p) => cb(p)),
+  onRemoteLink: (cb: (status: { state: string; linkId: string; enabled: boolean }) => void): Unsubscribe =>
+    on('remote:link', (p) => cb(p as { state: string; linkId: string; enabled: boolean })),
   linkBridgeSend: (evt: unknown): Promise<void> => ipcRenderer.invoke('link-bridge:evt', evt),
   onLinkBridgeCommand: (cb: (cmd: unknown) => void): Unsubscribe =>
     on('link-bridge:cmd', (p) => cb(p))

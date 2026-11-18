@@ -51,7 +51,6 @@ import {
   startRemote,
   stopRemote
 } from './services/remoteServer'
-import { publicStatus, startPublicAccess, stopPublicAccess } from './services/publicAccess'
 import { disableLink, enableLink, linkStatus } from './services/linkBridge'
 
 interface AppSettings {
@@ -75,8 +74,6 @@ interface AppSettings {
   remoteEnabled?: boolean
   /** Port the remote server listens on */
   remotePort?: number
-  /** Opt-in: publish the remote server to the internet via UPnP/NAT-PMP; missing = off */
-  remotePublicEnabled?: boolean
   /** Link mode (numeric ID + WebRTC); missing = off */
   remoteLinkEnabled?: boolean
   /** 8-digit public rendezvous ID for link mode; generated on first enable */
@@ -273,8 +270,6 @@ function registerIpc(): void {
       secret: getRemoteSecret(),
       devices: listRemoteDevices(),
       clientCount: remoteClientCount(),
-      publicEnabled: s.remotePublicEnabled === true,
-      public: publicStatus(),
       linkEnabled: s.remoteLinkEnabled === true,
       linkId: s.remoteLinkId ?? '',
       linkServer: s.remoteLinkServer ?? '',
@@ -286,11 +281,9 @@ function registerIpc(): void {
     const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
     if (on) {
       await startRemote(port)
-      if (readSettings().remotePublicEnabled) void startPublicAccess(port)
       if (readSettings().remoteLinkEnabled) startLink()
     } else {
       disableLink()
-      void stopPublicAccess()
       stopRemote()
     }
     return remoteRunning()
@@ -302,19 +295,9 @@ function registerIpc(): void {
     const s = readSettings()
     if (s.remoteEnabled) {
       stopRemote()
-      void stopPublicAccess()
       await startRemote(valid)
-      if (s.remotePublicEnabled) void startPublicAccess(valid)
     }
     return valid
-  })
-  ipcMain.handle('remote:setPublicEnabled', async (_e, on: boolean) => {
-    const enabled = on === true
-    writeSettings({ remotePublicEnabled: enabled })
-    const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
-    if (enabled && remoteRunning()) void startPublicAccess(port)
-    else if (!enabled) void stopPublicAccess()
-    return publicStatus()
   })
   ipcMain.handle('remote:setLinkEnabled', async (_e, on: boolean) => {
     const enabled = on === true
@@ -770,7 +753,6 @@ app.whenReady().then(() => {
     const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
     void startRemote(port)
       .then(() => {
-        if (readSettings().remotePublicEnabled) void startPublicAccess(port)
         if (readSettings().remoteLinkEnabled) startLink()
       })
       .catch((e) => console.log('[remote] failed to start:', String(e)))
@@ -790,7 +772,6 @@ app.on('window-all-closed', () => {
 // not have killed the PTYs already, which is what before-quit would do)
 app.on('will-quit', () => {
   disableLink()
-  void stopPublicAccess()
   stopRemote()
   shutdownAll()
 })

@@ -305,24 +305,19 @@ const en = {
   'remote.tailscaleTag': 'Tailscale',
   'remote.firewallHint':
     'Windows may ask to allow network access the first time the server starts — approve it, or remote access stays blocked.',
-  'remote.publicTitle': 'Any network',
-  'remote.publicHint':
-    'Opens the port on your router automatically (UPnP) — no manual configuration. To find your public address it queries two public STUN servers: Cloudflare (global) and Xiaomi (China). Your pairing secret is the only thing guarding the port, so keep it private.',
-  'remote.publicWorking': 'Detecting your router and public address…',
-  'remote.publicActive': 'Public address — enter this on your phone:',
-  'remote.publicCgnat':
-    'Your internet provider uses carrier-grade NAT (this line has no public IP), so this mode cannot work here. Use Tailscale instead.',
-  'remote.publicDoubleNat':
-    'Two routers in a row detected (double NAT). Open the port on the first router too, or use Tailscale.',
-  'remote.publicManualForward':
-    'Automatic port mapping failed. Forward TCP port {port} to this computer in your router admin page, then use this address:',
-  'remote.publicFailed': 'Could not reach the router automatically. Tailscale is the reliable fallback.',
   'remote.methodsTitle': 'How to connect',
-  'remote.methodsHint': 'Pick how your phone will connect, then enter the address shown below in the app.',
+  'remote.methodsHint': 'Pick how your phone will connect, then enter what this screen shows in the app.',
   'remote.sameDesc': 'The phone connects to the desktop directly — for example, when both are signed in to Tailscale.',
   'remote.sameReady': 'Works as soon as the phone can reach one of these addresses.',
   'remote.sameWaiting': 'The server is not running yet — these addresses go live once it starts.',
-  'remote.anyDesc': 'Connect from anywhere: the desktop opens its port on your router automatically (UPnP). No VPN needed.',
+  'remote.linkTitle': 'Any network',
+  'remote.linkDesc': 'Connect from anywhere with a numeric ID and WebRTC hole punching — no VPN, no port forwarding.',
+  'remote.linkHint': 'Enter this ID on your phone together with the pairing secret below.',
+  'remote.linkIdLabel': 'Device ID',
+  'remote.linkOnline': 'Signaling online — the desktop can be found by its ID.',
+  'remote.linkOffline': 'Signaling offline — check the server URL below or your connection.',
+  'remote.linkServerLabel': 'Signaling server (advanced)',
+  'remote.linkServerSaved': 'Signaling server saved',
   'remote.detailsTitle': 'Connection details',
   'remote.devices': 'Paired devices',
   'remote.noDevices': 'No devices paired yet — pair one by entering the secret on the phone.',
