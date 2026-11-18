@@ -95,6 +95,48 @@ function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) =
 /** macOS uses Cmd where Windows/Linux use Ctrl for terminal copy/paste shortcuts */
 const IS_MAC = /Mac/i.test(navigator.platform)
 
+// While an IME composition is active, xterm repositions its hidden helper textarea and the
+// composition view to the live cursor cell on every render (CompositionHelper
+// .updateCompositionElements). During streaming output the cursor cell changes constantly, and
+// the Windows IME candidate window anchors to the textarea rect — so it jumps around wildly.
+// Freeze both elements: let the first position write after compositionstart through, then drop
+// every further write until compositionend. register() may run twice per terminal (renameSlot),
+// hence the installed guard.
+const imeAnchored = new WeakSet<HTMLElement>()
+function installImeAnchor(term: Terminal): void {
+  const ta = term.textarea
+  if (!ta || imeAnchored.has(ta)) return
+  imeAnchored.add(ta)
+  const view = ta.parentElement?.querySelector('.composition-view') as HTMLElement | null
+  const restore: Array<() => void> = []
+  const lockProp = (style: CSSStyleDeclaration, prop: string): void => {
+    const desc = Object.getOwnPropertyDescriptor(style, prop)
+    if (!desc?.configurable) return
+    let captured = false
+    Object.defineProperty(style, prop, {
+      get: desc.get,
+      set: (v: string): void => {
+        if (captured) return
+        captured = true
+        desc.set?.call(style, v)
+      },
+      configurable: true
+    })
+    restore.push(() => Object.defineProperty(style, prop, desc))
+  }
+  ta.addEventListener('compositionstart', () => {
+    lockProp(ta.style, 'left')
+    lockProp(ta.style, 'top')
+    if (view) {
+      lockProp(view.style, 'left')
+      lockProp(view.style, 'top')
+    }
+  })
+  ta.addEventListener('compositionend', () => {
+    while (restore.length) restore.pop()?.()
+  })
+}
+
 const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: (id: string) => EngineId }>((props, ref) => {
   const t = useT()
   const hostRef = useRef<HTMLDivElement>(null)
@@ -141,6 +183,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
     const PENDING = '__pending'
 
     const register = (id: string, entry: Entry): void => {
+      installImeAnchor(entry.term)
       entry.offs.push(
         window.api.onData((mid, data) => {
           if (mid === id) entry.term.write(data)
