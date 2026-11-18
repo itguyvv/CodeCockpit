@@ -107,18 +107,26 @@ const IS_MAC = /Mac/i.test(navigator.platform)
 // (renameSlot), hence the installed guard.
 //
 // Two more IME failure modes are handled here:
-// - Dictation/voice IMEs commit the composed text twice: xterm sends it from the textarea value
-//   on compositionend, and the IME then fires a plain insertText input event with the same text
-//   which CoreBrowserTerminal._inputEvent also forwards. Drop insertText input events arriving
-//   in a short window after compositionend. Regular keystrokes are unaffected: xterm already
-//   ignores insertText input events that follow a keydown.
 // - Composing while the viewport is scrolled up leaves the cursor outside the viewport, in which
 //   case xterm never positions the textarea and the OS IME window pins to its offscreen
 //   (-9999em) rect, clamped to the window's top-left corner. Snap to the live prompt before
 //   anchoring, and pre-anchor the textarea/composition view ourselves (same cursor-cell math as
 //   xterm) so the IME window lands at the prompt from the first keystroke.
+// - Dictation IMEs (WeChat voice etc.) do not behave like keyboard IMEs. During recognition they
+//   stream interim text as plain insertText input events (no keydown, no composition), which
+//   CoreBrowserTerminal._inputEvent forwards to the PTY live; on release they delete the interim
+//   text and insert the final transcription, but xterm ignores delete input events — so the
+//   terminal accumulates interim + final. The hold engine below intercepts IME-generated inserts
+//   (no keydown within the freshness window, no active composition), mirrors the held text in
+//   the composition view, lets the held text shrink automatically when the textarea value
+//   shrinks (the IME's delete), and flushes only the surviving text to the PTY once the IME
+//   finalizes or the user resumes typing — the same visible semantics as a native console.
+//   Keyboard-driven compositions are passed through untouched.
 const imeAnchored = new WeakSet<HTMLElement>()
 const DUPLICATE_INPUT_WINDOW_MS = 100
+const KEYDOWN_FRESH_MS = 300
+const FLUSH_FIRST_MS = 350
+const FLUSH_ONGOING_MS = 600
 
 function installImeAnchor(term: Terminal): void {
   const ta = term.textarea
@@ -162,6 +170,75 @@ function installImeAnchor(term: Terminal): void {
     }
     return true
   }
+
+  // ---- hold engine state ----
+  let lastKeyDownAt = 0
+  let flushTimer = 0
+  // Value prefix before the held text; null = nothing held. The held text is always re-derived
+  // from the live textarea value, so IME deletes shrink it automatically.
+  let holdPrefix: string | null = null
+  let compActive = false
+  let compKeyDownSeen = false
+  let compStartValue = ''
+  let compositionEndAt = 0
+  let lastCompKeyboardDriven = false
+
+  const held = (): string =>
+    holdPrefix !== null && ta.value.startsWith(holdPrefix) ? ta.value.slice(holdPrefix.length) : ''
+
+  const clearHoldTimer = (): void => {
+    if (flushTimer) {
+      clearTimeout(flushTimer)
+      flushTimer = 0
+    }
+  }
+
+  const hideHoldView = (): void => {
+    if (view) {
+      view.classList.remove('active')
+      view.textContent = ''
+    }
+  }
+
+  const flush = (): void => {
+    clearHoldTimer()
+    if (holdPrefix === null) return
+    const h = held()
+    holdPrefix = null
+    hideHoldView()
+    if (h) term.input(h)
+  }
+
+  const scheduleFlush = (ms: number): void => {
+    clearHoldTimer()
+    flushTimer = window.setTimeout(flush, ms)
+  }
+
+  const showHold = (): void => {
+    if (!view) return
+    const h = held()
+    if (h) {
+      view.classList.add('active')
+      view.textContent = h
+    } else {
+      view.classList.remove('active')
+      view.textContent = ''
+    }
+  }
+
+  // Blocking compositionend leaves xterm's CompositionHelper stuck in the composing state (its
+  // handler never runs), and the next keystroke would then flush the stale composition value to
+  // the PTY. Reset its state to idle whenever the event is withheld.
+  const resetXtermComposition = (): void => {
+    const ch = (term as unknown as { _core?: { _compositionHelper?: { _isComposing: boolean; _isSendingComposition: boolean; _compositionPosition: { start: number; end: number }; _dataAlreadySent: string } } })
+      ._core?._compositionHelper
+    if (!ch) return
+    ch._isComposing = false
+    ch._isSendingComposition = false
+    ch._compositionPosition = { start: 0, end: 0 }
+    ch._dataAlreadySent = ''
+  }
+
   ta.addEventListener('compositionstart', () => {
     // Snap to the live prompt when the cursor is scrolled out of the viewport
     const b = term.buffer.active
@@ -175,17 +252,95 @@ function installImeAnchor(term: Terminal): void {
       lockProp(view.style, 'top', anchored)
     }
   })
+
+  // Capture phase on the terminal element: these fire before xterm's own textarea listeners,
+  // so intercepted events can be withheld from xterm entirely via stopPropagation.
+  host.addEventListener('keydown', () => {
+    lastKeyDownAt = Date.now()
+    if (compActive) compKeyDownSeen = true
+    // Flush held text before the keystroke is processed so the ordering is preserved
+    flush()
+  }, true)
+
+  host.addEventListener('compositionstart', () => {
+    compActive = true
+    compKeyDownSeen = false
+    compStartValue = ta.value
+    if (holdPrefix !== null) {
+      // The IME is redoing the held text (dictation finalizing via a second composition) —
+      // discard it unsent; the new composition will be held on its own compositionend
+      holdPrefix = null
+      clearHoldTimer()
+      hideHoldView()
+    }
+  }, true)
+
+  host.addEventListener('compositionend', (ev) => {
+    compActive = false
+    // Restore the anchor freeze here too: when this handler blocks the event below, xterm's
+    // own textarea-level compositionend handler never runs
+    while (restore.length) restore.pop()?.()
+    compositionEndAt = Date.now()
+    const keyboardDriven = compKeyDownSeen || Date.now() - lastKeyDownAt <= KEYDOWN_FRESH_MS
+    lastCompKeyboardDriven = keyboardDriven
+    if (holdPrefix !== null) {
+      resetXtermComposition()
+      ev.stopPropagation()
+      scheduleFlush(FLUSH_ONGOING_MS)
+      return
+    }
+    if (!keyboardDriven) {
+      // Voice-style composition (no keyboard involved): hold what it added instead of letting
+      // xterm send the textarea value at once — dictation IMEs usually delete/replace the
+      // committed text right after
+      const pre = compStartValue
+      const cur = ta.value
+      let p = 0
+      const n = Math.min(pre.length, cur.length)
+      while (p < n && pre[p] === cur[p]) p++
+      holdPrefix = cur.slice(0, p)
+      anchorAtCursor()
+      showHold()
+      scheduleFlush(FLUSH_ONGOING_MS)
+      resetXtermComposition()
+      ev.stopPropagation()
+    }
+  }, true)
+
   ta.addEventListener('compositionend', () => {
     while (restore.length) restore.pop()?.()
   })
-  // Capture phase on the terminal element: fires before xterm's own textarea listeners
-  let compositionEndAt = 0
-  host.addEventListener('compositionend', () => { compositionEndAt = Date.now() }, true)
+
+  ta.addEventListener('blur', () => flush())
+
   host.addEventListener('input', (ev) => {
     const e = ev as InputEvent
-    if (e.inputType !== 'insertText' || !e.data) return
-    if (Date.now() - compositionEndAt > DUPLICATE_INPUT_WINDOW_MS) return
-    e.stopPropagation()
+    // Post-commit duplicate: a keyboard-driven composition already sent its text through
+    // xterm's compositionend path, and some IMEs then re-send it as a plain insertText
+    if (e.inputType === 'insertText' && e.data && lastCompKeyboardDriven &&
+        Date.now() - compositionEndAt <= DUPLICATE_INPUT_WINDOW_MS) {
+      e.stopPropagation()
+      return
+    }
+    if (holdPrefix !== null) {
+      // Value changed while holding — re-derive the surviving text and keep the view in sync
+      showHold()
+      scheduleFlush(FLUSH_ONGOING_MS)
+    }
+    if (e.inputType !== 'insertText' || !e.data || compActive) return
+    if (Date.now() - lastKeyDownAt <= KEYDOWN_FRESH_MS) return
+    if (holdPrefix === null) {
+      const v = ta.value
+      if (!v.endsWith(e.data)) return
+      // IME-generated plain insert (dictation interim, emoji picker): hold instead of sending
+      e.stopPropagation()
+      holdPrefix = v.slice(0, v.length - e.data.length)
+      anchorAtCursor()
+      showHold()
+      scheduleFlush(FLUSH_FIRST_MS)
+    } else {
+      e.stopPropagation()
+    }
   }, true)
 }
 
