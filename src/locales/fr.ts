@@ -308,7 +308,7 @@ const fr: Translation = {
   'remote.publicTitle': 'Tous les réseaux',
   'remote.publicToggle': 'Autoriser les connexions depuis tous les réseaux',
   'remote.publicHint':
-    'Ouvre le port sur votre routeur automatiquement (UPnP) — aucune configuration manuelle. Le secret dappairage est la seule protection sur Internet ouvert, gardez-le secret.',
+    'Ouvre le port sur votre routeur automatiquement (UPnP) — aucune configuration manuelle. Pour trouver votre adresse publique, deux serveurs STUN publics sont interrogés : Cloudflare (mondial) et Xiaomi (Chine). Le secret dappairage est la seule protection du port, gardez-le secret.',
   'remote.publicWorking': 'Détection du routeur et de l’adresse publique…',
   'remote.publicActive': 'Adresse publique — saisissez-la sur le téléphone :',
   'remote.publicCgnat':

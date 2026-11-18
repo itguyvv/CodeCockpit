@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron'
+import { randomBytes } from 'node:crypto'
+import dgram from 'node:dgram'
 import NatAPI from '@silentbot1/nat-api'
-import { request as stunRequest } from 'stun'
 
 // ── Public reachability: publish the remote server on the local router ──
 //
@@ -27,7 +28,10 @@ export interface PublicStatus {
   reason: string
 }
 
-const STUN_SERVERS = ['stun.l.google.com:19302', 'stun.cloudflare.com:3478']
+// Two complementary public STUN servers, named in the settings UI so users know
+// who sees the probe: Cloudflare (anycast, global) and Xiaomi (stable in China).
+// Queries go out only while Any-network access is enabled.
+const STUN_SERVERS = ['stun.cloudflare.com:3478', 'stun.miwifi.com:3478']
 const STUN_TIMEOUT_MS = 4_000
 const MAP_TIMEOUT_MS = 8_000
 const MAP_TTL_S = 1_800
@@ -97,14 +101,81 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   })
 }
 
+// ── Minimal STUN client (RFC 5389) ──
+// The npm `stun` package bundles its internals under src/node_modules and
+// require()s them by bare name — electron-builder strips that from the asar,
+// so the packaged app crashed on startup. We only need one exchange: send a
+// Binding Request, read XOR-MAPPED-ADDRESS from the reply.
+
+const MAGIC_COOKIE = 0x2112a44b
+
+function parseXorMappedAddress(buf: Buffer, txid: Buffer): string | null {
+  if (buf.length < 20 || buf.readUInt16BE(0) !== 0x0101) return null // Binding success response
+  if (!buf.subarray(8, 20).equals(txid)) return null
+  let off = 20
+  const end = Math.min(20 + buf.readUInt16BE(2), buf.length)
+  while (off + 4 <= end) {
+    const attr = buf.readUInt16BE(off)
+    const alen = buf.readUInt16BE(off + 2)
+    if (attr === 0x0020 && alen >= 8 && buf[off + 5] === 0x01) {
+      // XOR-MAPPED-ADDRESS, family IPv4: address is XORed with the magic cookie
+      const ip = buf.readUInt32BE(off + 8) ^ MAGIC_COOKIE
+      return `${(ip >>> 24) & 0xff}.${(ip >>> 16) & 0xff}.${(ip >>> 8) & 0xff}.${ip & 0xff}`
+    }
+    off += 4 + ((alen + 3) & ~3)
+  }
+  return null
+}
+
+function stunQuery(server: string, timeoutMs: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const idx = server.lastIndexOf(':')
+    const host = idx > 0 ? server.slice(0, idx) : server
+    const port = idx > 0 ? Number(server.slice(idx + 1)) : 3478
+    const txid = randomBytes(12)
+    const msg = Buffer.alloc(20)
+    msg.writeUInt16BE(0x0001, 0) // Binding Request
+    msg.writeUInt32BE(MAGIC_COOKIE, 4)
+    txid.copy(msg, 8)
+
+    const sock = dgram.createSocket('udp4')
+    let settled = false
+    const finish = (err: Error | null, ip?: string): void => {
+      if (settled) return
+      settled = true
+      try {
+        sock.close(() => {})
+      } catch {
+        // Already closed
+      }
+      if (err) reject(err)
+      else resolve(ip as string)
+    }
+    const timer = setTimeout(() => finish(new Error('stun timeout')), timeoutMs)
+    sock.once('error', (e) => {
+      clearTimeout(timer)
+      finish(e)
+    })
+    sock.once('message', (buf) => {
+      const ip = parseXorMappedAddress(buf, txid)
+      if (ip) {
+        clearTimeout(timer)
+        finish(null, ip)
+      }
+    })
+    sock.send(msg, port, host, (e) => {
+      if (e) {
+        clearTimeout(timer)
+        finish(e)
+      }
+    })
+  })
+}
+
 /** Reflexive public IP via the first STUN server to answer; '' when none do */
 async function stunReflexiveIp(): Promise<string> {
-  const probes = STUN_SERVERS.map(async (server) => {
-    const res = await stunRequest(server)
-    return res.getXorAddress().address
-  })
   try {
-    return await withTimeout(Promise.any(probes), STUN_TIMEOUT_MS, 'stun')
+    return await Promise.any(STUN_SERVERS.map((s) => stunQuery(s, STUN_TIMEOUT_MS)))
   } catch {
     return ''
   }

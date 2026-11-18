@@ -1,4 +1,4 @@
-// Ambient types for the two untyped pure-JS network dependencies used by publicAccess.
+// Ambient types for the untyped pure-JS network dependency used by publicAccess.
 // Only the surface actually used is declared; upstream ships no .d.ts.
 
 declare module '@silentbot1/nat-api' {
@@ -27,17 +27,4 @@ declare module '@silentbot1/nat-api' {
     externalIp(): Promise<string>
     destroy(): Promise<void>
   }
-}
-
-declare module 'stun' {
-  export interface StunAddress {
-    address: string
-    port: number
-  }
-
-  export interface StunResponse {
-    getXorAddress(): StunAddress
-  }
-
-  export function request(url: string, options?: Record<string, unknown>): Promise<StunResponse>
 }

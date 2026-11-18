@@ -307,7 +307,7 @@ const ptBR: Translation = {
   'remote.publicTitle': 'Qualquer rede',
   'remote.publicToggle': 'Permitir conexões de qualquer rede',
   'remote.publicHint':
-    'Abre a porta no seu roteador automaticamente (UPnP) — sem configuração manual. O segredo de pareamento é a única proteção na internet aberta: guarde-o bem.',
+    'Abre a porta no seu roteador automaticamente (UPnP) — sem configuração manual. Para descobrir seu endereço público, consulta dois servidores STUN públicos: Cloudflare (global) e Xiaomi (China). O segredo de pareamento é a única proteção: guarde-o bem.',
   'remote.publicWorking': 'Detectando o roteador e o endereço público…',
   'remote.publicActive': 'Endereço público — informe-o no celular:',
   'remote.publicCgnat':

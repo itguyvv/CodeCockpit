@@ -293,7 +293,7 @@ const zhTW: Translation = {
   'remote.firewallHint': 'Windows 首次啟動服務時可能彈出網路存取授權——請允許，否則遠端存取會被封鎖。',
   'remote.publicTitle': '任意網路',
   'remote.publicToggle': '允許從任意網路連線',
-  'remote.publicHint': '自動在路由器上打通連接埠（UPnP），無需手動設定。配對金鑰是公網上的唯一防線，請妥善保管。',
+  'remote.publicHint': '自動在路由器上打通連接埠（UPnP），無需手動設定。為探測公網位址，會向兩家公共 STUN 伺服器傳送查詢：Cloudflare（全球）和小米（中國）。配對金鑰是公網上的唯一防線，請妥善保管。',
   'remote.publicWorking': '正在探測路由器和公網位址…',
   'remote.publicActive': '公網位址——在手機端輸入此位址：',
   'remote.publicCgnat': '你的寬頻沒有公網 IP（電信商大內網），此模式無法使用。請改用 Tailscale。',

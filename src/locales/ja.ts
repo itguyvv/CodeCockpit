@@ -300,7 +300,7 @@ const ja: Translation = {
   'remote.firewallHint': 'サーバー初回起動時に Windows がネットワークアクセスの許可を求める場合があります。許可しないとリモートアクセスがブロックされます。',
   'remote.publicTitle': '任意のネットワーク',
   'remote.publicToggle': 'どのネットワークからでも接続を許可',
-  'remote.publicHint': 'ルーターのポートを自動的に開放します（UPnP）— 手動設定は不要です。ペアリングシークレットが公開インターネット上の唯一の防御手段なので、厳重に管理してください。',
+  'remote.publicHint': 'ルーターのポートを自動的に開放します（UPnP）— 手動設定は不要です。公開アドレスの検出のため、2 つの公開 STUN サーバー（Cloudflare〈グローバル〉と Xiaomi〈中国〉）に照会を送ります。ペアリングシークレットが公開インターネット上の唯一の防御手段なので、厳重に管理してください。',
   'remote.publicWorking': 'ルーターと公開アドレスを検出中…',
   'remote.publicActive': '公開アドレス — スマホでこのアドレスを入力してください：',
   'remote.publicCgnat': '回線がキャリアグレード NAT（公開 IP なし）のため、このモードは利用できません。Tailscale をご利用ください。',

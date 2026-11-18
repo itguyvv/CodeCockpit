@@ -306,7 +306,7 @@ const de: Translation = {
   'remote.publicTitle': 'Beliebiges Netzwerk',
   'remote.publicToggle': 'Verbindungen aus beliebigen Netzwerken erlauben',
   'remote.publicHint':
-    'Öffnet den Port automatisch auf dem Router (UPnP) — keine manuelle Einrichtung nötig. Das Pairing-Secret ist die einzige Schutzmaßnahme im offenen Internet, also gut aufbewahren.',
+    'Öffnet den Port automatisch auf dem Router (UPnP) — keine manuelle Einrichtung nötig. Zum Ermitteln der öffentlichen Adresse werden zwei öffentliche STUN-Server abgefragt: Cloudflare (global) und Xiaomi (China). Das Pairing-Secret ist die einzige Schutzmaßnahme, also gut aufbewahren.',
   'remote.publicWorking': 'Router und öffentliche Adresse werden erkannt…',
   'remote.publicActive': 'Öffentliche Adresse — geben Sie diese auf dem Telefon ein:',
   'remote.publicCgnat':

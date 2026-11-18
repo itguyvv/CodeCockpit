@@ -297,7 +297,7 @@ const ko: Translation = {
   'remote.firewallHint': '서버를 처음 시작할 때 Windows가 네트워크 액세스를 허용할지 물어볼 수 있습니다. 허용하지 않으면 원격 액세스가 차단됩니다.',
   'remote.publicTitle': '모든 네트워크',
   'remote.publicToggle': '모든 네트워크에서의 연결 허용',
-  'remote.publicHint': '라우터에서 포트를 자동으로 열어 줍니다(UPnP) — 수동 설정이 필요 없습니다. 페어링 시크릿이 공개 인터넷의 유일한 방어선이므로 안전하게 보관하세요.',
+  'remote.publicHint': '라우터에서 포트를 자동으로 열어 줍니다(UPnP) — 수동 설정이 필요 없습니다. 공개 주소를 확인하기 위해 두 개의 공개 STUN 서버(Cloudflare〈글로벌〉, Xiaomi〈중국〉)에 쿼리를 보냅니다. 페어링 시크릿이 공개 인터넷의 유일한 방어선이므로 안전하게 보관하세요.',
   'remote.publicWorking': '라우터와 공개 주소를 확인하는 중…',
   'remote.publicActive': '공개 주소 — 휴대폰에서 이 주소를 입력하세요:',
   'remote.publicCgnat': '인터넷 회선에 공인 IP가 없는 캐리어 그레드 NAT 환경이라 이 모드를 사용할 수 없습니다. Tailscale을 이용하세요.',

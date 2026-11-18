@@ -307,7 +307,7 @@ const en = {
   'remote.publicTitle': 'Any network',
   'remote.publicToggle': 'Allow connections from any network',
   'remote.publicHint':
-    'Opens the port on your router automatically (UPnP) — no manual configuration. Your pairing secret is the only thing guarding it from the open internet, so keep it private.',
+    'Opens the port on your router automatically (UPnP) — no manual configuration. To find your public address it queries two public STUN servers: Cloudflare (global) and Xiaomi (China). Your pairing secret is the only thing guarding the port, so keep it private.',
   'remote.publicWorking': 'Detecting your router and public address…',
   'remote.publicActive': 'Public address — enter this on your phone:',
   'remote.publicCgnat':

@@ -307,7 +307,7 @@ const es: Translation = {
   'remote.publicTitle': 'Cualquier red',
   'remote.publicToggle': 'Permitir conexiones desde cualquier red',
   'remote.publicHint':
-    'Abre el puerto en tu router automáticamente (UPnP), sin configuración manual. El secreto de emparejamiento es la única barrera en internet: guárdalo bien.',
+    'Abre el puerto en tu router automáticamente (UPnP), sin configuración manual. Para hallar tu dirección pública consulta dos servidores STUN públicos: Cloudflare (global) y Xiaomi (China). El secreto de emparejamiento es la única barrera: guárdalo bien.',
   'remote.publicWorking': 'Detectando el router y la dirección pública…',
   'remote.publicActive': 'Dirección pública — introdúcela en el teléfono:',
   'remote.publicCgnat':

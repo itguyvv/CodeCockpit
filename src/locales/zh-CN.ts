@@ -293,7 +293,7 @@ const zhCN: Translation = {
   'remote.firewallHint': 'Windows 首次启动服务时可能弹出网络访问授权——请允许，否则远程访问会被拦截。',
   'remote.publicTitle': '任意网络',
   'remote.publicToggle': '允许从任意网络连接',
-  'remote.publicHint': '自动在路由器上打通端口（UPnP），无需手动配置。配对密钥是公网上的唯一防线，请妥善保管。',
+  'remote.publicHint': '自动在路由器上打通端口（UPnP），无需手动配置。为探测公网地址，会向两家公共 STUN 服务器发送查询：Cloudflare（全球）和小米（中国）。配对密钥是公网上的唯一防线，请妥善保管。',
   'remote.publicWorking': '正在探测路由器和公网地址…',
   'remote.publicActive': '公网地址——在手机端输入此地址：',
   'remote.publicCgnat': '你的宽带没有公网 IP（运营商大内网），此模式无法使用。请改用 Tailscale。',
