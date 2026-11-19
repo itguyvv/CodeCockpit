@@ -252,7 +252,6 @@ const api = {
     clientCount: number
     linkEnabled: boolean
     linkId: string
-    linkServer: string
     link: { enabled: boolean; online: boolean; state: 'off' | 'connecting' | 'online' | 'offline'; linkId: string }
   }> => ipcRenderer.invoke('remote:getState'),
   remoteConsumePendingNotice: (): Promise<number | null> =>
@@ -262,7 +261,6 @@ const api = {
     on: boolean
   ): Promise<{ enabled: boolean; online: boolean; state: string; linkId: string }> =>
     ipcRenderer.invoke('remote:setLinkEnabled', on),
-  remoteSetLinkServer: (url: string): Promise<string> => ipcRenderer.invoke('remote:setLinkServer', url),
   remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
   remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),
   remoteListDevices: (): Promise<Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>> =>

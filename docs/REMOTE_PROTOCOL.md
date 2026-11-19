@@ -25,7 +25,10 @@ over a TLS WebSocket.
     (reassembled transparently on both ends). Direct P2P is attempted first, a
     TURN relay is the fallback. The TLS notes above do not apply on this path —
     authentication happens end-to-end inside the DataChannel, with the same
-    auth rules (10 s timeout, 5 failures → 60 s ban, max 4 clients).
+    auth rules (10 s timeout, 5 failures → 60 s ban, max 4 clients). The default
+    relay is built in; a self-hosted relay can replace it by setting
+    `remoteLinkServer` in the app's `settings.json` (no UI — power-user escape
+    hatch).
 
 ## Authentication
 

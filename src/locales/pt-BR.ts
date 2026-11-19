@@ -316,8 +316,6 @@ const ptBR: Translation = {
   'remote.linkIdLabel': 'ID do dispositivo',
   'remote.linkOnline': 'Sinalização online — o desktop pode ser encontrado por este ID.',
   'remote.linkOffline': 'Sinalização offline — verifique a URL do servidor abaixo ou sua conexão.',
-  'remote.linkServerLabel': 'Servidor de sinalização (avançado)',
-  'remote.linkServerSaved': 'Servidor de sinalização salvo',
   'remote.staleTitle': 'Porta do acesso remoto em uso',
   'remote.staleMessage': 'A porta {port} está ocupada por uma instância do CodeCockpit que ficou aberta (PID {pid}). Encerrá-la e iniciar o acesso remoto?',
   'remote.staleKill': 'Encerrar e tentar de novo',

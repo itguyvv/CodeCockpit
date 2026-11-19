@@ -315,8 +315,6 @@ const ru: Translation = {
   'remote.linkIdLabel': 'ID устройства',
   'remote.linkOnline': 'Сигнализация онлайн — рабочий стол доступен по этому ID.',
   'remote.linkOffline': 'Сигнализация офлайн — проверьте URL сервера ниже или своё подключение.',
-  'remote.linkServerLabel': 'Сервер сигнализации (дополнительно)',
-  'remote.linkServerSaved': 'Сервер сигнализации сохранён',
   'remote.staleTitle': 'Порт удалённого доступа занят',
   'remote.staleMessage': 'Порт {port} занят оставшимся экземпляром CodeCockpit (PID {pid}). Завершить его и запустить удалённый доступ?',
   'remote.staleKill': 'Завершить и повторить',

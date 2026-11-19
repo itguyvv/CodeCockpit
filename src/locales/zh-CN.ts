@@ -303,8 +303,6 @@ const zhCN: Translation = {
   'remote.linkIdLabel': '设备 ID',
   'remote.linkOnline': '信令在线——桌面端可凭此 ID 被找到。',
   'remote.linkOffline': '信令离线——请检查下方服务器地址或网络连接。',
-  'remote.linkServerLabel': '信令服务器（高级）',
-  'remote.linkServerSaved': '信令服务器已保存',
   'remote.staleTitle': '远程访问端口被占用',
   'remote.staleMessage': '端口 {port} 被一个残留的 CodeCockpit 实例占用（PID {pid}）。结束该进程并启动远程访问？',
   'remote.staleKill': '结束并重试',

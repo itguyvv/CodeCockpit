@@ -276,7 +276,6 @@ function registerIpc(): void {
       clientCount: remoteClientCount(),
       linkEnabled: s.remoteLinkEnabled === true,
       linkId: s.remoteLinkId ?? '',
-      linkServer: s.remoteLinkServer ?? DEFAULT_LINK_SERVER,
       link: linkStatus()
     }
   })
@@ -309,12 +308,6 @@ function registerIpc(): void {
     if (enabled && remoteRunning()) startLink()
     else disableLink()
     return linkStatus()
-  })
-  ipcMain.handle('remote:setLinkServer', async (_e, url: string) => {
-    const clean = String(url ?? '').trim().replace(/\/+$/, '')
-    writeSettings({ remoteLinkServer: clean })
-    if (readSettings().remoteLinkEnabled && remoteRunning()) startLink()
-    return clean
   })
   ipcMain.handle('remote:regenerateSecret', () => {
     const next = regenerateRemoteSecret()

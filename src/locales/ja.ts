@@ -310,8 +310,6 @@ const ja: Translation = {
   'remote.linkIdLabel': 'デバイス ID',
   'remote.linkOnline': 'シグナリング接続中 — この ID でデスクトップを発見できます。',
   'remote.linkOffline': 'シグナリングがオフラインです — 下のサーバー URL か接続を確認してください。',
-  'remote.linkServerLabel': 'シグナリングサーバー（詳細）',
-  'remote.linkServerSaved': 'シグナリングサーバーを保存しました',
   'remote.staleTitle': 'リモートアクセスのポートが使用中',
   'remote.staleMessage': 'ポート {port} は以前の CodeCockpit インスタンス（PID {pid}）が使用しています。終了してリモートアクセスを開始しますか？',
   'remote.staleKill': '終了して再試行',

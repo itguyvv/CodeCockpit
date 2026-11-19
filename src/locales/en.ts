@@ -316,8 +316,6 @@ const en = {
   'remote.linkIdLabel': 'Device ID',
   'remote.linkOnline': 'Signaling online — the desktop can be found by its ID.',
   'remote.linkOffline': 'Signaling offline — check the server URL below or your connection.',
-  'remote.linkServerLabel': 'Signaling server (advanced)',
-  'remote.linkServerSaved': 'Signaling server saved',
   'remote.staleTitle': 'Remote access port in use',
   'remote.staleMessage': 'Port {port} is held by a leftover CodeCockpit instance (PID {pid}). Kill it and start remote access?',
   'remote.staleKill': 'Kill and retry',

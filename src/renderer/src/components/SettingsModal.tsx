@@ -69,7 +69,6 @@ export default function SettingsModal({
   const [remotePortInput, setRemotePortInput] = useState('')
   const [netAddrs, setNetAddrs] = useState<Array<{ address: string; iface: string; tailscale: boolean }>>([])
   const [remoteClients, setRemoteClients] = useState(0)
-  const [linkServerInput, setLinkServerInput] = useState('')
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
@@ -101,7 +100,6 @@ export default function SettingsModal({
       setRemote(st)
       setRemotePortInput(String(st.port))
       setNetAddrs(ips)
-      setLinkServerInput(st.linkServer)
     })
 
   const refreshProviders = (): Promise<void> =>
@@ -167,13 +165,6 @@ export default function SettingsModal({
     if (!id) return
     window.api.copyText(id)
     onNotify(t('remote.copied'))
-  }
-
-  const saveLinkServer = (): void => {
-    void window.api.remoteSetLinkServer(linkServerInput).then(() => {
-      refreshRemote()
-      onNotify(t('remote.linkServerSaved'))
-    })
   }
 
   const saveRemotePort = (): void => {
@@ -776,16 +767,6 @@ export default function SettingsModal({
                             <p className="settings-hint">
                               {remote.link.online ? t('remote.linkOnline') : t('remote.linkOffline')}
                             </p>
-                            <p className="settings-hint">{t('remote.linkServerLabel')}</p>
-                            <div className="remote-ip">
-                              <input
-                                className="remote-port"
-                                value={linkServerInput}
-                                onChange={(e) => setLinkServerInput(e.target.value)}
-                                spellCheck={false}
-                              />
-                              <button onClick={saveLinkServer}>{t('common.save')}</button>
-                            </div>
                           </div>
                         )}
                       </div>

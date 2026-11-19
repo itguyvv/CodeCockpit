@@ -183,7 +183,6 @@ export interface RemoteState {
   clientCount: number
   linkEnabled: boolean
   linkId: string
-  linkServer: string
   link: LinkStatus
 }
 
@@ -263,7 +262,6 @@ export interface WorkbenchApi {
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void) => () => void
   onRemoteLink: (cb: (status: LinkStatus) => void) => () => void
   remoteSetLinkEnabled: (on: boolean) => Promise<LinkStatus>
-  remoteSetLinkServer: (url: string) => Promise<string>
   linkBridgeSend: (evt: unknown) => Promise<void>
   onLinkBridgeCommand: (cb: (cmd: unknown) => void) => () => void
 }

@@ -303,8 +303,6 @@ const zhTW: Translation = {
   'remote.linkIdLabel': '裝置 ID',
   'remote.linkOnline': '訊號伺服器已連線——桌面端可透過此 ID 被找到。',
   'remote.linkOffline': '訊號伺服器離線——請檢查下方伺服器位址或網路連線。',
-  'remote.linkServerLabel': '訊號伺服器（進階）',
-  'remote.linkServerSaved': '訊號伺服器已儲存',
   'remote.staleTitle': '遠端存取連接埠被佔用',
   'remote.staleMessage': '連接埠 {port} 被一個殘留的 CodeCockpit 實例佔用（PID {pid}）。結束該程式並啟動遠端存取？',
   'remote.staleKill': '結束並重試',

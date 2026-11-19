@@ -317,8 +317,6 @@ const fr: Translation = {
   'remote.linkIdLabel': 'ID de l’appareil',
   'remote.linkOnline': 'Signalisation en ligne — le bureau est joignable via cet identifiant.',
   'remote.linkOffline': 'Signalisation hors ligne — vérifiez l’URL du serveur ci-dessous ou votre connexion.',
-  'remote.linkServerLabel': 'Serveur de signalisation (avancé)',
-  'remote.linkServerSaved': 'Serveur de signalisation enregistré',
   'remote.staleTitle': 'Port d’accès distant occupé',
   'remote.staleMessage': 'Le port {port} est détenu par une instance CodeCockpit restée ouverte (PID {pid}). La fermer et démarrer l’accès distant ?',
   'remote.staleKill': 'Fermer et réessayer',

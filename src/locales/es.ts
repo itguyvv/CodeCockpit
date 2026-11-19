@@ -316,8 +316,6 @@ const es: Translation = {
   'remote.linkIdLabel': 'ID del dispositivo',
   'remote.linkOnline': 'Señalización en línea: el escritorio es localizable por este ID.',
   'remote.linkOffline': 'Señalización sin conexión: revisa la URL del servidor de abajo o tu conexión.',
-  'remote.linkServerLabel': 'Servidor de señalización (avanzado)',
-  'remote.linkServerSaved': 'Servidor de señalización guardado',
   'remote.staleTitle': 'Puerto de acceso remoto en uso',
   'remote.staleMessage': 'El puerto {port} está ocupado por una instancia de CodeCockpit que quedó abierta (PID {pid}). ¿Cerrarla e iniciar el acceso remoto?',
   'remote.staleKill': 'Cerrar y reintentar',
