@@ -258,6 +258,11 @@ const api = {
   remoteConsumePendingNotice: (): Promise<number | null> =>
     ipcRenderer.invoke('remote:consumePendingNotice'),
   remoteSetEnabled: (on: boolean): Promise<boolean> => ipcRenderer.invoke('remote:setEnabled', on),
+  remoteSetLinkEnabled: (
+    on: boolean
+  ): Promise<{ enabled: boolean; online: boolean; state: string; linkId: string }> =>
+    ipcRenderer.invoke('remote:setLinkEnabled', on),
+  remoteSetLinkServer: (url: string): Promise<string> => ipcRenderer.invoke('remote:setLinkServer', url),
   remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
   remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),
   remoteListDevices: (): Promise<Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>> =>
