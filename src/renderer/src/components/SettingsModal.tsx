@@ -688,8 +688,7 @@ export default function SettingsModal({
                   <div className="settings-title">{t('remote.methodsTitle')}</div>
                   <p className="settings-hint">{t('remote.methodsHint')}</p>
                   <div className="remote-methods">
-                    <div className="remote-option selected">
-                      <span className="remote-option-dot" />
+                    <div className="remote-option">
                       <div className="remote-option-body">
                         <div className="remote-option-head">
                           <WifiIcon className="remote-option-icon" />
@@ -719,7 +718,6 @@ export default function SettingsModal({
                     </div>
 
                     <div className="remote-option">
-                      <span className="remote-option-dot" />
                       <div className="remote-option-body">
                         <div className="remote-option-head">
                           <GlobeIcon className="remote-option-icon" />

@@ -1741,26 +1741,6 @@ input:focus {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  cursor: pointer;
-}
-
-.remote-option.selected {
-  background: var(--bg3);
-  border-color: rgba(223, 225, 232, 0.18);
-}
-
-.remote-option-dot {
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(223, 225, 232, 0.35);
-  flex-shrink: 0;
-}
-
-.remote-option.selected .remote-option-dot {
-  border-color: var(--accent);
-  background: radial-gradient(circle, var(--accent) 0 4px, transparent 4.5px);
 }
 
 .remote-option-body {
@@ -1803,10 +1783,6 @@ input:focus {
   height: 15px;
   color: var(--fg-dim, #8b8fa3);
   flex-shrink: 0;
-}
-
-.remote-option.selected .remote-option-icon {
-  color: var(--accent);
 }
 
 .remote-option-name {
