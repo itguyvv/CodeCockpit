@@ -69,6 +69,7 @@ export default function SettingsModal({
   const [remotePortInput, setRemotePortInput] = useState('')
   const [netAddrs, setNetAddrs] = useState<Array<{ address: string; iface: string; tailscale: boolean }>>([])
   const [remoteClients, setRemoteClients] = useState(0)
+  const [nowTick, setNowTick] = useState(Date.now())
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
@@ -95,6 +96,14 @@ export default function SettingsModal({
     }
   }, [])
 
+  // Drive the link-mode retry countdown between server pushes
+  useEffect(() => {
+    const active = remote?.linkEnabled === true && remote?.link.retryAt != null && remote.link.retryAt > 0
+    if (!active) return
+    const timer = setInterval(() => setNowTick(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [remote?.linkEnabled, remote?.link.retryAt])
+
   const refreshRemote = (): Promise<void> =>
     Promise.all([window.api.remoteGetState(), window.api.remoteNetInfo()]).then(([st, ips]) => {
       setRemote(st)
@@ -109,6 +118,20 @@ export default function SettingsModal({
 
   const engineName = (e: EngineId): string =>
     e === 'opencode' ? t('engine.opencode') : e === 'codex' ? t('engine.codex') : t('engine.claude')
+
+  const linkReason = (err: string): string =>
+    err === 'rate_limited'
+      ? t('remote.linkErrRateLimited')
+      : err === 'id_taken'
+        ? t('remote.linkErrIdTaken')
+        : err === 'network'
+          ? t('remote.linkErrNetwork')
+          : ''
+
+  const linkRetryIn = (retryAt: number): string =>
+    retryAt > nowTick
+      ? ` · ${t('remote.linkRetryIn', { s: String(Math.max(1, Math.ceil((retryAt - nowTick) / 1000))) })}`
+      : ''
 
   const setEngineEnabled = (id: EngineId, on: boolean): void => {
     // At least one installed engine must stay enabled, otherwise the window has no sessions at all
@@ -755,6 +778,16 @@ export default function SettingsModal({
                         <div className="remote-option-head">
                           <GlobeIcon className="remote-option-icon" />
                           <span className="remote-option-name">{t('remote.linkTitle')}</span>
+                          {remote?.linkEnabled === true && (
+                            <span className={`link-chip ${remote.link.state}`}>
+                              <span className="link-chip-dot" />
+                              {remote.link.state === 'online'
+                                ? t('remote.linkStateOnline')
+                                : remote.link.state === 'connecting'
+                                  ? t('remote.linkStateConnecting')
+                                  : t('remote.linkStateOffline')}
+                            </span>
+                          )}
                         </div>
                         <p className="remote-method-desc">{t('remote.linkDesc')}</p>
                         {remote?.linkEnabled === true && (
@@ -765,8 +798,18 @@ export default function SettingsModal({
                               <button onClick={copyLinkId}>{t('remote.copy')}</button>
                             </div>
                             <p className="settings-hint">
-                              {remote.link.online ? t('remote.linkOnline') : t('remote.linkOffline')}
+                              {remote.link.online
+                                ? t('remote.linkOnline')
+                                : remote.link.state === 'connecting'
+                                  ? t('remote.linkStateConnecting')
+                                  : t('remote.linkOffline')}
                             </p>
+                            {!remote.link.online && remote.link.state === 'offline' && remote.link.error && (
+                              <p className="settings-hint">
+                                {linkReason(remote.link.error)}
+                                {linkRetryIn(remote.link.retryAt ?? 0)}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>

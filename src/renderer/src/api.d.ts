@@ -171,6 +171,10 @@ export interface LinkStatus {
   online: boolean
   state: 'off' | 'connecting' | 'online' | 'offline'
   linkId: string
+  /** Why the last registration attempt failed; '' when healthy */
+  error?: 'network' | 'rate_limited' | 'id_taken' | ''
+  /** Epoch ms of the next automatic reconnect (0 = none scheduled) */
+  retryAt?: number
 }
 
 export interface RemoteState {

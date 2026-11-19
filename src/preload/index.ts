@@ -252,7 +252,14 @@ const api = {
     clientCount: number
     linkEnabled: boolean
     linkId: string
-    link: { enabled: boolean; online: boolean; state: 'off' | 'connecting' | 'online' | 'offline'; linkId: string }
+    link: {
+      enabled: boolean
+      online: boolean
+      state: 'off' | 'connecting' | 'online' | 'offline'
+      linkId: string
+      error?: 'network' | 'rate_limited' | 'id_taken' | ''
+      retryAt?: number
+    }
   }> => ipcRenderer.invoke('remote:getState'),
   remoteConsumePendingNotice: (): Promise<number | null> =>
     ipcRenderer.invoke('remote:consumePendingNotice'),
@@ -273,8 +280,18 @@ const api = {
     on('remote:clients', (p) => cb((p as { count: number }).count)),
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void): Unsubscribe =>
     on('remote:event', (p) => cb(p as { kind: string; name?: string })),
-  onRemoteLink: (cb: (status: { state: string; linkId: string; enabled: boolean }) => void): Unsubscribe =>
-    on('remote:link', (p) => cb(p as { state: string; linkId: string; enabled: boolean })),
+  onRemoteLink: (
+    cb: (status: {
+      state: string
+      linkId: string
+      enabled: boolean
+      error?: 'network' | 'rate_limited' | 'id_taken' | ''
+      retryAt?: number
+    }) => void
+  ): Unsubscribe =>
+    on('remote:link', (p) =>
+      cb(p as { state: string; linkId: string; enabled: boolean; error?: 'network' | 'rate_limited' | 'id_taken' | ''; retryAt?: number })
+    ),
   linkBridgeSend: (evt: unknown): Promise<void> => ipcRenderer.invoke('link-bridge:evt', evt),
   onLinkBridgeCommand: (cb: (cmd: unknown) => void): Unsubscribe =>
     on('link-bridge:cmd', (p) => cb(p))

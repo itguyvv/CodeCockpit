@@ -7,6 +7,7 @@ import {
   startLinkSignaling,
   stopLinkSignaling,
   type LinkSignalFrame,
+  type LinkSignalInfo,
   type LinkSignalState
 } from './linkSignaling'
 
@@ -39,6 +40,7 @@ interface LinkChannel {
 let enabled = false
 let cfg: { server: string; secret: string; linkId: string; rotateId: (taken: string) => string } | null = null
 let sigState: LinkSignalState = 'off'
+let sigInfo: LinkSignalInfo = { error: '', retryAt: 0 }
 let bridgeWin: BrowserWindow | null = null
 const channels = new Map<string, LinkChannel>()
 let iceCache: { at: number; servers: unknown } | null = null
@@ -46,12 +48,19 @@ let iceCache: { at: number; servers: unknown } | null = null
 function notifyState(): void {
   for (const w of BrowserWindow.getAllWindows()) {
     if (w.isDestroyed()) continue
-    w.webContents.send('remote:link', { state: sigState, linkId: cfg?.linkId ?? '', enabled })
+    w.webContents.send('remote:link', { state: sigState, linkId: cfg?.linkId ?? '', enabled, ...sigInfo })
   }
 }
 
-export function linkStatus(): { enabled: boolean; online: boolean; state: LinkSignalState; linkId: string } {
-  return { enabled, online: sigState === 'online', state: sigState, linkId: cfg?.linkId ?? '' }
+export function linkStatus(): {
+  enabled: boolean
+  online: boolean
+  state: LinkSignalState
+  linkId: string
+  error: LinkSignalInfo['error']
+  retryAt: number
+} {
+  return { enabled, online: sigState === 'online', state: sigState, linkId: cfg?.linkId ?? '', ...sigInfo }
 }
 
 /** Registration key derived from the pairing secret: the raw secret never reaches the signaling server */
@@ -203,13 +212,15 @@ function startSignaling(): void {
       linkId,
       regKey: deriveRegKey(c.secret),
       onFrame: (f) => void onSignalFrame(f),
-      onState: (s) => {
+      onState: (s, info) => {
         sigState = s
+        sigInfo = info
         notifyState()
       },
       onIdTaken: () => {
         if (++rotations > 3) {
           sigState = 'offline'
+          sigInfo = { error: 'id_taken', retryAt: 0 }
           notifyState()
           return
         }
@@ -236,6 +247,7 @@ export function disableLink(): void {
   enabled = false
   stopLinkSignaling()
   sigState = 'off'
+  sigInfo = { error: '', retryAt: 0 }
   dropAllChannels()
   ipcMain.removeHandler('link-bridge:evt')
   if (bridgeWin && !bridgeWin.isDestroyed()) bridgeWin.destroy()
