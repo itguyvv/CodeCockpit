@@ -1774,8 +1774,8 @@ input:focus {
   gap: 8px;
 }
 
-/* Link-mode signaling status chip on the any-network card header */
-.link-chip {
+/* IPv6 availability chip on the IPv6 direct card header */
+.status-chip {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
@@ -1784,29 +1784,18 @@ input:focus {
   color: rgba(223, 225, 232, 0.55);
 }
 
-.link-chip-dot {
+.status-chip-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
 }
 
-.link-chip.online .link-chip-dot {
+.status-chip.ok .status-chip-dot {
   background: #3fb27f;
 }
 
-.link-chip.connecting .link-chip-dot {
-  background: #d29922;
-  animation: link-chip-pulse 1.2s ease-in-out infinite;
-}
-
-.link-chip.offline .link-chip-dot {
+.status-chip.bad .status-chip-dot {
   background: #e5484d;
-}
-
-@keyframes link-chip-pulse {
-  50% {
-    opacity: 0.35;
-  }
 }
 
 .remote-option-icon {

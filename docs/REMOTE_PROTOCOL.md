@@ -12,23 +12,17 @@ over a TLS WebSocket.
 - One WebSocket per client. The server allows at most **4 authenticated clients**
   simultaneously. Connections that never authenticate within **10 seconds** are
   closed. After **5 failed auth attempts** an IP is banned for **60 seconds**.
-- **Which address to use** — the protocol itself is identical on every path:
+- **Which address to use** — the protocol is identical on every path; the desktop
+  shows copyable addresses in Settings → Remote access:
   - *Same network*: a LAN address of the desktop, or its Tailscale address
     (100.64/10) when both devices are on the same tailnet.
-  - *Any network (link mode)*: the desktop registers an 8-digit **device ID**
-    with a lightweight signaling relay (Cloudflare Workers). The phone only
-    enters the ID and the pairing secret; the raw secret never reaches the relay
-    (the relay sees only a SHA-256-derived registration key). The relay
-    introduces the peers, then the phone offers a **WebRTC connection** whose
-    reliable ordered DataChannel carries this protocol as JSON messages wrapped
-    in a 4-byte big-endian length prefix and split into ≤16 KiB chunks
-    (reassembled transparently on both ends). Direct P2P is attempted first, a
-    TURN relay is the fallback. The TLS notes above do not apply on this path —
-    authentication happens end-to-end inside the DataChannel, with the same
-    auth rules (10 s timeout, 5 failures → 60 s ban, max 4 clients). The default
-    relay is built in; a self-hosted relay can replace it by setting
-    `remoteLinkServer` in the app's `settings.json` (no UI — power-user escape
-    hatch).
+  - *IPv6 direct*: the desktop's public IPv6 address (Settings shows it only when
+    the network provides one), dialed as `[ipv6-addr]:port`. Works from another
+    network whenever both ends have public IPv6 and no gateway on the path blocks
+    inbound IPv6 (some home gateways do by default). The listener is dual-stack:
+    the same port serves IPv4 and IPv6. Tunneling tools (Tailscale, ZeroTier,
+    plain WireGuard, frp, …) work equally well — they just hand the phone another
+    reachable address.
 
 ## Authentication
 

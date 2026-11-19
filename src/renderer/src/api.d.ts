@@ -143,12 +143,6 @@ export interface AppSettings {
   remoteEnabled?: boolean
   /** Port the remote server listens on */
   remotePort?: number
-  /** Link mode (numeric ID + WebRTC); missing = off */
-  remoteLinkEnabled?: boolean
-  /** 8-digit public rendezvous ID for link mode */
-  remoteLinkId?: string
-  /** Signaling worker base URL; missing = the default hosted relay */
-  remoteLinkServer?: string
 }
 
 export interface UpdateStatus {
@@ -166,17 +160,6 @@ export interface RemoteDevice {
   lastSeen: number
 }
 
-export interface LinkStatus {
-  enabled: boolean
-  online: boolean
-  state: 'off' | 'connecting' | 'online' | 'offline'
-  linkId: string
-  /** Why the last registration attempt failed; '' when healthy */
-  error?: 'network' | 'rate_limited' | 'id_taken' | ''
-  /** Epoch ms of the next automatic reconnect (0 = none scheduled) */
-  retryAt?: number
-}
-
 export interface RemoteState {
   enabled: boolean
   running: boolean
@@ -185,9 +168,6 @@ export interface RemoteState {
   secret: string
   devices: RemoteDevice[]
   clientCount: number
-  linkEnabled: boolean
-  linkId: string
-  link: LinkStatus
 }
 
 export interface WorkbenchApi {
@@ -262,12 +242,9 @@ export interface WorkbenchApi {
   remoteListDevices: () => Promise<RemoteDevice[]>
   remoteRevokeDevice: (tokenHash: string) => Promise<boolean>
   remoteNetInfo: () => Promise<Array<{ address: string; iface: string; tailscale: boolean }>>
+  remoteIpv6Info: () => Promise<Array<{ address: string; iface: string }>>
   onRemoteClients: (cb: (count: number) => void) => () => void
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void) => () => void
-  onRemoteLink: (cb: (status: LinkStatus) => void) => () => void
-  remoteSetLinkEnabled: (on: boolean) => Promise<LinkStatus>
-  linkBridgeSend: (evt: unknown) => Promise<void>
-  onLinkBridgeCommand: (cb: (cmd: unknown) => void) => () => void
 }
 
 declare global {

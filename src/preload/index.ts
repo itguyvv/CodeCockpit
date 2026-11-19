@@ -51,9 +51,6 @@ const api = {
     checkUpdates?: boolean
     remoteEnabled?: boolean
     remotePort?: number
-    remoteLinkEnabled?: boolean
-    remoteLinkId?: string
-    remoteLinkServer?: string
   }> => ipcRenderer.invoke('settings:get'),
   setSettings: (patch: {
     defaultMode?: string
@@ -250,24 +247,10 @@ const api = {
     secret: string
     devices: Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>
     clientCount: number
-    linkEnabled: boolean
-    linkId: string
-    link: {
-      enabled: boolean
-      online: boolean
-      state: 'off' | 'connecting' | 'online' | 'offline'
-      linkId: string
-      error?: 'network' | 'rate_limited' | 'id_taken' | ''
-      retryAt?: number
-    }
   }> => ipcRenderer.invoke('remote:getState'),
   remoteConsumePendingNotice: (): Promise<number | null> =>
     ipcRenderer.invoke('remote:consumePendingNotice'),
   remoteSetEnabled: (on: boolean): Promise<boolean> => ipcRenderer.invoke('remote:setEnabled', on),
-  remoteSetLinkEnabled: (
-    on: boolean
-  ): Promise<{ enabled: boolean; online: boolean; state: string; linkId: string }> =>
-    ipcRenderer.invoke('remote:setLinkEnabled', on),
   remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
   remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),
   remoteListDevices: (): Promise<Array<{ tokenHash: string; name: string; addedAt: number; lastSeen: number }>> =>
@@ -276,25 +259,12 @@ const api = {
     ipcRenderer.invoke('remote:revokeDevice', tokenHash),
   remoteNetInfo: (): Promise<Array<{ address: string; iface: string; tailscale: boolean }>> =>
     ipcRenderer.invoke('remote:netInfo'),
+  remoteIpv6Info: (): Promise<Array<{ address: string; iface: string }>> =>
+    ipcRenderer.invoke('remote:ipv6Info'),
   onRemoteClients: (cb: (count: number) => void): Unsubscribe =>
     on('remote:clients', (p) => cb((p as { count: number }).count)),
   onRemoteEvent: (cb: (e: { kind: string; name?: string }) => void): Unsubscribe =>
-    on('remote:event', (p) => cb(p as { kind: string; name?: string })),
-  onRemoteLink: (
-    cb: (status: {
-      state: string
-      linkId: string
-      enabled: boolean
-      error?: 'network' | 'rate_limited' | 'id_taken' | ''
-      retryAt?: number
-    }) => void
-  ): Unsubscribe =>
-    on('remote:link', (p) =>
-      cb(p as { state: string; linkId: string; enabled: boolean; error?: 'network' | 'rate_limited' | 'id_taken' | ''; retryAt?: number })
-    ),
-  linkBridgeSend: (evt: unknown): Promise<void> => ipcRenderer.invoke('link-bridge:evt', evt),
-  onLinkBridgeCommand: (cb: (cmd: unknown) => void): Unsubscribe =>
-    on('link-bridge:cmd', (p) => cb(p))
+    on('remote:event', (p) => cb(p as { kind: string; name?: string }))
 }
 
 contextBridge.exposeInMainWorld('api', api)

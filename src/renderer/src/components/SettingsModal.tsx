@@ -68,8 +68,8 @@ export default function SettingsModal({
   const [remote, setRemote] = useState<RemoteState | null>(null)
   const [remotePortInput, setRemotePortInput] = useState('')
   const [netAddrs, setNetAddrs] = useState<Array<{ address: string; iface: string; tailscale: boolean }>>([])
+  const [ipv6Addrs, setIpv6Addrs] = useState<Array<{ address: string; iface: string }>>([])
   const [remoteClients, setRemoteClients] = useState(0)
-  const [nowTick, setNowTick] = useState(Date.now())
 
   useEffect(() => {
     void window.api.getSettings().then((s) => {
@@ -88,28 +88,21 @@ export default function SettingsModal({
     void refreshRemote()
     const offClients = window.api.onRemoteClients(setRemoteClients)
     const offEvent = window.api.onRemoteEvent(() => void refreshRemote())
-    const offLink = window.api.onRemoteLink(() => void refreshRemote())
     return () => {
       offClients()
       offEvent()
-      offLink()
     }
   }, [])
 
-  // Drive the link-mode retry countdown between server pushes
-  useEffect(() => {
-    const active = remote?.linkEnabled === true && remote?.link.retryAt != null && remote.link.retryAt > 0
-    if (!active) return
-    const timer = setInterval(() => setNowTick(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [remote?.linkEnabled, remote?.link.retryAt])
-
   const refreshRemote = (): Promise<void> =>
-    Promise.all([window.api.remoteGetState(), window.api.remoteNetInfo()]).then(([st, ips]) => {
-      setRemote(st)
-      setRemotePortInput(String(st.port))
-      setNetAddrs(ips)
-    })
+    Promise.all([window.api.remoteGetState(), window.api.remoteNetInfo(), window.api.remoteIpv6Info()]).then(
+      ([st, ips, v6]) => {
+        setRemote(st)
+        setRemotePortInput(String(st.port))
+        setNetAddrs(ips)
+        setIpv6Addrs(v6)
+      }
+    )
 
   const refreshProviders = (): Promise<void> =>
     window.api.providersList().then((r) => {
@@ -118,20 +111,6 @@ export default function SettingsModal({
 
   const engineName = (e: EngineId): string =>
     e === 'opencode' ? t('engine.opencode') : e === 'codex' ? t('engine.codex') : t('engine.claude')
-
-  const linkReason = (err: string): string =>
-    err === 'rate_limited'
-      ? t('remote.linkErrRateLimited')
-      : err === 'id_taken'
-        ? t('remote.linkErrIdTaken')
-        : err === 'network'
-          ? t('remote.linkErrNetwork')
-          : ''
-
-  const linkRetryIn = (retryAt: number): string =>
-    retryAt > nowTick
-      ? ` · ${t('remote.linkRetryIn', { s: String(Math.max(1, Math.ceil((retryAt - nowTick) / 1000))) })}`
-      : ''
 
   const setEngineEnabled = (id: EngineId, on: boolean): void => {
     // At least one installed engine must stay enabled, otherwise the window has no sessions at all
@@ -170,23 +149,9 @@ export default function SettingsModal({
     void window.api.remoteSetEnabled(on).then(() => refreshRemote())
   }
 
-  const setLinkMethod = (anyNetwork: boolean): void => {
-    if ((remote?.linkEnabled === true) === anyNetwork) return
-    void window.api.remoteSetLinkEnabled(anyNetwork).then(() => refreshRemote())
-  }
-
-  const copyConnectAddress = (addr: string): void => {
+  const copyConnectAddress = (addr: string, v6: boolean): void => {
     const port = remote?.port ?? 47315
-    window.api.copyText(`${addr}:${port}`)
-    onNotify(t('remote.copied'))
-  }
-
-  const formatLinkId = (id: string): string => (id.length === 8 ? `${id.slice(0, 4)} ${id.slice(4)}` : id)
-
-  const copyLinkId = (): void => {
-    const id = remote?.linkId
-    if (!id) return
-    window.api.copyText(id)
+    window.api.copyText(v6 ? `[${addr}]:${port}` : `${addr}:${port}`)
     onNotify(t('remote.copied'))
   }
 
@@ -722,13 +687,8 @@ export default function SettingsModal({
                 <div className="settings-section">
                   <div className="settings-title">{t('remote.methodsTitle')}</div>
                   <p className="settings-hint">{t('remote.methodsHint')}</p>
-                  <div className="remote-methods" role="radiogroup">
-                    <div
-                      className={`remote-option${remote?.linkEnabled !== true ? ' selected' : ''}`}
-                      role="radio"
-                      aria-checked={remote?.linkEnabled !== true}
-                      onClick={() => setLinkMethod(false)}
-                    >
+                  <div className="remote-methods">
+                    <div className="remote-option selected">
                       <span className="remote-option-dot" />
                       <div className="remote-option-body">
                         <div className="remote-option-head">
@@ -736,82 +696,55 @@ export default function SettingsModal({
                           <span className="remote-option-name">{t('remote.hintTitle')}</span>
                         </div>
                         <p className="remote-method-desc">{t('remote.sameDesc')}</p>
-                        {remote?.linkEnabled !== true && (
-                          <>
-                            <p className="settings-hint">{t('remote.ipsLabel')}</p>
-                            <div className="remote-ips">
-                              {netAddrs.length === 0 && <span className="remote-device-meta">—</span>}
-                              {netAddrs.map((a) => (
-                                <span key={`${a.iface}/${a.address}`} className="remote-ip">
-                                  <span className="remote-mono">{a.address}</span>
-                                  {a.tailscale && <em className="provider-tag">{t('remote.tailscaleTag')}</em>}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      copyConnectAddress(a.address)
-                                    }}
-                                  >
-                                    {t('remote.copy')}
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                            <p className="remote-method-note">
-                              {remote.running ? t('remote.sameReady') : t('remote.sameWaiting')}
-                            </p>
-                            {appInfo?.platform === 'win32' && (
-                              <p className="settings-hint">{t('remote.firewallHint')}</p>
-                            )}
-                          </>
+                        <p className="settings-hint">{t('remote.ipsLabel')}</p>
+                        <div className="remote-ips">
+                          {netAddrs.length === 0 && <span className="remote-device-meta">—</span>}
+                          {netAddrs.map((a) => (
+                            <span key={`${a.iface}/${a.address}`} className="remote-ip">
+                              <span className="remote-mono">{a.address}</span>
+                              {a.tailscale && <em className="provider-tag">{t('remote.tailscaleTag')}</em>}
+                              <button onClick={() => copyConnectAddress(a.address, false)}>
+                                {t('remote.copy')}
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <p className="remote-method-note">
+                          {remote.running ? t('remote.sameReady') : t('remote.sameWaiting')}
+                        </p>
+                        {appInfo?.platform === 'win32' && (
+                          <p className="settings-hint">{t('remote.firewallHint')}</p>
                         )}
                       </div>
                     </div>
 
-                    <div
-                      className={`remote-option${remote?.linkEnabled === true ? ' selected' : ''}`}
-                      role="radio"
-                      aria-checked={remote?.linkEnabled === true}
-                      onClick={() => setLinkMethod(true)}
-                    >
+                    <div className="remote-option">
                       <span className="remote-option-dot" />
                       <div className="remote-option-body">
                         <div className="remote-option-head">
                           <GlobeIcon className="remote-option-icon" />
-                          <span className="remote-option-name">{t('remote.linkTitle')}</span>
-                          {remote?.linkEnabled === true && (
-                            <span className={`link-chip ${remote.link.state}`}>
-                              <span className="link-chip-dot" />
-                              {remote.link.state === 'online'
-                                ? t('remote.linkStateOnline')
-                                : remote.link.state === 'connecting'
-                                  ? t('remote.linkStateConnecting')
-                                  : t('remote.linkStateOffline')}
-                            </span>
-                          )}
+                          <span className="remote-option-name">{t('remote.ipv6Title')}</span>
+                          <span className={`status-chip ${ipv6Addrs.length > 0 ? 'ok' : 'bad'}`}>
+                            <span className="status-chip-dot" />
+                            {ipv6Addrs.length > 0 ? t('remote.ipv6Ok') : t('remote.ipv6None')}
+                          </span>
                         </div>
-                        <p className="remote-method-desc">{t('remote.linkDesc')}</p>
-                        {remote?.linkEnabled === true && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <p className="settings-hint">{t('remote.linkHint')}</p>
-                            <div className="remote-ip">
-                              <span className="remote-mono">{formatLinkId(remote.linkId)}</span>
-                              <button onClick={copyLinkId}>{t('remote.copy')}</button>
-                            </div>
-                            <p className="settings-hint">
-                              {remote.link.online
-                                ? t('remote.linkOnline')
-                                : remote.link.state === 'connecting'
-                                  ? t('remote.linkStateConnecting')
-                                  : t('remote.linkOffline')}
-                            </p>
-                            {!remote.link.online && remote.link.state === 'offline' && remote.link.error && (
-                              <p className="settings-hint">
-                                {linkReason(remote.link.error)}
-                                {linkRetryIn(remote.link.retryAt ?? 0)}
-                              </p>
-                            )}
+                        <p className="remote-method-desc">{t('remote.ipv6Desc')}</p>
+                        {ipv6Addrs.length > 0 ? (
+                          <div className="remote-ips">
+                            {ipv6Addrs.map((a) => (
+                              <span key={`${a.iface}/${a.address}`} className="remote-ip">
+                                <span className="remote-mono">{a.address}</span>
+                                <button onClick={() => copyConnectAddress(a.address, true)}>
+                                  {t('remote.copy')}
+                                </button>
+                              </span>
+                            ))}
                           </div>
+                        ) : (
+                          <p className="settings-hint">{t('remote.ipv6Unsupported')}</p>
                         )}
+                        <p className="remote-method-note">{t('remote.ipv6Note')}</p>
                       </div>
                     </div>
                   </div>

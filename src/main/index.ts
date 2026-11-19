@@ -1,6 +1,5 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from 'electron'
 import { execFile } from 'node:child_process'
-import crypto from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -45,6 +44,7 @@ import {
   regenerateRemoteSecret,
   remoteFingerprint,
   remoteNetInfo,
+  remoteIpv6Info,
   remotePort,
   remoteRunning,
   remoteClientCount,
@@ -52,7 +52,6 @@ import {
   startRemote,
   stopRemote
 } from './services/remoteServer'
-import { disableLink, enableLink, linkStatus } from './services/linkBridge'
 
 interface AppSettings {
   lastCwd?: string
@@ -75,15 +74,7 @@ interface AppSettings {
   remoteEnabled?: boolean
   /** Port the remote server listens on */
   remotePort?: number
-  /** Link mode (numeric ID + WebRTC); missing = off */
-  remoteLinkEnabled?: boolean
-  /** 8-digit public rendezvous ID for link mode; generated on first enable */
-  remoteLinkId?: string
-  /** Signaling worker base URL; missing = the default hosted relay */
-  remoteLinkServer?: string
 }
-
-const DEFAULT_LINK_SERVER = 'https://signal.ieeh.com'
 
 let win: BrowserWindow | null = null
 /** Set after the user confirms exit so the next close event goes through */
@@ -108,37 +99,6 @@ function rememberCwd(cwd: string): void {
 function writeSettings(patch: Record<string, unknown>): void {
   const next = { ...readSettings(), ...patch }
   writeJsonAtomic(dataFile('settings.json'), next)
-}
-
-function newLinkId(): string {
-  return crypto.randomInt(10_000_000, 100_000_000).toString()
-}
-
-function startLink(): void {
-  const s = readSettings()
-  const server = (s.remoteLinkServer ?? DEFAULT_LINK_SERVER).trim()
-  if (!server) {
-    for (const w of BrowserWindow.getAllWindows()) {
-      w.webContents.send('remote:link', { state: 'offline', linkId: '', enabled: true })
-    }
-    return
-  }
-  let id = s.remoteLinkId ?? ''
-  if (!/^\d{8}$/.test(id)) {
-    id = newLinkId()
-    writeSettings({ remoteLinkId: id })
-  }
-  enableLink({
-    server,
-    secret: getRemoteSecret(),
-    linkId: id,
-    rotateId: (taken: string) => {
-      void taken
-      const next = newLinkId()
-      writeSettings({ remoteLinkId: next })
-      return next
-    }
-  })
 }
 
 function registerIpc(): void {
@@ -273,10 +233,7 @@ function registerIpc(): void {
       fp: remoteFingerprint(),
       secret: getRemoteSecret(),
       devices: listRemoteDevices(),
-      clientCount: remoteClientCount(),
-      linkEnabled: s.remoteLinkEnabled === true,
-      linkId: s.remoteLinkId ?? '',
-      link: linkStatus()
+      clientCount: remoteClientCount()
     }
   })
   ipcMain.handle('remote:setEnabled', async (_e, on: boolean) => {
@@ -284,9 +241,7 @@ function registerIpc(): void {
     const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
     if (on) {
       await startRemote(port)
-      if (readSettings().remoteLinkEnabled) startLink()
     } else {
-      disableLink()
       stopRemote()
     }
     return remoteRunning()
@@ -302,23 +257,12 @@ function registerIpc(): void {
     }
     return valid
   })
-  ipcMain.handle('remote:setLinkEnabled', async (_e, on: boolean) => {
-    const enabled = on === true
-    writeSettings({ remoteLinkEnabled: enabled })
-    if (enabled && remoteRunning()) startLink()
-    else disableLink()
-    return linkStatus()
-  })
-  ipcMain.handle('remote:regenerateSecret', () => {
-    const next = regenerateRemoteSecret()
-    // Link registration keys derive from the secret; re-register under the new one
-    if (readSettings().remoteLinkEnabled && remoteRunning()) startLink()
-    return next
-  })
+  ipcMain.handle('remote:regenerateSecret', () => regenerateRemoteSecret())
   ipcMain.handle('remote:getSecret', () => getRemoteSecret())
   ipcMain.handle('remote:listDevices', () => listRemoteDevices())
   ipcMain.handle('remote:revokeDevice', (_e, tokenHash: string) => revokeRemoteDevice(String(tokenHash ?? '')))
   ipcMain.handle('remote:netInfo', () => remoteNetInfo())
+  ipcMain.handle('remote:ipv6Info', () => remoteIpv6Info())
   ipcMain.handle('data-dir:set', (_e, custom: string) => setDataDir(custom))
   ipcMain.handle('update:status', () => updateStatus)
   ipcMain.handle('update:check', () => checkForUpdate())
@@ -637,10 +581,6 @@ function createWindow(): void {
   })
   win.on('closed', () => {
     win = null
-    // The hidden link-bridge window stays open after the main window closes, so
-    // window-all-closed never fires and the process would linger holding the
-    // PTYs, the remote server and the install directory — quit explicitly.
-    if (!IS_MAC) app.quit()
   })
 
   // Confirm before exiting (skip once armed or opted out); message adapts to running sessions
@@ -752,11 +692,7 @@ app.whenReady().then(() => {
   createWindow()
   if (readSettings().remoteEnabled) {
     const port = readSettings().remotePort ?? DEFAULT_REMOTE_PORT
-    void startRemote(port)
-      .then(() => {
-        if (readSettings().remoteLinkEnabled) startLink()
-      })
-      .catch((e) => console.log('[remote] failed to start:', String(e)))
+    void startRemote(port).catch((e) => console.log('[remote] failed to start:', String(e)))
   }
   if (readSettings().checkUpdates !== false) setTimeout(checkForUpdate, 10_000)
   app.on('activate', () => {
@@ -772,7 +708,6 @@ app.on('window-all-closed', () => {
 // will-quit runs only after every window closed for real (a cancelled exit dialog must
 // not have killed the PTYs already, which is what before-quit would do)
 app.on('will-quit', () => {
-  disableLink()
   stopRemote()
   shutdownAll()
 })

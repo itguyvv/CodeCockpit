@@ -162,6 +162,24 @@ export function remoteNetInfo(): Array<{ address: string; iface: string; tailsca
   return out
 }
 
+/**
+ * Global unicast (2000::/3) IPv6 addresses, dialable from another network. Excludes
+ * link-local (fe80::), ULA fc00::/7 — which also covers Tailscale's fd7a:: range — and ::1.
+ * The listener binds :: (dual-stack), so these are reachable on the same port as IPv4.
+ */
+export function remoteIpv6Info(): Array<{ address: string; iface: string }> {
+  const out: Array<{ address: string; iface: string }> = []
+  for (const [iface, addrs] of Object.entries(os.networkInterfaces())) {
+    for (const a of addrs ?? []) {
+      if (a.family !== 'IPv6' || a.internal) continue
+      const first = parseInt(a.address.split(':')[0] ?? '', 16)
+      if (!(first >= 0x2000 && first <= 0x3fff)) continue
+      out.push({ address: a.address, iface })
+    }
+  }
+  return out
+}
+
 // ── Server lifecycle ──
 
 export const DEFAULT_REMOTE_PORT = 47315
@@ -171,13 +189,9 @@ const AUTH_WINDOW_MS = 10_000
 const MAX_FAILS = 5
 const FAIL_BAN_MS = 60_000
 
-/**
- * A remote client rides on either a direct WSS socket or a WebRTC DataChannel
- * (link mode). The protocol layer only sees this interface; the same JSON
- * message handling applies to both.
- */
+/** The protocol layer only sees this interface; JSON message handling is transport-agnostic */
 export interface RemoteTransport {
-  /** Stable key for logs and the auth-failure ban map, e.g. 'ws:1.2.3.4' or 'link:<cid>' */
+  /** Stable key for logs and the auth-failure ban map, e.g. 'ws:1.2.3.4' */
   id(): string
   send(data: string): void
   close(): void
@@ -399,11 +413,6 @@ export function stopRemote(): void {
   server = null
   runningPort = 0
   notifyWindows('remote:clients', { count: 0 })
-}
-
-/** Entry point for link-mode (WebRTC DataChannel) clients built by the link bridge */
-export function attachLinkClient(tr: RemoteTransport): void {
-  addClient(tr)
 }
 
 function addClient(tr: RemoteTransport): void {

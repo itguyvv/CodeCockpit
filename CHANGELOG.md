@@ -6,9 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fixed
+### Added
 
-- Closing the window no longer leaves the process running in the background when remote link mode is on: the hidden bridge window kept the app alive after the main window closed, holding the install directory and the remote port hostage until the process was killed manually.
+- **IPv6 direct connection** — second method card in Settings → Remote access: lists the desktop's public IPv6 addresses with copy buttons and a green/red availability chip (red = this network has no public IPv6, with guidance). No new protocol — the phone dials the same TLS WebSocket endpoint over IPv6, so it works from another network whenever both ends have IPv6 and the router passes it through.
+
+### Removed
+
+- **Any network (link mode)** — the WebRTC/numeric-ID connection path (signaling relay, hidden bridge window, link status chip and its settings) is gone. Rationale: with both ends behind carrier-grade NAT, pure-STUN hole punching is unreliable, and free TURN relays are unreachable from mainland China networks — so the mode could not deliver dependable connectivity without a paid or self-hosted data relay. Remote access now has direct methods only: *Same network* (LAN / Tailscale) and *IPv6 direct*. The last complete implementation ships in release v1.4.0 (also archived in the project's backup documentation). Removing the hidden bridge window also eliminates the close-then-lingering-process bug.
 
 ## [1.4.0] - 2026-11-19
 
