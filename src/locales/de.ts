@@ -317,6 +317,9 @@ const de: Translation = {
   'remote.linkOffline': 'Signaling offline — prüfen Sie die Server-URL unten oder Ihre Verbindung.',
   'remote.linkServerLabel': 'Signaling-Server (erweitert)',
   'remote.linkServerSaved': 'Signaling-Server gespeichert',
+  'remote.staleTitle': 'Remote-Zugriff-Port belegt',
+  'remote.staleMessage': 'Port {port} wird von einer noch laufenden CodeCockpit-Instanz belegt (PID {pid}). Beenden und Fernzugriff starten?',
+  'remote.staleKill': 'Beenden und wiederholen',
   'remote.detailsTitle': 'Verbindungsdetails',
   'remote.devices': 'Gekoppelte Geräte',
   'remote.noDevices': 'Noch keine gekoppelten Geräte — koppeln Sie eines, indem Sie auf dem Telefon das Secret eingeben.',
@@ -328,7 +331,8 @@ const de: Translation = {
   'remote.appPlannedMeta': 'Geplant',
   'remote.appSteps': 'Installieren Sie die App auf dem Telefon, wählen Sie oben eine Verbindungsart und geben Sie Adresse und Kopplungs-Secret ein.',
   'statusbar.remote': '{n} Fernclient(s)',
-  'toast.remotePaired': 'Ferngerät gekoppelt: {name}'
+  'toast.remotePaired': 'Ferngerät gekoppelt: {name}',
+  'toast.remotePortTaken': 'Fernzugriff konnte nicht gestartet werden — Port {port} wird bereits von einem anderen Programm verwendet.'
 }
 
 export default de

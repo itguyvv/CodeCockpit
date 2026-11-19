@@ -305,6 +305,9 @@ const zhCN: Translation = {
   'remote.linkOffline': '信令离线——请检查下方服务器地址或网络连接。',
   'remote.linkServerLabel': '信令服务器（高级）',
   'remote.linkServerSaved': '信令服务器已保存',
+  'remote.staleTitle': '远程访问端口被占用',
+  'remote.staleMessage': '端口 {port} 被一个残留的 CodeCockpit 实例占用（PID {pid}）。结束该进程并启动远程访问？',
+  'remote.staleKill': '结束并重试',
   'remote.detailsTitle': '连接详情',
   'remote.devices': '已配对设备',
   'remote.noDevices': '还没有配对设备——在手机上输入密钥即可配对。',
@@ -316,7 +319,8 @@ const zhCN: Translation = {
   'remote.appPlannedMeta': '计划中',
   'remote.appSteps': '在手机上安装客户端，选择上方任一连接方式，然后输入对应地址和配对密钥。',
   'statusbar.remote': '{n} 个远程客户端',
-  'toast.remotePaired': '远程设备已配对：{name}'
+  'toast.remotePaired': '远程设备已配对：{name}',
+  'toast.remotePortTaken': '远程访问启动失败——端口 {port} 已被其他程序占用。'
 }
 
 export default zhCN

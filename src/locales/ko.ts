@@ -309,6 +309,9 @@ const ko: Translation = {
   'remote.linkOffline': '시그널링 오프라인 — 아래 서버 URL 또는 연결을 확인하세요.',
   'remote.linkServerLabel': '시그널링 서버(고급)',
   'remote.linkServerSaved': '시그널링 서버가 저장되었습니다',
+  'remote.staleTitle': '원격 액세스 포트 사용 중',
+  'remote.staleMessage': '포트 {port}을(를) 이전 CodeCockpit 인스턴스(PID {pid})가 사용 중입니다. 종료하고 원격 액세스를 시작할까요?',
+  'remote.staleKill': '종료 후 재시도',
   'remote.detailsTitle': '연결 정보',
   'remote.devices': '페어링된 기기',
   'remote.noDevices': '아직 페어링된 기기가 없습니다. 휴대폰에서 시크릿을 입력하면 페어링할 수 있습니다.',
@@ -320,7 +323,8 @@ const ko: Translation = {
   'remote.appPlannedMeta': '계획됨',
   'remote.appSteps': '휴대폰에 앱을 설치하고, 위에서 연결 방법을 선택한 뒤, 주소와 페어링 시크릿을 입력하세요.',
   'statusbar.remote': '원격 클라이언트 {n}대',
-  'toast.remotePaired': '원격 기기가 페어링됨: {name}'
+  'toast.remotePaired': '원격 기기가 페어링됨: {name}',
+  'toast.remotePortTaken': '원격 액세스를 시작하지 못했습니다 — 포트 {port}를(을) 다른 프로그램이 사용 중입니다.'
 }
 
 export default ko

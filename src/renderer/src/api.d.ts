@@ -252,6 +252,7 @@ export interface WorkbenchApi {
   updateStatus: () => Promise<UpdateStatus>
   updateCheck: () => Promise<UpdateStatus>
   remoteGetState: () => Promise<RemoteState>
+  remoteConsumePendingNotice: () => Promise<number | null>
   remoteSetEnabled: (on: boolean) => Promise<boolean>
   remoteSetPort: (port: number) => Promise<number>
   remoteRegenerateSecret: () => Promise<string>

@@ -255,6 +255,8 @@ const api = {
     linkServer: string
     link: { enabled: boolean; online: boolean; state: 'off' | 'connecting' | 'online' | 'offline'; linkId: string }
   }> => ipcRenderer.invoke('remote:getState'),
+  remoteConsumePendingNotice: (): Promise<number | null> =>
+    ipcRenderer.invoke('remote:consumePendingNotice'),
   remoteSetEnabled: (on: boolean): Promise<boolean> => ipcRenderer.invoke('remote:setEnabled', on),
   remoteSetPort: (port: number): Promise<number> => ipcRenderer.invoke('remote:setPort', port),
   remoteRegenerateSecret: (): Promise<string> => ipcRenderer.invoke('remote:regenerateSecret'),

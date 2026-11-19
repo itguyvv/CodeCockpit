@@ -159,6 +159,11 @@ function AppInner(): JSX.Element {
     const offRemoteClients = window.api.onRemoteClients(setRemoteClients)
     const offRemoteEvent = window.api.onRemoteEvent((e) => {
       if (e.kind === 'paired' && e.name) showToast(t('toast.remotePaired', { name: e.name }))
+      if (e.kind === 'port_taken' && e.name) showToast(t('toast.remotePortTaken', { port: e.name }))
+    })
+    // A startup conflict fires before this component mounts — pull the queued notice
+    void window.api.remoteConsumePendingNotice().then((port) => {
+      if (port != null) showToast(t('toast.remotePortTaken', { port: String(port) }))
     })
     return () => {
       offExit()
@@ -749,16 +754,19 @@ function AppInner(): JSX.Element {
 }
 
 export default function App(): JSX.Element {
-  const [locale, setLocaleState] = useState<LocaleCode>('en')
+  const [locale, setLocaleState] = useState<LocaleCode | null>(null)
 
   useEffect(() => {
-    void window.api.getSettings().then((s) => {
-      // First launch: follow the OS language; an unknown persisted value also falls back to detection
-      const saved = s.locale as LocaleCode | undefined
-      const next = saved && LOCALE_LIST.some((l) => l.code === saved) ? saved : detectLocale()
-      setLocaleState(next)
-      if (!saved || saved !== next) void window.api.setSettings({ locale: next })
-    })
+    window.api
+      .getSettings()
+      .then((s) => {
+        // First launch: follow the OS language; an unknown persisted value also falls back to detection
+        const saved = s.locale as LocaleCode | undefined
+        const next = saved && LOCALE_LIST.some((l) => l.code === saved) ? saved : detectLocale()
+        setLocaleState(next)
+        if (!saved || saved !== next) void window.api.setSettings({ locale: next })
+      })
+      .catch(() => setLocaleState(detectLocale()))
   }, [])
 
   const setLocale = useCallback((l: LocaleCode) => {
@@ -766,6 +774,8 @@ export default function App(): JSX.Element {
     void window.api.setSettings({ locale: l })
   }, [])
 
+  // Hold the app until the persisted locale resolves so nothing paints with a wrong language
+  if (locale === null) return <></>
   return (
     <I18nProvider locale={locale} onSetLocale={setLocale}>
       <AppInner />

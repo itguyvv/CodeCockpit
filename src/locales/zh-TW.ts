@@ -305,6 +305,9 @@ const zhTW: Translation = {
   'remote.linkOffline': '訊號伺服器離線——請檢查下方伺服器位址或網路連線。',
   'remote.linkServerLabel': '訊號伺服器（進階）',
   'remote.linkServerSaved': '訊號伺服器已儲存',
+  'remote.staleTitle': '遠端存取連接埠被佔用',
+  'remote.staleMessage': '連接埠 {port} 被一個殘留的 CodeCockpit 實例佔用（PID {pid}）。結束該程式並啟動遠端存取？',
+  'remote.staleKill': '結束並重試',
   'remote.detailsTitle': '連線詳情',
   'remote.devices': '已配對裝置',
   'remote.noDevices': '還沒有配對裝置——在手機上輸入金鑰即可配對。',
@@ -316,7 +319,8 @@ const zhTW: Translation = {
   'remote.appPlannedMeta': '計畫中',
   'remote.appSteps': '在手機上安裝用戶端，選擇上方任一連線方式，然後輸入對應位址和配對金鑰。',
   'statusbar.remote': '{n} 個遠端用戶端',
-  'toast.remotePaired': '遠端裝置已配對：{name}'
+  'toast.remotePaired': '遠端裝置已配對：{name}',
+  'toast.remotePortTaken': '遠端存取啟動失敗——連接埠 {port} 已被其他程式佔用。'
 }
 
 export default zhTW

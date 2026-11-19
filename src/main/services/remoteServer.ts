@@ -1,12 +1,16 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, dialog } from 'electron'
 import https from 'node:https'
 import type { IncomingMessage } from 'node:http'
 import crypto from 'node:crypto'
 import os from 'node:os'
 import fs from 'node:fs'
+import path from 'node:path'
+import { execFile } from 'node:child_process'
 import { WebSocketServer, WebSocket } from 'ws'
 import selfsigned from 'selfsigned'
 import { dataFile, writeFileAtomic, writeJsonAtomic } from './dataDir'
+import { t } from './i18n'
+import { IS_WIN } from './platform'
 import { getMessages, onMessages, type RemoteMessage } from './conversation'
 import {
   getStatus,
@@ -211,6 +215,18 @@ let runningPort = 0
 let unsubConv: (() => void) | null = null
 let unsubEvents: (() => void) | null = null
 
+/**
+ * Port-taken notice set before the renderer is listening; the renderer pulls it
+ * on mount so a startup conflict is not lost, cleared once delivered.
+ */
+let pendingPortTaken: number | null = null
+
+export function consumePendingPortTaken(): number | null {
+  const p = pendingPortTaken
+  pendingPortTaken = null
+  return p
+}
+
 export function remoteRunning(): boolean {
   return server !== null
 }
@@ -245,35 +261,112 @@ function sendAttached(sessionId: string, msg: Record<string, unknown>): void {
   }
 }
 
-export async function startRemote(port = DEFAULT_REMOTE_PORT): Promise<void> {
-  if (server) return
+/** Starts the listener; false = port busy (user-facing toast is pushed from here) */
+// ── Stale-instance takeover: when the remote port is held by another copy of
+// this very app, offer a one-click kill + retry. Verified by PID + exe name,
+// user-confirmed, single retry — never a silent kill. ──
+
+function execCapture(cmd: string, args: string[]): Promise<string> {
+  return new Promise((resolve) => {
+    execFile(cmd, args, { windowsHide: true }, (err, stdout) => resolve(err ? '' : String(stdout)))
+  })
+}
+
+/** PID of the process listening on the port, or null */
+async function findListenerPid(port: number): Promise<number | null> {
+  if (!IS_WIN) return null
+  const out = await execCapture('netstat', ['-ano', '-p', 'TCP'])
+  for (const line of out.split('\n')) {
+    const cols = line.trim().split(/\s+/)
+    // TCP  0.0.0.0:47315  0.0.0.0:0  LISTENING  1234
+    if (cols.length >= 5 && cols[3] === 'LISTENING' && cols[1].endsWith(`:${port}`)) {
+      const pid = parseInt(cols[cols.length - 1], 10)
+      if (Number.isInteger(pid) && pid > 0) return pid
+    }
+  }
+  return null
+}
+
+async function processImagePath(pid: number): Promise<string> {
+  return (await execCapture('powershell', ['-NoProfile', '-Command', `(Get-Process -Id ${pid}).Path`])).trim()
+}
+
+/** Port busy → if the holder is another copy of this app, ask to kill it and retry */
+async function offerStaleKill(port: number): Promise<boolean> {
+  if (!IS_WIN) return false
+  const pid = await findListenerPid(port)
+  if (pid == null) return false
+  const img = path.basename(await processImagePath(pid)).toLowerCase()
+  const mine = path.basename(process.execPath).toLowerCase()
+  console.log(`[remote] port ${port} held by pid ${pid} (${img}); this exe: ${mine}`)
+  if (!img || img !== mine) return false
+  const { response } = await dialog.showMessageBox({
+    type: 'question',
+    title: t('remote.staleTitle'),
+    message: t('remote.staleMessage', { port, pid }),
+    buttons: [t('remote.staleKill'), t('common.cancel')],
+    defaultId: 0,
+    cancelId: 1,
+    noLink: true
+  })
+  if (response !== 0) return false
+  const killed = await execCapture('taskkill', ['/PID', String(pid), '/F'])
+  console.log(`[remote] taskkill ${pid}: ${killed.trim() || 'no output'}`)
+  // One retry without re-offering so a second failure falls back to the toast
+  return startRemote(port, { offerKill: false })
+}
+
+/** Starts the listener; false = port busy (user-facing toast is pushed from here) */
+export async function startRemote(
+  port = DEFAULT_REMOTE_PORT,
+  opts: { offerKill?: boolean } = {}
+): Promise<boolean> {
+  if (server) return true
   loadAuth() // Materialize the secret before anything can connect
   const { key, cert } = await ensureCert()
   const srv = https.createServer({ key, cert })
   const pool = new WebSocketServer({ server: srv, maxPayload: 1024 * 1024 })
   pool.on('connection', (ws, req) => onConnection(ws, req))
+  // ws re-emits the HTTP server's 'error' on the pool; without a consumer the
+  // EventEmitter throws synchronously and the app crashes on port conflicts
+  pool.on('error', () => {})
   srv.on('error', () => {
     // Port taken / listener dropped — surface as stopped; the settings tab polls remoteState
     stopRemote()
   })
   // Await the bind so callers can tell "running" from "port taken" before linking
-  await new Promise<void>((resolve, reject) => {
+  const bound = await new Promise<boolean>((resolve) => {
     const onUp = (): void => {
       srv.off('error', onErr)
       runningPort = (srv.address() as { port: number }).port
-      resolve()
+      resolve(true)
     }
-    const onErr = (e: Error): void => {
+    const onErr = (): void => {
       srv.off('listening', onUp)
-      reject(e)
+      console.log(`[remote] bind failed on port ${port}`)
+      try {
+        srv.close()
+      } catch {
+        // handle already gone
+      }
+      // Offer to kill a leftover instance of ourselves; otherwise surface a toast
+      void (opts.offerKill === false ? Promise.resolve(false) : offerStaleKill(port)).then((restarted) => {
+        if (!restarted) {
+          pendingPortTaken = port
+          notifyWindows('remote:event', { kind: 'port_taken', name: String(port) })
+        }
+      })
+      resolve(false)
     }
     srv.once('listening', onUp)
     srv.once('error', onErr)
     srv.listen(port, '0.0.0.0')
   })
+  if (!bound) return false
   server = srv
   wss = pool
   cachedFp = ''
+  console.log(`[remote] listening on port ${runningPort}`)
   // Conversation stream: every recorded batch goes to clients attached to that session
   unsubConv = onMessages((sessionId, msgs) => {
     sendAttached(sessionId, { type: 'conv_append', id: sessionId, messages: msgs })
@@ -290,6 +383,7 @@ export async function startRemote(port = DEFAULT_REMOTE_PORT): Promise<void> {
       for (const c of clients) c.attached.delete(id)
     } else if (channel === 'pty:session-id') sendAttached(id, { type: 'session_id', id, claudeSessionId: p.claudeSessionId })
   })
+  return true
 }
 
 export function stopRemote(): void {

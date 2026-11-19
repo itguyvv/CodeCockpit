@@ -39,6 +39,7 @@ import {
 } from './services/sessionManager'
 import {
   DEFAULT_REMOTE_PORT,
+  consumePendingPortTaken,
   getRemoteSecret,
   listRemoteDevices,
   regenerateRemoteSecret,
@@ -262,6 +263,7 @@ function registerIpc(): void {
   })
 
   // ── Remote access ──
+  ipcMain.handle('remote:consumePendingNotice', () => consumePendingPortTaken())
   ipcMain.handle('remote:getState', () => {
     const s = readSettings()
     return {

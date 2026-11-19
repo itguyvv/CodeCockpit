@@ -319,6 +319,9 @@ const fr: Translation = {
   'remote.linkOffline': 'Signalisation hors ligne — vérifiez l’URL du serveur ci-dessous ou votre connexion.',
   'remote.linkServerLabel': 'Serveur de signalisation (avancé)',
   'remote.linkServerSaved': 'Serveur de signalisation enregistré',
+  'remote.staleTitle': 'Port d’accès distant occupé',
+  'remote.staleMessage': 'Le port {port} est détenu par une instance CodeCockpit restée ouverte (PID {pid}). La fermer et démarrer l’accès distant ?',
+  'remote.staleKill': 'Fermer et réessayer',
   'remote.detailsTitle': 'Détails de connexion',
   'remote.devices': 'Appareils appairés',
   'remote.noDevices': 'Aucun appareil appairé — appairez-en un en saisissant le secret sur le téléphone.',
@@ -330,7 +333,8 @@ const fr: Translation = {
   'remote.appPlannedMeta': 'Prévu',
   'remote.appSteps': 'Installez l’application sur le téléphone, choisissez un mode de connexion ci-dessus, puis saisissez l’adresse et le secret d’appairage.',
   'statusbar.remote': '{n} client(s) à distance',
-  'toast.remotePaired': 'Appareil distant appairé : {name}'
+  'toast.remotePaired': 'Appareil distant appairé : {name}',
+  'toast.remotePortTaken': 'L’accès distant n’a pas pu démarrer — le port {port} est déjà utilisé par un autre programme.'
 }
 
 export default fr

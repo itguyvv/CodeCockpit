@@ -312,6 +312,9 @@ const ja: Translation = {
   'remote.linkOffline': 'シグナリングがオフラインです — 下のサーバー URL か接続を確認してください。',
   'remote.linkServerLabel': 'シグナリングサーバー（詳細）',
   'remote.linkServerSaved': 'シグナリングサーバーを保存しました',
+  'remote.staleTitle': 'リモートアクセスのポートが使用中',
+  'remote.staleMessage': 'ポート {port} は以前の CodeCockpit インスタンス（PID {pid}）が使用しています。終了してリモートアクセスを開始しますか？',
+  'remote.staleKill': '終了して再試行',
   'remote.detailsTitle': '接続情報',
   'remote.devices': 'ペアリング済みデバイス',
   'remote.noDevices': 'ペアリング済みのデバイスはありません。スマホでシークレットを入力するとペアリングできます。',
@@ -323,7 +326,8 @@ const ja: Translation = {
   'remote.appPlannedMeta': '予定',
   'remote.appSteps': 'スマホにアプリをインストールし、上記の接続方法を選んで、アドレスとペアリングシークレットを入力してください。',
   'statusbar.remote': 'リモートクライアント {n} 台',
-  'toast.remotePaired': 'リモートデバイスがペアリングされました：{name}'
+  'toast.remotePaired': 'リモートデバイスがペアリングされました：{name}',
+  'toast.remotePortTaken': 'リモートアクセスを開始できませんでした — ポート {port} は他のプログラムが使用中です。'
 }
 
 export default ja

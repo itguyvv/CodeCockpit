@@ -318,6 +318,9 @@ const ptBR: Translation = {
   'remote.linkOffline': 'Sinalização offline — verifique a URL do servidor abaixo ou sua conexão.',
   'remote.linkServerLabel': 'Servidor de sinalização (avançado)',
   'remote.linkServerSaved': 'Servidor de sinalização salvo',
+  'remote.staleTitle': 'Porta do acesso remoto em uso',
+  'remote.staleMessage': 'A porta {port} está ocupada por uma instância do CodeCockpit que ficou aberta (PID {pid}). Encerrá-la e iniciar o acesso remoto?',
+  'remote.staleKill': 'Encerrar e tentar de novo',
   'remote.detailsTitle': 'Detalhes da conexão',
   'remote.devices': 'Dispositivos pareados',
   'remote.noDevices': 'Nenhum dispositivo pareado ainda — pareie um digitando o segredo no celular.',
@@ -329,7 +332,8 @@ const ptBR: Translation = {
   'remote.appPlannedMeta': 'Planejado',
   'remote.appSteps': 'Instale o app no celular, escolha uma forma de conexão acima e informe o endereço e o segredo de pareamento.',
   'statusbar.remote': '{n} cliente(s) remoto(s)',
-  'toast.remotePaired': 'Dispositivo remoto pareado: {name}'
+  'toast.remotePaired': 'Dispositivo remoto pareado: {name}',
+  'toast.remotePortTaken': 'Não foi possível iniciar o acesso remoto — a porta {port} já está em uso por outro programa.'
 }
 
 export default ptBR

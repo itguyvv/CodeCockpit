@@ -318,6 +318,9 @@ const en = {
   'remote.linkOffline': 'Signaling offline — check the server URL below or your connection.',
   'remote.linkServerLabel': 'Signaling server (advanced)',
   'remote.linkServerSaved': 'Signaling server saved',
+  'remote.staleTitle': 'Remote access port in use',
+  'remote.staleMessage': 'Port {port} is held by a leftover CodeCockpit instance (PID {pid}). Kill it and start remote access?',
+  'remote.staleKill': 'Kill and retry',
   'remote.detailsTitle': 'Connection details',
   'remote.devices': 'Paired devices',
   'remote.noDevices': 'No devices paired yet — pair one by entering the secret on the phone.',
@@ -329,7 +332,8 @@ const en = {
   'remote.appPlannedMeta': 'Planned',
   'remote.appSteps': 'Install the app on your phone, pick a connection method above, then enter the address and the pairing secret.',
   'statusbar.remote': '{n} remote client(s)',
-  'toast.remotePaired': 'Remote device paired: {name}'
+  'toast.remotePaired': 'Remote device paired: {name}',
+  'toast.remotePortTaken': 'Remote access could not start — port {port} is already in use by another program.'
 }
 
 export type TranslationKey = keyof typeof en

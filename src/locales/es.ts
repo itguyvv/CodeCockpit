@@ -318,6 +318,9 @@ const es: Translation = {
   'remote.linkOffline': 'Señalización sin conexión: revisa la URL del servidor de abajo o tu conexión.',
   'remote.linkServerLabel': 'Servidor de señalización (avanzado)',
   'remote.linkServerSaved': 'Servidor de señalización guardado',
+  'remote.staleTitle': 'Puerto de acceso remoto en uso',
+  'remote.staleMessage': 'El puerto {port} está ocupado por una instancia de CodeCockpit que quedó abierta (PID {pid}). ¿Cerrarla e iniciar el acceso remoto?',
+  'remote.staleKill': 'Cerrar y reintentar',
   'remote.detailsTitle': 'Detalles de conexión',
   'remote.devices': 'Dispositivos emparejados',
   'remote.noDevices': 'Aún no hay dispositivos emparejados: empareja uno introduciendo el secreto en el teléfono.',
@@ -329,7 +332,8 @@ const es: Translation = {
   'remote.appPlannedMeta': 'Planeado',
   'remote.appSteps': 'Instala la app en el teléfono, elige un método de conexión arriba e introduce la dirección y el secreto de emparejamiento.',
   'statusbar.remote': '{n} cliente(s) remoto(s)',
-  'toast.remotePaired': 'Dispositivo remoto emparejado: {name}'
+  'toast.remotePaired': 'Dispositivo remoto emparejado: {name}',
+  'toast.remotePortTaken': 'No se pudo iniciar el acceso remoto: el puerto {port} ya está en uso por otro programa.'
 }
 
 export default es

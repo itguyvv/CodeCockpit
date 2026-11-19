@@ -317,6 +317,9 @@ const ru: Translation = {
   'remote.linkOffline': 'Сигнализация офлайн — проверьте URL сервера ниже или своё подключение.',
   'remote.linkServerLabel': 'Сервер сигнализации (дополнительно)',
   'remote.linkServerSaved': 'Сервер сигнализации сохранён',
+  'remote.staleTitle': 'Порт удалённого доступа занят',
+  'remote.staleMessage': 'Порт {port} занят оставшимся экземпляром CodeCockpit (PID {pid}). Завершить его и запустить удалённый доступ?',
+  'remote.staleKill': 'Завершить и повторить',
   'remote.detailsTitle': 'Сведения о подключении',
   'remote.devices': 'Сопряжённые устройства',
   'remote.noDevices': 'Пока нет сопряжённых устройств — сопрягите одно, введя секрет на телефоне.',
@@ -328,7 +331,8 @@ const ru: Translation = {
   'remote.appPlannedMeta': 'Планируется',
   'remote.appSteps': 'Установите приложение на телефон, выберите способ подключения выше и введите адрес и секрет сопряжения.',
   'statusbar.remote': 'Удалённых клиентов: {n}',
-  'toast.remotePaired': 'Устройство сопряжено: {name}'
+  'toast.remotePaired': 'Устройство сопряжено: {name}',
+  'toast.remotePortTaken': 'Не удалось запустить удалённый доступ — порт {port} уже занят другой программой.'
 }
 
 export default ru
