@@ -6,14 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-19
+
 ### Added
 
 - **Remote access (M1, desktop side)** — an optional, built-in WebSocket server (Settings → Remote access, off by default) so a phone client can watch session progress and send prompts over the network. Self-signed TLS with a fingerprint to compare on first connect; pairing by a copyable secret that mints a per-device token for reconnects (secrets and tokens stored hashed; failed-auth rate limiting; max 4 clients). The phone gets the session list, a live chat-style conversation stream (user / assistant / tool messages, upserted in place as they stream) for all three engines, telemetry snapshots, and can submit input and switch permission modes. Protocol documented in `docs/REMOTE_PROTOCOL.md` as the implementation contract for the upcoming CodeCockpit Remote Android app.
 - **Any network (link mode)** — optional second connection path for remote access, replacing the UPnP variant: the desktop displays an 8-digit device ID, and the phone connects from anywhere by entering just that ID and the pairing secret — no VPN, no port forwarding. A lightweight signaling relay (Cloudflare Workers, deployable separately) introduces the peers; the actual traffic flows over a WebRTC DataChannel with hole punching and TURN fallback, carrying the exact same authenticated JSON protocol. The pairing secret is never sent to the relay (only a derived registration key), the relay cannot enumerate devices, and per-ID rate limits plus an anti-hijack registration hash protect the ID space. Connection modes in Settings are now *Same network* (direct reach, e.g. Tailscale) and *Any network* (link mode).
+- Link-mode status chip in Settings: the any-network card shows at a glance whether the signaling relay is online, connecting, or offline — with the failure reason (network unreachable / rate limited / ID claimed) and the next automatic retry countdown.
+
+### Changed
+
+- The signaling server override was removed from the settings UI; self-hosted relays can still set `remoteLinkServer` in `settings.json`.
 
 ### Fixed
 
 - Packaged builds crashed on launch because the `stun` dependency bundles its internals behind nested `node_modules` that the asar packing strips out. Replaced with a small built-in RFC 5389 STUN client (also accepts RFC 3489 replies), dropping the dependency.
+- A port conflict on the remote access server crashed with a native "A JavaScript error occurred" dialog. The conflict now surfaces as an in-app toast, and when the port is held by a leftover copy of CodeCockpit itself, a dialog offers to end that process and retry (verified by PID + executable path, user-confirmed).
+- Link signaling survived neither handshake black-holes (the upgrade could hang forever) nor the relay's per-IP registration rate limit (retrying every 30 s burned the 3-per-10-minutes budget and locked the desktop out). The upgrade now times out after 10 s, rate-limited retries back off 3 minutes honoring `Retry-After`, and exponential retries are capped at 2 minutes with jitter.
+- The 任意网络 (any-network) card did not react to clicks in packaged builds: the preload bridge was missing the link-mode IPC wrappers that the renderer called.
+- IME: composition anchoring, voice-input double commit, and premature dictation commits are fixed; interim dictation text is held until recognition finalizes.
 
 ## [1.3.2] - 2026-11-12
 
