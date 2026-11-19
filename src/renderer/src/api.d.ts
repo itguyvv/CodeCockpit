@@ -147,7 +147,7 @@ export interface AppSettings {
   remoteLinkEnabled?: boolean
   /** 8-digit public rendezvous ID for link mode */
   remoteLinkId?: string
-  /** Signaling worker base URL; empty = link mode unavailable */
+  /** Signaling worker base URL; missing = the default hosted relay */
   remoteLinkServer?: string
 }
 

@@ -78,9 +78,11 @@ interface AppSettings {
   remoteLinkEnabled?: boolean
   /** 8-digit public rendezvous ID for link mode; generated on first enable */
   remoteLinkId?: string
-  /** Signaling worker base URL; empty = link mode unavailable */
+  /** Signaling worker base URL; missing = the default hosted relay */
   remoteLinkServer?: string
 }
+
+const DEFAULT_LINK_SERVER = 'https://signal.ieeh.com'
 
 let win: BrowserWindow | null = null
 /** Set after the user confirms exit so the next close event goes through */
@@ -113,7 +115,7 @@ function newLinkId(): string {
 
 function startLink(): void {
   const s = readSettings()
-  const server = (s.remoteLinkServer ?? '').trim()
+  const server = (s.remoteLinkServer ?? DEFAULT_LINK_SERVER).trim()
   if (!server) {
     for (const w of BrowserWindow.getAllWindows()) {
       w.webContents.send('remote:link', { state: 'offline', linkId: '', enabled: true })
@@ -272,7 +274,7 @@ function registerIpc(): void {
       clientCount: remoteClientCount(),
       linkEnabled: s.remoteLinkEnabled === true,
       linkId: s.remoteLinkId ?? '',
-      linkServer: s.remoteLinkServer ?? '',
+      linkServer: s.remoteLinkServer ?? DEFAULT_LINK_SERVER,
       link: linkStatus()
     }
   })
