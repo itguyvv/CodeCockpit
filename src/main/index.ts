@@ -637,6 +637,10 @@ function createWindow(): void {
   })
   win.on('closed', () => {
     win = null
+    // The hidden link-bridge window stays open after the main window closes, so
+    // window-all-closed never fires and the process would linger holding the
+    // PTYs, the remote server and the install directory — quit explicitly.
+    if (!IS_MAC) app.quit()
   })
 
   // Confirm before exiting (skip once armed or opted out); message adapts to running sessions

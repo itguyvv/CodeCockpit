@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Closing the window no longer leaves the process running in the background when remote link mode is on: the hidden bridge window kept the app alive after the main window closed, holding the install directory and the remote port hostage until the process was killed manually.
+
 ## [1.4.0] - 2026-11-19
 
 ### Added
