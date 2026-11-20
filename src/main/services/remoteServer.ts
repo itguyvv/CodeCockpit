@@ -491,6 +491,10 @@ function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
     sendTo(ctx, { type: 'conv_snapshot', id, messages: getMessages(id) })
     const st = getStatus(id)
     if (st) sendTo(ctx, { type: 'status', id, status: st })
+    // Desktop follows the phone: selecting a session remotely switches the
+    // workbench to it, so prompts and agent output stay visible on both ends.
+    // The renderer skips exited sessions on its own (nothing live to watch).
+    notifyWindows('pty:focus', { id })
     return
   }
   if (type === 'input') {
