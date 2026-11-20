@@ -13,13 +13,19 @@ import { t } from './i18n'
 import { IS_WIN } from './platform'
 import { getMessages, onMessages, type RemoteMessage } from './conversation'
 import {
+  createSession,
+  deleteHistorySession,
   getStatus,
+  killSession,
+  listNativeSessions,
   listSummaries,
   onSessionEvent,
+  renameSession,
   setMode,
   writeInput,
   type PermissionMode
 } from './sessionManager'
+import { isEngineId, type EngineId } from './engines'
 
 // ── Persisted state: pairing secret + paired devices (hashes only on disk) ──
 
@@ -275,6 +281,14 @@ function sendAttached(sessionId: string, msg: Record<string, unknown>): void {
   }
 }
 
+/** Push the session list to every authed client (create/kill/rename mutate it unseen) */
+function broadcastSessions(): void {
+  const msg = JSON.stringify({ type: 'sessions', sessions: listSummaries() })
+  for (const c of clients) {
+    if (c.authed && c.tr.isOpen()) c.tr.send(msg)
+  }
+}
+
 /** Starts the listener; false = port busy (user-facing toast is pushed from here) */
 // ── Stale-instance takeover: when the remote port is held by another copy of
 // this very app, offer a one-click kill + retry. Verified by PID + exe name,
@@ -395,6 +409,7 @@ export async function startRemote(
     else if (channel === 'pty:exit') {
       sendAttached(id, { type: 'exit', id, code: p.exitCode })
       for (const c of clients) c.attached.delete(id)
+      broadcastSessions()
     } else if (channel === 'pty:session-id') sendAttached(id, { type: 'session_id', id, claudeSessionId: p.claudeSessionId })
   })
   return true
@@ -491,6 +506,69 @@ function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
     setMode(id, mode).catch((e: unknown) => {
       sendTo(ctx, { type: 'error', message: e instanceof Error ? e.message : 'mode switch failed' })
     })
+    return
+  }
+  if (type === 'create') {
+    void handleCreate(ctx, msg)
+    return
+  }
+  if (type === 'kill') {
+    const id = typeof msg.id === 'string' ? msg.id : ''
+    if (id) {
+      killSession(id)
+      broadcastSessions()
+    }
+    return
+  }
+  if (type === 'rename') {
+    const id = typeof msg.id === 'string' ? msg.id : ''
+    const title = typeof msg.title === 'string' ? msg.title : ''
+    if (!id || !title.trim()) return
+    // renameSession keys on the engine-native id, not the desktop session id
+    const native = listSummaries().find((s) => s.id === id)?.claudeSessionId
+    if (!native) {
+      sendTo(ctx, { type: 'error', message: 'unknown session' })
+      return
+    }
+    renameSession(native, title)
+    broadcastSessions()
+    return
+  }
+  if (type === 'history') {
+    const engine: EngineId = isEngineId(msg.engine) ? msg.engine : 'claude'
+    const limit = typeof msg.limit === 'number' ? msg.limit : 100
+    sendTo(ctx, { type: 'history', engine, sessions: listNativeSessions(engine, limit) })
+    return
+  }
+  if (type === 'delete_history') {
+    const id = typeof msg.id === 'string' ? msg.id : ''
+    if (!id) return
+    const engine: EngineId = isEngineId(msg.engine) ? msg.engine : 'claude'
+    deleteHistorySession(id)
+    sendTo(ctx, { type: 'history', engine, sessions: listNativeSessions(engine, 100) })
+    return
+  }
+}
+
+const MODES: readonly string[] = ['default', 'acceptEdits', 'plan', 'bypassPermissions']
+
+/** create from a remote client: unlike the local IPC path, a bad cwd is rejected, not silently replaced */
+async function handleCreate(ctx: ClientCtx, msg: Record<string, unknown>): Promise<void> {
+  const cwd = typeof msg.cwd === 'string' ? msg.cwd.trim() : ''
+  const mode = typeof msg.mode === 'string' && MODES.includes(msg.mode) ? (msg.mode as PermissionMode) : 'default'
+  const engine: EngineId = isEngineId(msg.engine) ? msg.engine : 'claude'
+  const title = typeof msg.title === 'string' ? msg.title : ''
+  const resumeId = typeof msg.resumeId === 'string' && msg.resumeId ? msg.resumeId : undefined
+  if (!cwd || !fs.existsSync(cwd)) {
+    sendTo(ctx, { type: 'error', message: 'cwd not found' })
+    return
+  }
+  try {
+    const { id } = await createSession({ cwd, mode, engine, title, resumeId })
+    sendTo(ctx, { type: 'session_created', id })
+    broadcastSessions()
+  } catch (e) {
+    sendTo(ctx, { type: 'error', message: e instanceof Error ? e.message : 'create failed' })
   }
 }
 

@@ -73,10 +73,25 @@ working). Revoking a device closes its live connections immediately.
 | `detach` | `id`                  | stop streaming that session |
 | `input`  | `id`, `data`          | write `data` into the session's terminal (a submitted prompt) |
 | `mode`   | `id`, `mode`          | switch permission mode: `default` \| `acceptEdits` \| `plan` \| `bypassPermissions` |
+| `create` | `cwd`, `mode`, `engine?`, `title?`, `resumeId?` | launch a new session (`resumeId` = engine-native id to resume from history) → `session_created` + `sessions` broadcast. A nonexistent `cwd` is **rejected** with an `error`, never silently replaced |
+| `kill`   | `id`                  | terminate the session process → `exit` event + `sessions` broadcast |
+| `rename` | `id`, `title`         | set a custom title (applies to the session's engine-native id) → `sessions` broadcast |
+| `history` | `engine?`, `limit?`  | engine-native session history (default claude, cap ~100) → `history` |
+| `delete_history` | `id`, `engine?` | permanently delete one history entry → fresh `history` for that engine |
 | `ping`   | —                     | → `pong` (keepalive) |
 
-`input` and `mode` are only valid for sessions owned by the desktop app (the ids
-from `sessions`), never for arbitrary engine sessions found on disk.
+`input`, `mode`, `kill` and `rename` are only valid for sessions owned by the
+desktop app (the ids from `sessions`), never for arbitrary engine sessions found
+on disk.
+
+### Remote session management — security model
+
+Pairing grants **full control** of the desktop's engine sessions: `create`
+launches a real CLI process in any directory that exists on the desktop, `kill`
+terminates one, and history deletion is permanent. This is by design — the
+pairing secret is entered by the desktop's owner on the phone, and possession of
+a valid token implies that trust. Protect the pairing secret; anyone holding it
+can do everything the desktop can.
 
 ## Events (server → client)
 
@@ -92,8 +107,10 @@ Message arrays follow the `RemoteMessage` shape below.
 | `status`        | `id`, `status: SessionStatus`       | telemetry snapshot (tokens, cost, model, …) |
 | `exit`          | `id`, `code: number`                | session process exited |
 | `session_id`    | `id`, `claudeSessionId: string`     | engine reported its native session id |
+| `session_created` | `id`                              | answer to `create`; the new session also arrives via the `sessions` broadcast |
+| `history`       | `engine`, `sessions: NativeSessionInfo[]` | engine-native history (resume candidates + deletable entries) |
 | `pong`          | —                                   | keepalive answer |
-| `error`         | `message: string`                   | malformed request / failed input or mode change |
+| `error`         | `message: string`                   | malformed request / failed input, mode change or create |
 
 ## Shapes
 
@@ -129,14 +146,31 @@ Message arrays follow the `RemoteMessage` shape below.
   "text": "…",              // chat content (user prompts / assistant replies); absent on tool entries
   "toolName": "Bash",       // tool entries only
   "toolInput": "{…}",       // full tool arguments, clamped to ~4000 chars
+  "toolOutput": "…",        // tool result text, clamped to ~4000 chars; upserted onto the tool entry when the engine reports the result
   "tokensIn": 123,          // per-message usage when the engine reports it
   "tokensOut": 45,
   "costUsd": 0.01
 }
 ```
 
-`text`, `toolName`, `toolInput`, and the usage fields are optional depending on
-role/engine.
+`text`, `toolName`, `toolInput`, `toolOutput`, and the usage fields are optional
+depending on role/engine.
+
+### NativeSessionInfo
+
+```json
+{
+  "sessionId": "uuid",        // engine-native id — the resumeId for `create`
+  "cwd": "D:/work/app",
+  "title": "Refactor auth",
+  "permissionMode": "default",
+  "lastTs": 1731400000000,
+  "sizeBytes": 45678,
+  "projectEncoded": "…",
+  "engine": "claude",
+  "custom": false
+}
+```
 
 ### SessionStatus
 
