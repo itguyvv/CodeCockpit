@@ -19,6 +19,32 @@ export interface SessionStatus {
   eventCount: number
   /** Background shells the agent launched and that have not finished yet (claude only) */
   backgroundTasks: number
+  /** Latest plan list (claude TodoWrite / codex update_plan / openCode todowrite), if any */
+  todos?: TodoItem[]
+}
+
+export interface TodoItem {
+  content: string
+  status: string
+  activeForm?: string
+}
+
+/** Normalize an engine's todo payload into TodoItem[]; returns undefined when unusable */
+export function normalizeTodos(raw: unknown): TodoItem[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: TodoItem[] = []
+  for (const t of raw) {
+    if (!t || typeof t !== 'object') continue
+    const o = t as Record<string, unknown>
+    const content = typeof o.content === 'string' ? o.content : typeof o.step === 'string' ? o.step : ''
+    if (!content) continue
+    out.push({
+      content,
+      status: typeof o.status === 'string' ? o.status : 'pending',
+      activeForm: typeof o.activeForm === 'string' ? o.activeForm : undefined
+    })
+  }
+  return out.length > 0 ? out : undefined
 }
 
 export function emptyStatus(): SessionStatus {

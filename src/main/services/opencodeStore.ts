@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { emptyStatus, type SessionStatus } from './status'
+import { emptyStatus, normalizeTodos, type SessionStatus } from './status'
 import { IS_WIN } from './platform'
 import { clipToolInput, clipToolOutput, type RemoteMessage } from './conversation'
 
@@ -637,6 +637,10 @@ export class OpenCodeTailer {
         { id: `p:${partId}`, ts, role: role === 'user' ? 'user' : 'assistant', text: doc.text.trim() }
       ])
     } else if (doc.type === 'tool' && doc.tool) {
+      if (/todo/i.test(doc.tool)) {
+        const todos = normalizeTodos((doc.state?.input as { todos?: unknown } | null)?.todos)
+        if (todos) this.status.todos = todos
+      }
       const msg: RemoteMessage = {
         id: `p:${partId}`,
         ts,

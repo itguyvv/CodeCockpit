@@ -103,8 +103,8 @@ Message arrays follow the `RemoteMessage` shape below.
 | `sessions`      | `sessions: SessionSummary[]`        | answer to `list` |
 | `conv_snapshot` | `id`, `messages: RemoteMessage[]`   | full buffered conversation at attach time |
 | `conv_append`   | `id`, `messages: RemoteMessage[]`   | new/updated messages; **upsert by `id`** (a re-sent id replaces the earlier entry — streaming updates mutate rows in place) |
-| `busy`          | `id`, `busy: boolean`, `bg: number` | work-state changed; `bg` = running background shells |
-| `status`        | `id`, `status: SessionStatus`       | telemetry snapshot (tokens, cost, model, …) |
+| `busy`          | `id`, `busy: boolean`, `bg: number` | work-state changed; `bg` = running background shells. Also triggers a `sessions` broadcast so every client's sidebar stays in sync |
+| `status`        | `id`, `status: SessionStatus`       | telemetry snapshot (tokens, cost, model, …); `todos` carries the latest plan list when the agent published one |
 | `exit`          | `id`, `code: number`                | session process exited |
 | `session_id`    | `id`, `claudeSessionId: string`     | engine reported its native session id |
 | `session_created` | `id`                              | answer to `create`; the new session also arrives via the `sessions` broadcast |
@@ -177,7 +177,10 @@ depending on role/engine.
 `model: string`, `tool: string|null`, `toolDetail: string`, `tokensIn/tokensOut/
 cacheRead/cacheWrite: number`, `costUsd: number`, `turns: number`,
 `toolCalls: number`, `toolCounts: Record<string, number>`, `durationMs: number`,
-`lastActivity: number`, `eventCount: number`, `backgroundTasks: number`.
+`lastActivity: number`, `eventCount: number`, `backgroundTasks: number`,
+`todos?: TodoItem[]` — latest plan list (`{content, status: pending|in_progress|
+completed, activeForm?}`), populated by claude TodoWrite / codex update_plan /
+openCode todowrite; absent until the agent first publishes a plan.
 
 ## Client behavior notes
 

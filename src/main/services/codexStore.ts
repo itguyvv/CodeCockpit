@@ -4,7 +4,7 @@ import { writeFileAtomic } from './dataDir'
 import { t } from './i18n'
 import type { NativeSessionInfo } from './jsonl'
 import { homePath } from './platform'
-import { emptyStatus, type SessionStatus } from './status'
+import { emptyStatus, normalizeTodos, type SessionStatus } from './status'
 import { clipToolInput, clipToolOutput, type RemoteMessage } from './conversation'
 
 /** Codex home directory (~/.codex by default; CODEX_HOME overrides) */
@@ -488,6 +488,19 @@ export class CodexTailer {
         this.status.toolCalls++
         this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
         this.status.lastActivity = Date.now()
+        if (name === 'update_plan') {
+          const rawArgs = p.arguments ?? p.input
+          let plan: unknown = rawArgs
+          if (typeof rawArgs === 'string') {
+            try {
+              plan = JSON.parse(rawArgs)
+            } catch {
+              plan = null
+            }
+          }
+          const todos = normalizeTodos((plan as { plan?: unknown } | null)?.plan)
+          if (todos) this.status.todos = todos
+        }
         const mid = p.id || ord
         const msg: RemoteMessage = {
           id: mid,

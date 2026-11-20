@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { encodeProjectDir, projectsRoot } from './jsonl'
-import { emptyStatus, type SessionStatus } from './status'
+import { emptyStatus, normalizeTodos, type SessionStatus } from './status'
 import { clipToolInput, clipToolOutput, type RemoteMessage } from './conversation'
 
 export { emptyStatus, type SessionStatus }
@@ -67,6 +67,10 @@ export class SessionTailer {
   private toolMsgIds = new Map<string, string>()
   /** Emitted tool messages by id, so the later tool_result can upsert the output onto them */
   private toolMsgs = new Map<string, RemoteMessage>()
+  /** TaskCreate tool_use id → plan item index (its tool_result reveals the numeric task id) */
+  private taskIdxByToolUse = new Map<string, number>()
+  /** Numeric task id (from the TaskCreate result) → plan item index */
+  private taskIdxById = new Map<number, number>()
 
   constructor(
     public readonly filePath: string,
@@ -161,6 +165,38 @@ export class SessionTailer {
             this.status.toolDetail = toolDetailOf(blk.input)
             this.status.toolCalls++
             this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
+            if (name === 'TodoWrite') {
+              const todos = normalizeTodos((blk.input as { todos?: unknown } | null)?.todos)
+              if (todos) this.status.todos = todos
+            } else if (name === 'TaskCreate') {
+              // Newer claude builds plan through TaskCreate/TaskUpdate (one call per
+              // task) instead of one TodoWrite — accumulate into the same list
+              const o = blk.input as { subject?: unknown; activeForm?: unknown } | null
+              const subject = typeof o?.subject === 'string' ? o.subject : ''
+              if (subject && typeof blk.id === 'string') {
+                const items = (this.status.todos ??= [])
+                this.taskIdxByToolUse.set(blk.id, items.length)
+                items.push({
+                  content: subject,
+                  status: 'pending',
+                  activeForm: typeof o?.activeForm === 'string' && o.activeForm ? o.activeForm : undefined
+                })
+              }
+            } else if (name === 'TaskUpdate') {
+              const o = blk.input as { taskId?: unknown; status?: unknown } | null
+              const num =
+                typeof o?.taskId === 'number'
+                  ? o.taskId
+                  : typeof o?.taskId === 'string'
+                    ? parseInt(o.taskId.replace('#', ''), 10)
+                    : NaN
+              const st = typeof o?.status === 'string' ? o.status : ''
+              if (Number.isFinite(num) && st) {
+                const idx = this.taskIdxById.get(num)
+                const items = this.status.todos
+                if (idx !== undefined && items && items[idx]) items[idx] = { ...items[idx], status: st }
+              }
+            }
             if (uuid) {
               const mid = `${uuid}:tool`
               const msg: RemoteMessage = {
@@ -247,6 +283,13 @@ export class SessionTailer {
     if (!mid || !prev) return
     const msg: RemoteMessage = { ...prev, ts: eventTs(ev), toolOutput: clipToolOutput(tr.content) }
     this.toolMsgs.set(mid, msg)
+    // A TaskCreate result reveals the numeric task id ([#1] …) that later TaskUpdate
+    // calls reference — bind it to the plan item index
+    if (this.taskIdxByToolUse.has(tid)) {
+      const m = /#(\d+)/.exec(msg.toolOutput ?? '')
+      const idx = this.taskIdxByToolUse.get(tid)
+      if (m && idx !== undefined) this.taskIdxById.set(parseInt(m[1], 10), idx)
+    }
     this.onMessages?.([msg])
   }
 
