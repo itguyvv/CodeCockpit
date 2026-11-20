@@ -19,6 +19,8 @@ export interface RemoteMessage {
   toolName?: string
   /** Full tool arguments, clamped — file-writing tools can carry whole files */
   toolInput?: string
+  /** Tool result text, clamped; upserted onto the tool entry once the engine reports the result */
+  toolOutput?: string
   /** Per-message usage when the engine reports it */
   tokensIn?: number
   tokensOut?: number
@@ -27,6 +29,9 @@ export interface RemoteMessage {
 
 /** Tool arguments kept on the wire per entry */
 const TOOL_INPUT_CAP = 4000
+
+/** Tool output kept on the wire per entry */
+export const TOOL_OUTPUT_CAP = 4000
 
 const BUFFER_CAP = 500
 
@@ -77,4 +82,23 @@ export function clearMessages(sessionId: string): void {
 export function clipToolInput(input: unknown): string {
   const s = typeof input === 'string' ? input : JSON.stringify(input ?? '')
   return s.length > TOOL_INPUT_CAP ? s.slice(0, TOOL_INPUT_CAP) + '…' : s
+}
+
+/**
+ * Normalize a tool result to text for the wire, clamped to the cap.
+ * Claude jsonl tool_result content is either a plain string or an array of blocks
+ * ({type:'text',text} among them); other engines pass plain strings.
+ */
+export function clipToolOutput(raw: unknown): string {
+  let s: string
+  if (Array.isArray(raw)) {
+    s = raw
+      .map((blk) => (blk && typeof blk === 'object' && typeof (blk as any).text === 'string' ? (blk as any).text : ''))
+      .join('\n')
+  } else if (raw && typeof raw === 'object' && typeof (raw as any).text === 'string') {
+    s = (raw as any).text
+  } else {
+    s = typeof raw === 'string' ? raw : JSON.stringify(raw ?? '')
+  }
+  return s.length > TOOL_OUTPUT_CAP ? s.slice(0, TOOL_OUTPUT_CAP) + '…' : s
 }

@@ -4,7 +4,7 @@ import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { emptyStatus, type SessionStatus } from './status'
 import { IS_WIN } from './platform'
-import { clipToolInput, type RemoteMessage } from './conversation'
+import { clipToolInput, clipToolOutput, type RemoteMessage } from './conversation'
 
 // openCode storage, two generations:
 // - legacy (< 1.18): plain JSON under <root>/storage/ —
@@ -411,7 +411,7 @@ interface PartDoc {
   type?: string
   text?: unknown
   tool?: string
-  state?: { input?: unknown }
+  state?: { input?: unknown; output?: unknown }
 }
 
 interface Contribution {
@@ -627,9 +627,18 @@ export class OpenCodeTailer {
         { id: `p:${partId}`, ts, role: role === 'user' ? 'user' : 'assistant', text: doc.text.trim() }
       ])
     } else if (doc.type === 'tool' && doc.tool) {
-      this.onMessages([
-        { id: `p:${partId}`, ts, role: 'tool', toolName: doc.tool, toolInput: clipToolInput(doc.state?.input) }
-      ])
+      const msg: RemoteMessage = {
+        id: `p:${partId}`,
+        ts,
+        role: 'tool',
+        toolName: doc.tool,
+        toolInput: clipToolInput(doc.state?.input)
+      }
+      // Parts mutate in place while streaming: the output lands on a later upsert of the same id
+      if (doc.state?.output !== undefined && doc.state?.output !== null) {
+        msg.toolOutput = clipToolOutput(doc.state.output)
+      }
+      this.onMessages([msg])
     }
   }
 

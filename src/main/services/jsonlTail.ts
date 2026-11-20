@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { encodeProjectDir, projectsRoot } from './jsonl'
 import { emptyStatus, type SessionStatus } from './status'
-import { clipToolInput, type RemoteMessage } from './conversation'
+import { clipToolInput, clipToolOutput, type RemoteMessage } from './conversation'
 
 export { emptyStatus, type SessionStatus }
 
@@ -63,6 +63,10 @@ export class SessionTailer {
    *  process (after the first poll) can mark a task as still running. Otherwise a resume
    *  of a session whose engine never wrote the completion notice shows a stale badge. */
   private livePhase = false
+  /** tool_use block id → emitted tool message id; tool_result lines carry tool_use_id */
+  private toolMsgIds = new Map<string, string>()
+  /** Emitted tool messages by id, so the later tool_result can upsert the output onto them */
+  private toolMsgs = new Map<string, RemoteMessage>()
 
   constructor(
     public readonly filePath: string,
@@ -150,7 +154,7 @@ export class SessionTailer {
         const texts: string[] = []
         for (const b of c) {
           if (!b || typeof b !== 'object') continue
-          const blk = b as { type?: string; name?: string; input?: unknown; text?: unknown }
+          const blk = b as { type?: string; name?: string; id?: unknown; input?: unknown; text?: unknown }
           if (blk.type === 'tool_use') {
             const name = blk.name || 'Tool'
             this.status.tool = name
@@ -158,13 +162,17 @@ export class SessionTailer {
             this.status.toolCalls++
             this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
             if (uuid) {
-              out.push({
-                id: `${uuid}:tool`,
+              const mid = `${uuid}:tool`
+              const msg: RemoteMessage = {
+                id: mid,
                 ts,
                 role: 'tool',
                 toolName: name,
                 toolInput: clipToolInput(blk.input)
-              })
+              }
+              if (typeof blk.id === 'string' && blk.id) this.toolMsgIds.set(blk.id, mid)
+              this.toolMsgs.set(mid, msg)
+              out.push(msg)
             }
           } else if (blk.type === 'text' && typeof blk.text === 'string' && blk.text.trim()) {
             texts.push(blk.text)
@@ -199,6 +207,7 @@ export class SessionTailer {
           const blk = b as { type?: string; text?: unknown }
           if (blk.type === 'text' && typeof blk.text === 'string') texts.push(blk.text)
           if (blk.type === 'tool_result') {
+            this.recordToolResult(ev, b as { tool_use_id?: unknown; content?: unknown })
             this.trackBgResult(b as { content?: unknown })
           }
         }
@@ -227,6 +236,18 @@ export class SessionTailer {
       const d = ev.durationMs
       if (typeof d === 'number') this.status.durationMs += d
     }
+  }
+
+  /** Upsert the tool_result text onto the tool message the matching tool_use block emitted */
+  private recordToolResult(ev: Record<string, unknown>, tr: { tool_use_id?: unknown; content?: unknown }): void {
+    const tid = typeof tr.tool_use_id === 'string' ? tr.tool_use_id : ''
+    if (!tid) return
+    const mid = this.toolMsgIds.get(tid)
+    const prev = mid ? this.toolMsgs.get(mid) : undefined
+    if (!mid || !prev) return
+    const msg: RemoteMessage = { ...prev, ts: eventTs(ev), toolOutput: clipToolOutput(tr.content) }
+    this.toolMsgs.set(mid, msg)
+    this.onMessages?.([msg])
   }
 
   /** Register / finish background shells from tool_result texts (launch confirmation, TaskOutput, stop) */

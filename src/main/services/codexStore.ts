@@ -5,7 +5,7 @@ import { t } from './i18n'
 import type { NativeSessionInfo } from './jsonl'
 import { homePath } from './platform'
 import { emptyStatus, type SessionStatus } from './status'
-import { clipToolInput, type RemoteMessage } from './conversation'
+import { clipToolInput, clipToolOutput, type RemoteMessage } from './conversation'
 
 /** Codex home directory (~/.codex by default; CODEX_HOME overrides) */
 export function codexHome(): string {
@@ -334,6 +334,10 @@ export class CodexTailer {
   /** Resolved rollout path; resolved lazily, then reused (a rescan per poll would
    *  readdir the whole sessions tree every second for the life of the session) */
   private file = ''
+  /** call_id → emitted tool message id (function_call_output links by call_id, not id) */
+  private toolCallIds = new Map<string, string>()
+  /** Emitted tool messages by id, so the later output item can upsert the result onto them */
+  private toolMsgs = new Map<string, RemoteMessage>()
 
   constructor(
     private readonly sessionId: string,
@@ -478,15 +482,33 @@ export class CodexTailer {
         this.status.toolCalls++
         this.status.toolCounts[name] = (this.status.toolCounts[name] ?? 0) + 1
         this.status.lastActivity = Date.now()
-        this.onMessages?.([
-          {
-            id: p.id || ord,
+        const mid = p.id || ord
+        const msg: RemoteMessage = {
+          id: mid,
+          ts: isNaN(ts) ? Date.now() : ts,
+          role: 'tool',
+          toolName: name,
+          toolInput: clipToolInput(p.arguments ?? p.input)
+        }
+        const callId = (p as { call_id?: unknown }).call_id
+        if (typeof callId === 'string' && callId) this.toolCallIds.set(callId, mid)
+        this.toolMsgs.set(mid, msg)
+        this.onMessages?.([msg])
+        return
+      }
+      if (p.type === 'function_call_output' || p.type === 'custom_tool_call_output') {
+        const callId = (p as { call_id?: unknown }).call_id
+        const mid = typeof callId === 'string' ? this.toolCallIds.get(callId) : undefined
+        const prev = mid ? this.toolMsgs.get(mid) : undefined
+        if (mid && prev) {
+          const msg: RemoteMessage = {
+            ...prev,
             ts: isNaN(ts) ? Date.now() : ts,
-            role: 'tool',
-            toolName: name,
-            toolInput: clipToolInput(p.arguments ?? p.input)
+            toolOutput: clipToolOutput((p as { output?: unknown }).output)
           }
-        ])
+          this.toolMsgs.set(mid, msg)
+          this.onMessages?.([msg])
+        }
         return
       }
       if (p.type === 'message' && (p.role === 'user' || p.role === 'assistant')) {
