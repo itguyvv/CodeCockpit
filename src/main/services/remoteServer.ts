@@ -404,7 +404,12 @@ export async function startRemote(
     const p = payload as Record<string, unknown>
     const id = typeof p.id === 'string' ? p.id : ''
     if (!id) return
-    if (channel === 'pty:busy') sendAttached(id, { type: 'busy', id, busy: p.busy === true, bg: p.bg ?? 0 })
+    if (channel === 'pty:busy') {
+      sendAttached(id, { type: 'busy', id, busy: p.busy === true, bg: p.bg ?? 0 })
+      // Busy flips are low-frequency; refreshing the list keeps every client's
+      // sidebar state (dots + badges) in sync without waiting for a re-list
+      broadcastSessions()
+    }
     else if (channel === 'pty:status') sendAttached(id, { type: 'status', id, status: p.status })
     else if (channel === 'pty:exit') {
       sendAttached(id, { type: 'exit', id, code: p.exitCode })
