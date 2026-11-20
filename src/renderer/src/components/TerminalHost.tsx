@@ -99,12 +99,12 @@ const IS_MAC = /Mac/i.test(navigator.platform)
 // composition view to the live cursor cell on every render (CompositionHelper
 // .updateCompositionElements, driven by onRender). During streaming output the cursor cell
 // changes constantly, and the Windows IME candidate window anchors to the textarea rect — so it
-// jumps around wildly. Freeze both elements at the cursor cell captured on compositionstart and
-// drop every further position write until compositionend. Style accessors live on
-// CSSStyleDeclaration.prototype, so the descriptor must be read there and shadowed with an own
-// accessor on the instance — looking it up on the instance itself finds nothing, which made the
-// first version of this guard a silent no-op. register() may run twice per terminal
-// (renameSlot), hence the installed guard.
+// jumps around wildly. Freeze both elements at the cursor cell captured on compositionstart by
+// gating updateCompositionElements itself: the method is swapped for a no-op for the lifetime of
+// the composition and restored on compositionend. (An earlier attempt shadowed the style.left /
+// style.top accessors instead — a silent no-op: Chrome no longer exposes per-property accessors
+// on CSSStyleDeclaration.prototype, so the descriptor lookup fails and nothing is ever
+// intercepted.) register() may run twice per terminal (renameSlot), hence the installed guard.
 //
 // Two more IME failure modes are handled here:
 // - Composing while the viewport is scrolled up leaves the cursor outside the viewport, in which
@@ -145,23 +145,18 @@ function installImeAnchor(term: Terminal): void {
   const host = term.element ?? ta.parentElement
   if (!host) return
   const view = host.querySelector('.composition-view') as HTMLElement | null
-  const restore: Array<() => void> = []
-  const lockProp = (style: CSSStyleDeclaration, prop: string, preCaptured: boolean): void => {
-    const desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(style), prop)
-    if (!desc?.get || !desc.set || !desc.configurable) return
-    let captured = preCaptured
-    Object.defineProperty(style, prop, {
-      get: (): string => desc.get!.call(style) as string,
-      set: (v: string): void => {
-        if (captured) return
-        captured = true
-        desc.set!.call(style, v)
-      },
-      configurable: true,
-      enumerable: true
-    })
-    // Removing the own accessor restores the prototype descriptor
-    restore.push(() => { delete (style as unknown as Record<string, unknown>)[prop] })
+  // Gate xterm's repositioning for the lifetime of a composition. updateCompositionElements
+  // writes left/top (plus width/height/line/font) on both elements from onRender; xterm 6 has
+  // no other writer during composition (_syncTextArea bails on isComposing).
+  let compFrozen = false
+  const helper = (term as unknown as { _core?: { _compositionHelper?: { updateCompositionElements: (dontRecurse?: boolean) => void } } })
+    ._core?._compositionHelper
+  if (helper) {
+    const origUpdate = helper.updateCompositionElements.bind(helper)
+    helper.updateCompositionElements = (dontRecurse?: boolean): void => {
+      if (compFrozen) return
+      origUpdate(dontRecurse)
+    }
   }
   // Anchor textarea + composition view at the current cursor cell; false when the cell metrics
   // are not measured yet (terminal never rendered), letting xterm's own pass do the anchoring
@@ -259,12 +254,7 @@ function installImeAnchor(term: Terminal): void {
     const cursorRow = b.baseY + b.cursorY
     if (b.viewportY > cursorRow || b.viewportY + term.rows <= cursorRow) term.scrollToBottom()
     const anchored = anchorAtCursor()
-    lockProp(ta.style, 'left', anchored)
-    lockProp(ta.style, 'top', anchored)
-    if (view) {
-      lockProp(view.style, 'left', anchored)
-      lockProp(view.style, 'top', anchored)
-    }
+    compFrozen = true
   })
 
   // Capture phase on the terminal element: these fire before xterm's own textarea listeners,
@@ -303,9 +293,9 @@ function installImeAnchor(term: Terminal): void {
 
   host.addEventListener('compositionend', (ev) => {
     compActive = false
-    // Restore the anchor freeze here too: when this handler blocks the event below, xterm's
+    // Unfreeze repositioning here too: when this handler blocks the event below, xterm's
     // own textarea-level compositionend handler never runs
-    while (restore.length) restore.pop()?.()
+    compFrozen = false
     compositionEndAt = Date.now()
     // Keyboard compositions always commit through xterm's own compositionend path; voice
     // compositions commit through the hold engine below (their release keydowns are IME noise)
@@ -337,7 +327,7 @@ function installImeAnchor(term: Terminal): void {
   }, true)
 
   ta.addEventListener('compositionend', () => {
-    while (restore.length) restore.pop()?.()
+    compFrozen = false
   })
 
   ta.addEventListener('blur', () => flush())
