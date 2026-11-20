@@ -621,7 +621,8 @@ function handleAuth(ctx: ClientCtx, msg: Record<string, unknown>): void {
     }
     failLog.set(peer, rec)
     sendTo(ctx, { type: 'auth_fail', reason: token ? 'bad_token' : 'bad_secret' })
-    ctx.tr.close()
+    // No close here: the client answers a stale token with its secret on the same
+    // socket (re-pair), and AUTH_WINDOW_MS retires sockets that never authenticate
     return
   }
   failLog.delete(peer)
