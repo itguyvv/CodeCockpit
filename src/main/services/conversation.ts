@@ -90,15 +90,16 @@ export function clipToolInput(input: unknown): string {
  * ({type:'text',text} among them); other engines pass plain strings.
  */
 export function clipToolOutput(raw: unknown): string {
+  if (raw == null) return ''
   let s: string
   if (Array.isArray(raw)) {
     s = raw
       .map((blk) => (blk && typeof blk === 'object' && typeof (blk as any).text === 'string' ? (blk as any).text : ''))
       .join('\n')
-  } else if (raw && typeof raw === 'object' && typeof (raw as any).text === 'string') {
+  } else if (typeof raw === 'object' && typeof (raw as any).text === 'string') {
     s = (raw as any).text
   } else {
-    s = typeof raw === 'string' ? raw : JSON.stringify(raw ?? '')
+    s = typeof raw === 'string' ? raw : JSON.stringify(raw)
   }
   return s.length > TOOL_OUTPUT_CAP ? s.slice(0, TOOL_OUTPUT_CAP) + '…' : s
 }
