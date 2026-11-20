@@ -238,63 +238,73 @@ function sameDir(a: string, b: string): boolean {
   return norm(a).endsWith(norm(b))
 }
 
-/** Poll storage for a newly created session started from cwd (excluding pre-spawn ids) */
+/** Poll storage for a newly created session started from cwd (excluding pre-spawn ids).
+ *  openCode records the session lazily (first exchange may come minutes after spawn) —
+ *  poll fast, then slow down but never give up; stop() is invoked on PTY exit or respawn. */
 export function sniffNewOpenCodeSession(
   cwd: string,
   knownIds: Set<string>,
   onFound: (sessionId: string) => void,
-  timeoutMs = 120_000
+  fastPollMs = 120_000
 ): () => void {
   let stopped = false
   const startedAt = Date.now()
-  const timer = setInterval(() => {
-    if (stopped) return
-    if (Date.now() - startedAt > timeoutMs) {
-      stop()
-      return
-    }
-    // One generation per install, re-evaluated per tick so a fresh DB-era install
-    // (db created on CLI startup) is picked up even if the DB lagged at spawn time
-    if (hasSessionTable()) {
-      const rows = query<{ id: string; directory: string | null; parent_id: string | null }>(
-        'SELECT id, directory, parent_id FROM session ORDER BY time_created DESC LIMIT 30'
-      )
-      for (const row of rows ?? []) {
-        if (!row.id || knownIds.has(row.id) || row.parent_id) continue
-        if (row.directory && sameDir(row.directory, cwd)) {
-          stopped = true
-          clearInterval(timer)
-          onFound(row.id)
-          return
-        }
-      }
-      return // DB era: never sniff the frozen legacy tree
-    }
-    // Legacy generation: JSON files under storage/session
-    const sessionRoot = path.join(storageRoot(), 'session')
-    try {
-      for (const pid of fs.readdirSync(sessionRoot)) {
-        const pdir = path.join(sessionRoot, pid)
-        for (const name of fs.readdirSync(pdir)) {
-          if (!name.endsWith('.json')) continue
-          const id = name.slice(0, -'.json'.length)
-          if (knownIds.has(id)) continue
-          const doc = readJson<SessionDoc>(path.join(pdir, name))
-          if (doc?.directory && sameDir(doc.directory, cwd)) {
+  let timer: ReturnType<typeof setInterval> | undefined
+  const scan = (intervalMs: number): void => {
+    timer = setInterval(() => {
+      if (stopped) return
+      // One generation per install, re-evaluated per tick so a fresh DB-era install
+      // (db created on CLI startup) is picked up even if the DB lagged at spawn time
+      if (hasSessionTable()) {
+        const rows = query<{ id: string; directory: string | null; parent_id: string | null }>(
+          'SELECT id, directory, parent_id FROM session ORDER BY time_created DESC LIMIT 30'
+        )
+        for (const row of rows ?? []) {
+          if (!row.id || knownIds.has(row.id) || row.parent_id) continue
+          if (row.directory && sameDir(row.directory, cwd)) {
             stopped = true
-            clearInterval(timer)
-            onFound(id)
+            if (timer) clearInterval(timer)
+            onFound(row.id)
             return
           }
         }
+        if (intervalMs === 800 && Date.now() - startedAt > fastPollMs) {
+          if (timer) clearInterval(timer)
+          scan(5_000)
+        }
+        return // DB era: never sniff the frozen legacy tree
       }
-    } catch {
-      // Storage not created yet; check again next tick
-    }
-  }, 800)
+      // Legacy generation: JSON files under storage/session
+      const sessionRoot = path.join(storageRoot(), 'session')
+      try {
+        for (const pid of fs.readdirSync(sessionRoot)) {
+          const pdir = path.join(sessionRoot, pid)
+          for (const name of fs.readdirSync(pdir)) {
+            if (!name.endsWith('.json')) continue
+            const id = name.slice(0, -'.json'.length)
+            if (knownIds.has(id)) continue
+            const doc = readJson<SessionDoc>(path.join(pdir, name))
+            if (doc?.directory && sameDir(doc.directory, cwd)) {
+              stopped = true
+              clearInterval(timer)
+              onFound(id)
+              return
+            }
+          }
+        }
+      } catch {
+        // Storage not created yet; check again next tick
+      }
+      if (intervalMs === 800 && Date.now() - startedAt > fastPollMs) {
+        if (timer) clearInterval(timer)
+        scan(5_000)
+      }
+    }, intervalMs)
+  }
+  scan(800)
   const stop = () => {
     stopped = true
-    clearInterval(timer)
+    if (timer) clearInterval(timer)
   }
   return stop
 }

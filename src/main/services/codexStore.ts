@@ -217,43 +217,49 @@ function sameDir(a: string, b: string): boolean {
   return a.replace(/\\/g, '/').toLowerCase() === b.replace(/\\/g, '/').toLowerCase()
 }
 
-/** Watch the sessions tree for a new rollout whose session_meta.cwd matches the spawn cwd */
+/** Watch the sessions tree for a new rollout whose session_meta.cwd matches the spawn cwd.
+ *  Codex creates the rollout lazily (first exchange may come minutes after spawn) — poll
+ *  fast, then slow down but never give up; stop() is invoked on PTY exit or respawn. */
 export function sniffNewCodexSession(
   cwd: string,
   knownSessionIds: Set<string>,
   onFound: (sessionId: string) => void,
-  timeoutMs = 120_000
+  fastPollMs = 120_000
 ): () => void {
   let stopped = false
   const startedAt = Date.now()
-  const timer = setInterval(() => {
-    if (stopped) return
-    if (Date.now() - startedAt > timeoutMs) {
-      stop()
-      return
-    }
-    for (const file of rolloutFiles().slice(0, 30)) {
-      // A rollout created before this spawn belongs to another session — even when its id
-      // is missing from the index baseline (unnamed sessions are not indexed)
-      let mtime = 0
-      try {
-        mtime = fs.statSync(file).mtimeMs
-      } catch {
-        continue
+  let timer: ReturnType<typeof setInterval> | undefined
+  const scan = (intervalMs: number): void => {
+    timer = setInterval(() => {
+      if (stopped) return
+      for (const file of rolloutFiles().slice(0, 30)) {
+        // A rollout created before this spawn belongs to another session — even when its id
+        // is missing from the index baseline (unnamed sessions are not indexed)
+        let mtime = 0
+        try {
+          mtime = fs.statSync(file).mtimeMs
+        } catch {
+          continue
+        }
+        if (mtime < startedAt - 5_000) continue
+        const head = readHead(file)
+        if (!head || knownSessionIds.has(head.id)) continue
+        if (!head.cwd || !sameDir(head.cwd, cwd)) continue
+        stopped = true
+        if (timer) clearInterval(timer)
+        onFound(head.id)
+        return
       }
-      if (mtime < startedAt - 5_000) continue
-      const head = readHead(file)
-      if (!head || knownSessionIds.has(head.id)) continue
-      if (!head.cwd || !sameDir(head.cwd, cwd)) continue
-      stopped = true
-      clearInterval(timer)
-      onFound(head.id)
-      return
-    }
-  }, 600)
+      if (intervalMs === 600 && Date.now() - startedAt > fastPollMs) {
+        if (timer) clearInterval(timer)
+        scan(5_000)
+      }
+    }, intervalMs)
+  }
+  scan(600)
   const stop = () => {
     stopped = true
-    clearInterval(timer)
+    if (timer) clearInterval(timer)
   }
   return stop
 }

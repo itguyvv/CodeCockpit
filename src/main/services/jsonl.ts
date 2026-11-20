@@ -171,40 +171,48 @@ export function listExistingSessionIds(cwd: string): Set<string> {
   return out
 }
 
-/** Watch a working directory for a newly created session jsonl to sniff the new session id (excluding pre-spawn files) */
+/** Watch a working directory for a newly created session jsonl to sniff the new session id
+ *  (excluding pre-spawn files). The CLI creates its jsonl only on the first exchange, which
+ *  can come minutes after spawn (idle session) — poll fast, then slow down but never give
+ *  up; stop() is invoked on PTY exit or respawn. */
 export function sniffNewSessionFile(
   cwd: string,
   knownSessionIds: Set<string>,
   onFound: (sessionId: string) => void,
-  timeoutMs = 120_000
+  fastPollMs = 120_000
 ): () => void {
   const dir = path.join(projectsRoot(), encodeProjectDir(cwd))
   let stopped = false
   const startedAt = Date.now()
-  const timer = setInterval(() => {
-    if (stopped) return
-    if (Date.now() - startedAt > timeoutMs) {
-      stop()
-      return
-    }
-    try {
-      if (!fs.existsSync(dir)) return
-      for (const name of fs.readdirSync(dir)) {
-        if (!name.endsWith('.jsonl')) continue
-        const sessionId = name.slice(0, -'.jsonl'.length)
-        if (knownSessionIds.has(sessionId)) continue
-        stopped = true
-        clearInterval(timer)
-        onFound(sessionId)
-        return
+  let timer: ReturnType<typeof setInterval> | undefined
+  const scan = (intervalMs: number): void => {
+    timer = setInterval(() => {
+      if (stopped) return
+      try {
+        if (fs.existsSync(dir)) {
+          for (const name of fs.readdirSync(dir)) {
+            if (!name.endsWith('.jsonl')) continue
+            const sessionId = name.slice(0, -'.jsonl'.length)
+            if (knownSessionIds.has(sessionId)) continue
+            stopped = true
+            if (timer) clearInterval(timer)
+            onFound(sessionId)
+            return
+          }
+        }
+      } catch {
+        // Directory not created yet; check again next tick
       }
-    } catch {
-      // Directory not created yet; check again next tick
-    }
-  }, 600)
+      if (intervalMs === 600 && Date.now() - startedAt > fastPollMs) {
+        if (timer) clearInterval(timer)
+        scan(5_000)
+      }
+    }, intervalMs)
+  }
+  scan(600)
   const stop = () => {
     stopped = true
-    clearInterval(timer)
+    if (timer) clearInterval(timer)
   }
   return stop
 }
