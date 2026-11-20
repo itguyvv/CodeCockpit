@@ -493,7 +493,15 @@ function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
     const data = typeof msg.data === 'string' ? msg.data : ''
     if (!id || !data) return
     try {
-      writeInput(id, data)
+      // A TUI classifies one large chunk ending in \r as a pasted multi-line insert,
+      // so the Enter never submits (observed on claude). Real keyboards emit Enter as
+      // its own chunk — split it off to match that shape.
+      if (data.length > 1 && data.endsWith('\r')) {
+        writeInput(id, data.slice(0, -1))
+        setTimeout(() => writeInput(id, '\r'), 30)
+      } else {
+        writeInput(id, data)
+      }
     } catch (e) {
       sendTo(ctx, { type: 'error', message: e instanceof Error ? e.message : 'input failed' })
     }

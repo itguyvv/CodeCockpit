@@ -241,12 +241,15 @@ export function listSummaries(): Array<{
   turns: number
 }> {
   const out: Array<ReturnType<typeof listSummaries>[number]> = []
+  // Custom titles (rename) are keyed by the engine-native id and must overlay the
+  // registry title, otherwise a rename never reaches remote clients
+  const titles = loadTitles()
   for (const rec of registry.values()) {
     const st = statusBySession.get(rec.id)
     out.push({
       id: rec.id,
       engine: rec.engine,
-      title: rec.title,
+      title: (rec.claudeSessionId && titles[rec.claudeSessionId]) || rec.title,
       cwd: rec.cwd,
       claudeSessionId: rec.claudeSessionId,
       status: rec.status,
@@ -278,7 +281,10 @@ function loadRegistry(): void {
     const raw = fs.readFileSync(dataFile('sessions.json'), 'utf-8')
     const list: SessionRecord[] = JSON.parse(raw)
     for (const r of list) {
-      registry.set(r.id, { ...r, engine: r.engine ?? 'claude' }) // older records predate engines
+      // No PTY exists at load time: a crash or force-kill skips shutdownAll, so
+      // persisted 'running' records are zombies and must not resurface as live
+      const status = r.status === 'running' ? 'exited' : r.status
+      registry.set(r.id, { ...r, status, engine: r.engine ?? 'claude' }) // older records predate engines
     }
   } catch {
     // No file on first launch
