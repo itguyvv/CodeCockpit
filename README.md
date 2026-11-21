@@ -66,6 +66,7 @@ Driving several AI coding agents means juggling raw terminal windows, losing tra
 - **Completion notifications (opt-in)** — a desktop notification when the agent finishes while the window is in the background; clicking it switches to that session's terminal. Off by default — enable in Settings → General.
 - **Exit confirmation** — closing the window with sessions running asks first (optional "don't ask again"), so a stray click never kills your agents.
 - **Settings center** — tabbed: defaults (mode/model, terminal scrollback), engine toggles, provider profiles, update check, About, and quick access to Claude config + MCP server overview; relocatable data directory with zip export/import.
+- **Remote access from your phone** — pair the [CodeCockpit Remote](https://github.com/ITGuyVV/codecockpit-remote) Android app over a direct TLS WebSocket connection (same network, Tailscale, or IPv6 across the internet): every session streams as a chat with tool output, and the phone can create, rename, or stop sessions in any project folder, send prompts, and switch permission modes. Secrets and tokens are stored hashed; the desktop stays fully usable throughout.
 - **10 languages** — English, 简体中文, 繁體中文, 日本語, 한국어, Deutsch, Français, Español, Português (Brasil), Русский. Switch any time in Settings.
 
 ## Download & Install
@@ -151,6 +152,7 @@ CodeCockpit ships 10 languages out of the box and uses a type-safe shared dictio
 - [x] M9 — API provider profiles (connectivity test, model mapping, global apply)
 - [x] M10 — Project aliases, pinned projects, rule file editor, opt-in completion notifications (v1.2.0)
 - [x] M11 — Codex as a third engine (spawn, telemetry, history, resume — v1.3.0)
+- [x] M12 — Remote access: phone companion app with chat monitor, session management, and tool output (v1.5.0)
 - [x] macOS / Linux builds (beta — feedback welcome)
 
 ## Contributing

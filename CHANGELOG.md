@@ -6,9 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-21
+
 ### Added
 
 - **IPv6 direct connection** — second method card in Settings → Remote access: lists the desktop's public IPv6 addresses with copy buttons and a green/red availability chip (red = this network has no public IPv6, with guidance). No new protocol — the phone dials the same TLS WebSocket endpoint over IPv6, so it works from another network whenever both ends have IPv6 and the router passes it through.
+- **Remote session management from the phone** — the remote protocol gains create / kill / rename / history / delete-history requests: a paired phone can start a session in a chosen folder (nonexistent paths are rejected instead of silently falling back), stop it, rename it, and browse or resume the desktop's native session history (up to 100 sessions per engine, grouped by project in the app). The session list is broadcast on every change — including PTY exit — so both ends stay in sync. Requires CodeCockpit Remote v0.3.0+ on the phone.
+- **Tool output in the phone chat** — tool results are captured for all three engines (Claude Code by tool-use id, Codex by call id, OpenCode from part state) and attached to the matching message (capped at 4000 characters), so the phone shows what each command actually produced.
+- Plan/todo updates (TodoWrite, TaskCreate/TaskUpdate, update_plan) are tracked and surfaced in the phone's status line and plan cards.
+
+### Changed
+
+- Connection methods in Settings → Remote access are presented as plain info cards.
+- Session record sniffers now poll indefinitely (600 ms for the first 120 s, then every 5 s) instead of stopping, so tool results produced later in a session still reach the phone.
+
+### Fixed
+
+- **Phone connections died after exactly 30 seconds.** A failed auth attempt closed the socket while the phone was already re-authenticating with its secret: the closing handshake stalled and the server dropped the connection (code 1006) before the re-pairing could complete. Failed auths now keep the socket open, so an expired device token re-pairs on the same connection.
+- **The IME candidate window jumped while output streamed.** xterm's composition helper re-anchored the hidden input to the cursor cell on every render; during an active IME composition the repositioning is now frozen, so the candidate window stays put even while a session's spinner redraws.
+- Input from the phone that ends with Enter now submits reliably (Ink-based TUIs treated a trailing carriage return inside a large write as a literal newline); renaming a session is immediately visible to the phone; sessions left over from a previous app start report as exited instead of running.
+- The desktop follows the phone's session selection — attaching from the phone also focuses that session in the desktop workbench.
 
 ### Removed
 
