@@ -311,6 +311,11 @@ async function buildSpawnEnv(record: SessionRecord): Promise<Record<string, stri
     // only when the user has not set them (an explicit PYTHONUTF8=0 or LC_ALL wins).
     if (!env.PYTHONUTF8) env.PYTHONUTF8 = '1'
     if (!env.LANG && !env.LC_ALL) env.LANG = 'en_US.UTF-8'
+    // A GUI-launched app on Windows carries no TERM variable, and CLIs that gate their color
+    // output on it (codex falls back to 16-color / unstyled text without it) render washed out
+    // — while the same CLI is richly colored in a real terminal. The PTY already declares
+    // itself xterm-256color (see pty.spawn's name), so make the environment say it too.
+    if (!env.TERM) env.TERM = 'xterm-256color'
     if (IS_WIN) {
       // git-bash is only a claude CLI requirement on Windows. Resolved unconditionally
       // there: the first session may be openCode but later claude ones need bash too

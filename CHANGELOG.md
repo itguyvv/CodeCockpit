@@ -4,6 +4,12 @@ All notable changes to CodeCockpit are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] - 2026-11-23
+
+### Fixed
+
+- **Codex sessions in the packaged app rendered without colors.** An app launched from Explorer carries no `TERM` variable, and codex gates its palette on it — without `TERM` it fell back to basic 16-color / unstyled text, so sessions that are richly colored in `cmd` came out washed out (verified: identical spawn with `TERM=xterm-256color` restores the full 256-color output). Session spawns now default `TERM=xterm-256color` when the environment has none, matching what the PTY already declares; an explicit `TERM` set by the user still wins.
+
 ## [1.6.2] - 2026-11-23
 
 ### Fixed
