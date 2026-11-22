@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - CJK text in the session terminal now falls back to Microsoft YaHei UI instead of Chromium's per-locale default (SimSun on zh-CN Windows), so Chinese no longer renders in a serif-ish fallback; machines without the named fonts fall through to the system monospace as before.
+- The 150 ms duplicate-paste guard now covers every paste path (Ctrl+V, Shift+Ctrl+V, right-click) instead of only Shift+Ctrl+V: an identical paste twice within 150 ms can only be a double-dispatched event, never a human action, and is now inserted once.
 
 ## [1.6.0] - 2026-11-22
 

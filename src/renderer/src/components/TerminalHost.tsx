@@ -99,6 +99,17 @@ function pasteClipboardImage(entry: Entry, id: string, engineOf: (sid: string) =
 /** macOS uses Cmd where Windows/Linux use Ctrl for terminal copy/paste shortcuts */
 const IS_MAC = /Mac/i.test(navigator.platform)
 
+// An identical paste within 150 ms can only be a duplicate event dispatch, never a human
+// action — without this gate a double-dispatched paste inserts the text twice
+const lastPasteByTerm = new WeakMap<Terminal, { at: number; text: string }>()
+function pasteOnceGated(entry: Entry, text: string): void {
+  const now = Date.now()
+  const prev = lastPasteByTerm.get(entry.term)
+  if (prev && prev.text === text && now - prev.at < 150) return
+  lastPasteByTerm.set(entry.term, { at: now, text })
+  entry.term.paste(text)
+}
+
 // While an IME composition is active, xterm repositions its hidden helper textarea and the
 // composition view to the live cursor cell on every render (CompositionHelper
 // .updateCompositionElements, driven by onRender). During streaming output the cursor cell
@@ -443,21 +454,13 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
         if (window.api) void window.api.copyText(text)
         else void navigator.clipboard?.writeText(text)
       }
-      let lastPasteAt = 0
-      let lastPasteText = ''
       const pasteText = (): void => {
         const read = window.api
           ? window.api.readText()
           : (navigator.clipboard?.readText() ?? Promise.resolve(''))
         void read.then((text) => {
           if (!text) return
-          const now = Date.now()
-          // An identical paste within 150 ms can only be a duplicate key event, never a human
-          // action — without this guard a double-dispatched Ctrl+V pastes the text twice
-          if (text === lastPasteText && now - lastPasteAt < 150) return
-          lastPasteText = text
-          lastPasteAt = now
-          entry.term.paste(text)
+          pasteOnceGated(entry, text)
         })
       }
       const pasteImage = (): void => pasteClipboardImage(entry, id, engineOfRef.current)
@@ -500,7 +503,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
                 ? window.api.readText()
                 : (navigator.clipboard?.readText() ?? Promise.resolve(''))
             void read.then((text) => {
-              if (text) entry.term.paste(text)
+              if (text) pasteOnceGated(entry, text)
               else pasteImage()
             })
           })
@@ -674,7 +677,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
           return
         }
         void read().then((text) => {
-          if (text) entry.term.paste(text)
+          if (text) pasteOnceGated(entry, text)
           else pasteClipboardImage(entry, id, engineOfRef.current) // Fallback: with no text, still let the engine read the clipboard itself
         })
       })
