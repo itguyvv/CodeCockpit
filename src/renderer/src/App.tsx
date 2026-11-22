@@ -91,20 +91,23 @@ function AppInner(): JSX.Element {
     void window.api
       .loadWorkspace()
       .then((list) => {
+        const seen = new Set<string>()
         setSessions(
-          list.map((r) => ({
-            id: r.id,
-            claudeSessionId: r.claudeSessionId,
-            cwd: r.cwd,
-            mode: r.mode,
-            status: 'exited' as const,
-            title: r.title,
-            busy: false,
-            bgTasks: 0,
-            model: r.model ?? '',
-            engine: r.engine ?? 'claude',
-            providerId: r.providerId ?? ''
-          }))
+          list
+            .filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+            .map((r) => ({
+              id: r.id,
+              claudeSessionId: r.claudeSessionId,
+              cwd: r.cwd,
+              mode: r.mode,
+              status: 'exited' as const,
+              title: r.title,
+              busy: false,
+              bgTasks: 0,
+              model: r.model ?? '',
+              engine: r.engine ?? 'claude',
+              providerId: r.providerId ?? ''
+            }))
         )
       })
       .finally(() => setWsLoaded(true))
@@ -279,22 +282,29 @@ function AppInner(): JSX.Element {
           })
           .then(({ id }) => {
             termRef.current?.renameSlot('__pending', id)
-            setSessions((prev) => [
-              ...prev,
-              {
-                id,
-                claudeSessionId: opts.resumeId ?? null,
-                cwd: opts.cwd,
-                mode: opts.mode,
-                status: 'running',
-                title: opts.title ?? '',
-                busy: false,
-                bgTasks: 0,
-                model: opts.model ?? '',
-                engine: opts.engine,
-                providerId: opts.providerId ?? ''
-              }
-            ])
+            // The pty:created broadcast arrives before this promise resolves, so the
+            // adoption handler has usually added the session already — only append when
+            // it has not, or the workbench list shows the same session twice
+            setSessions((prev) =>
+              prev.some((x) => x.id === id)
+                ? prev
+                : [
+                    ...prev,
+                    {
+                      id,
+                      claudeSessionId: opts.resumeId ?? null,
+                      cwd: opts.cwd,
+                      mode: opts.mode,
+                      status: 'running',
+                      title: opts.title ?? '',
+                      busy: false,
+                      bgTasks: 0,
+                      model: opts.model ?? '',
+                      engine: opts.engine,
+                      providerId: opts.providerId ?? ''
+                    }
+                  ]
+            )
             setActiveId(id)
             setShowNew(false)
             if (opts.resumeId) {
