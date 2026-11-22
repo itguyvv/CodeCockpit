@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **The phone's session list disagreed with the desktop sidebar.** Remote clients were served the raw session registry (including stale exited sessions the workbench had already cleaned up). The remote list now mirrors the desktop workbench's own list, with a safety union against live processes so a lagging workbench can't hide a running session.
+- **Sessions created or resumed from the phone never appeared on the desktop.** The desktop renderer now adopts a `pty:created` broadcast (fired for both local and remote creates) into its workspace list and focuses the session, and `session_created` carries a summary so the phone renders it immediately too.
+- **The first message sent to a freshly created or resumed session was silently lost.** When the CLI had not rendered its first frame yet, the write went straight into the PTY and was swallowed by the TUI. Remote input is now queued per session (8 KB cap) and flushed in order once the CLI produces output, with an 8-second safety flush; input to a dead session returns an error instead of vanishing. Requires CodeCockpit Remote v0.4.0+.
+
 ## [1.5.0] - 2026-11-21
 
 ### Added
