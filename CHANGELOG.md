@@ -4,6 +4,12 @@ All notable changes to CodeCockpit are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-11-23
+
+### Fixed
+
+- **Codex sessions inserted a right-click paste twice.** Before pasting, the terminal forwarded the right-button press/release mouse reports to the TUI, and codex's composer — which batches bracketed pastes on a timer — committed the paste a second time when a mouse report raced it (verified by replaying the exact input stream: one write, two insertions). The app consumes right-clicks itself, so right-button reports are no longer forwarded at all, and any other mouse report is suppressed for a short window spanning a right-click paste's commit. Claude Code and openCode sessions are unaffected — they receive no mouse reports to begin with.
+
 ## [1.6.1] - 2026-11-22
 
 ### Fixed

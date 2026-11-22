@@ -488,21 +488,6 @@ function assignSessionId(record: SessionRecord, sessionId: string, live: LivePro
   ensureTailer(live)
 }
 
-const lastInputAt = new Map<string, { data: string; at: number }>()
-
-/** Duplicate-paste diagnostics: an identical paste-sized write twice within 150 ms means a
- *  double-dispatched key event. Log-only (to the packaged-build debug log), never drops input. */
-function logDupInput(id: string, data: string): void {
-  try {
-    fs.appendFileSync(
-      path.join(os.tmpdir(), 'codecockpit-renderer.log'),
-      `[${new Date().toISOString()}] [dup-input] id=${id} bytes=${data.length}\n`
-    )
-  } catch {
-    // Ignore
-  }
-}
-
 const PENDING_CAP_BYTES = 8192
 const PENDING_SAFETY_FLUSH_MS = 8000
 
@@ -520,10 +505,6 @@ function flushPendingInput(live: LiveProc): void {
 export function writeInput(id: string, data: string): void {
   const live = procs.get(id)
   if (!live) return
-  const now = Date.now()
-  const prev = lastInputAt.get(id)
-  if (prev && prev.data === data && data.length > 8 && now - prev.at < 150) logDupInput(id, data)
-  lastInputAt.set(id, { data, at: now })
   notifySuppressed.delete(id)
   // The CLI has not rendered anything yet: queue instead of writing into the void —
   // an Ink TUI that is still starting up discards typed-ahead text

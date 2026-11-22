@@ -10,3 +10,5 @@ data-dir.txt
 
 # Local-only knowledge base (never publish)
 docs/DEV-NOTES.local.md
+devtest-data/
+testrun-data/

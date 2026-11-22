@@ -11,6 +11,8 @@ interface Entry {
   fit: FitAddon
   search: SearchAddon
   offs: Array<() => void>
+  /** Timestamp until which mouse reports are suppressed (right-click → paste commit window) */
+  mouseQuietUntil: number
 }
 
 // #RRGGBB only: the addon rejects alpha colors for decoration backgrounds
@@ -109,6 +111,9 @@ function pasteOnceGated(entry: Entry, text: string): void {
   lastPasteByTerm.set(entry.term, { at: now, text })
   entry.term.paste(text)
 }
+
+// xterm SGR mouse report: ESC [ < button ; cell-x ; cell-y M (press/motion) or m (release)
+const SGR_MOUSE = /^\x1b\[<(\d+);\d+;\d+([Mm])$/
 
 // While an IME composition is active, xterm repositions its hidden helper textarea and the
 // composition view to the live cursor cell on every render (CompositionHelper
@@ -447,6 +452,27 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
         // Drop focus reports (mode 1004): forwarding them makes the TUI redraw on every
         // session switch, which the busy detector misreads as the AI working
         if (data === '\x1b[I' || data === '\x1b[O') return
+        const mouse = SGR_MOUSE.exec(data)
+        if (mouse) {
+          const btn = Number(mouse[1])
+          // Right-clicks are consumed by the context menu — the TUI never needs right-button
+          // reports, and forwarding them makes codex's composer insert the bracketed paste
+          // that follows milliseconds later twice (commit race in its paste batching). A
+          // right-button press therefore opens a quiet window that suppresses every other
+          // mouse report until shortly after the paste has gone through the PTY.
+          if (btn === 2) {
+            if (mouse[2] === 'M') entry.mouseQuietUntil = entry.term.hasSelection() ? 0 : Date.now() + 2000
+            return
+          }
+          if (btn === 34) return // motion with the right button held
+          if (Date.now() < entry.mouseQuietUntil) return
+        } else if (data.startsWith('\x1b[200~')) {
+          // Keep the quiet window over the paste-commit race for a short tail
+          if (entry.mouseQuietUntil) entry.mouseQuietUntil = Math.max(entry.mouseQuietUntil, Date.now() + 300)
+        } else {
+          // Any keyboard input means no paste is coming; lift the suppression early
+          entry.mouseQuietUntil = 0
+        }
         if (window.api) window.api.input(id, data)
       })
       entry.offs.push(() => dataDisp.dispose())
@@ -526,7 +552,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
     const getDims = (): { cols: number; rows: number } => {
       if (!attachedId.current) {
         const { term, fit, search } = createTerm(scrollbackRef.current)
-        const entry: Entry = { term, fit, search, offs: [] }
+        const entry: Entry = { term, fit, search, offs: [], mouseQuietUntil: 0 }
         entries.current.set(PENDING, entry)
         if (hostRef.current && !term.element) {
           term.open(hostRef.current)
@@ -555,7 +581,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       const prev = entries.current.get(attachedId.current ?? '')
       prev?.term.element?.remove()
       const { term, fit, search } = createTerm(scrollbackRef.current)
-      const entry: Entry = { term, fit, search, offs: [] }
+      const entry: Entry = { term, fit, search, offs: [], mouseQuietUntil: 0 }
       entries.current.set(id, entry)
       if (hostRef.current) {
         term.open(hostRef.current)
@@ -595,7 +621,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       const prev = entries.current.get(attachedId.current ?? '')
       prev?.term.element?.remove()
       const { term, fit, search } = createTerm(scrollbackRef.current)
-      const entry: Entry = { term, fit, search, offs: [] }
+      const entry: Entry = { term, fit, search, offs: [], mouseQuietUntil: 0 }
       entries.current.set(id, entry)
       if (hostRef.current) {
         term.open(hostRef.current)
