@@ -121,6 +121,20 @@ const api = {
   saveWorkspace: (
     list: Array<{ id: string; claudeSessionId: string | null; cwd: string; mode: string; title: string }>
   ): Promise<boolean> => ipcRenderer.invoke('workspace:save', list),
+  workspaceSync: (
+    list: Array<{
+      id: string
+      claudeSessionId: string | null
+      cwd: string
+      mode: string
+      status: string
+      title: string
+      busy: boolean
+      bgTasks: number
+      model?: string
+      engine: string
+    }>
+  ): void => ipcRenderer.send('workspace:sync', list),
   getHistoryOrder: (): Promise<{ groups?: string[]; items?: Record<string, string[]> }> =>
     ipcRenderer.invoke('history-order:load'),
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }): Promise<boolean> =>
@@ -230,6 +244,7 @@ const api = {
       const { id } = p as { id: string }
       cb(id)
     }),
+  onCreated: (cb: (s: Record<string, unknown>) => void): Unsubscribe => on('pty:created', (p) => cb(p as Record<string, unknown>)),
   onUpdate: (cb: (version: string, url: string) => void): Unsubscribe =>
     on('update:available', (p) => {
       const { version, url } = p as { version: string; url: string }

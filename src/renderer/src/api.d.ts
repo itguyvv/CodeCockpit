@@ -45,6 +45,31 @@ export interface RestoredSession {
   providerId?: string
 }
 
+/** One entry of the renderer workspace list pushed to main for the remote mirror */
+export interface SyncedSession {
+  id: string
+  claudeSessionId: string | null
+  cwd: string
+  mode: string
+  status: string
+  title: string
+  busy: boolean
+  bgTasks: number
+  model?: string
+  engine: EngineId
+}
+
+/** Payload of pty:created — the renderer adopts remote/other-window creations through it */
+export interface CreatedSession {
+  id: string
+  title: string
+  cwd: string
+  mode: string
+  engine: EngineId
+  claudeSessionId: string | null
+  startedAt: number
+}
+
 export interface SessionStatus {
   model: string
   tool: string | null
@@ -199,6 +224,7 @@ export interface WorkbenchApi {
   getTitles: () => Promise<Record<string, string>>
   loadWorkspace: () => Promise<RestoredSession[]>
   saveWorkspace: (list: RestoredSession[]) => Promise<boolean>
+  workspaceSync: (list: SyncedSession[]) => void
   getHistoryOrder: () => Promise<{ groups?: string[]; items?: Record<string, string[]> }>
   saveHistoryOrder: (o: { groups: string[]; items: Record<string, string[]> }) => Promise<boolean>
   aliasesLoad: () => Promise<Record<string, string>>
@@ -231,6 +257,7 @@ export interface WorkbenchApi {
   onBusy: (cb: (id: string, busy: boolean, bg: number) => void) => () => void
   onStatus: (cb: (id: string, status: SessionStatus) => void) => () => void
   onFocus: (cb: (id: string) => void) => () => void
+  onCreated: (cb: (s: CreatedSession) => void) => () => void
   onUpdate: (cb: (version: string, url: string) => void) => () => void
   updateStatus: () => Promise<UpdateStatus>
   updateCheck: () => Promise<UpdateStatus>

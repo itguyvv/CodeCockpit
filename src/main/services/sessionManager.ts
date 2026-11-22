@@ -505,6 +505,11 @@ export function resizeSession(id: string, cols: number, rows: number): void {
   }
 }
 
+/** Ids of sessions with a live pty (used to union the renderer list for remote clients) */
+export function liveSessionIds(): Set<string> {
+  return new Set(procs.keys())
+}
+
 /** Number of sessions with a live pty (exited sessions are removed from the map) */
 export function runningSessionCount(): number {
   return procs.size

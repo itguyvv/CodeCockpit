@@ -130,6 +130,29 @@ function AppInner(): JSX.Element {
     return () => clearTimeout(timer)
   }, [sessions, wsLoaded])
 
+  // Mirror the workbench list to main → remote clients (the phone drawer shows
+  // exactly what this sidebar shows, so both ends stay in sync)
+  useEffect(() => {
+    if (!wsLoaded) return
+    const timer = setTimeout(() => {
+      window.api.workspaceSync(
+        sessions.map((s) => ({
+          id: s.id,
+          claudeSessionId: s.claudeSessionId,
+          cwd: s.cwd,
+          mode: s.mode,
+          status: s.status,
+          title: s.title,
+          busy: s.busy,
+          bgTasks: s.bgTasks,
+          model: s.model ?? '',
+          engine: s.engine
+        }))
+      )
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [sessions, wsLoaded])
+
   const updateSession = useCallback((id: string, patch: Partial<SessionState>) => {
     setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
   }, [])
@@ -138,6 +161,30 @@ function AppInner(): JSX.Element {
     const offExit = window.api.onExit((id, code) => {
       updateSession(id, { status: 'exited' })
       termRef.current?.write(id, t('banner.exited', { code }))
+    })
+    const offCreated = window.api.onCreated((s) => {
+      // Adopt a session created elsewhere (remote client / another window): the
+      // workbench list must show it, and the pty:focus that follows can then switch
+      setSessions((prev) =>
+        prev.some((x) => x.id === s.id)
+          ? prev
+          : [
+              ...prev,
+              {
+                id: s.id,
+                claudeSessionId: s.claudeSessionId,
+                cwd: s.cwd,
+                mode: s.mode,
+                status: 'running' as const,
+                title: s.title,
+                busy: false,
+                bgTasks: 0,
+                model: '',
+                engine: s.engine,
+                providerId: ''
+              }
+            ]
+      )
     })
     const offSid = window.api.onSessionId((id, sid) => {
       updateSession(id, { claudeSessionId: sid })
@@ -167,6 +214,7 @@ function AppInner(): JSX.Element {
     })
     return () => {
       offExit()
+      offCreated()
       offSid()
       offBusy()
       offStatus()

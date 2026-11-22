@@ -49,6 +49,7 @@ import {
   remoteRunning,
   remoteClientCount,
   revokeRemoteDevice,
+  setRendererSessions,
   startRemote,
   stopRemote
 } from './services/remoteServer'
@@ -474,6 +475,11 @@ function registerIpc(): void {
     } catch {
       return false
     }
+  })
+  // Live mirror of the renderer's session list; the remote server serves this list to
+  // phone clients so both workbenches always show the same sessions
+  ipcMain.on('workspace:sync', (_e, list: unknown) => {
+    setRendererSessions(Array.isArray(list) ? (list as Array<Record<string, unknown>>) : [])
   })
 
   // Manual ordering of history sessions (group order + item order within groups)

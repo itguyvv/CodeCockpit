@@ -19,6 +19,7 @@ import {
   killSession,
   listNativeSessions,
   listSummaries,
+  liveSessionIds,
   onSessionEvent,
   renameSession,
   setMode,
@@ -283,10 +284,80 @@ function sendAttached(sessionId: string, msg: Record<string, unknown>): void {
 
 /** Push the session list to every authed client (create/kill/rename mutate it unseen) */
 function broadcastSessions(): void {
-  const msg = JSON.stringify({ type: 'sessions', sessions: listSummaries() })
+  const msg = JSON.stringify({ type: 'sessions', sessions: listSummariesForRemote() })
   for (const c of clients) {
     if (c.authed && c.tr.isOpen()) c.tr.send(msg)
   }
+}
+
+// ── Workbench mirror: remote clients are served the renderer's session list, so the
+// phone drawer shows exactly what the desktop sidebar shows (registry entries that
+// never joined the workbench — historical debris — stay invisible). Live registry
+// entries are unioned in so a not-yet-adopted session is never hidden. ──
+
+/** One entry of the renderer workspace list as pushed via workspace:sync */
+interface RendererSession {
+  id: string
+  claudeSessionId: string | null
+  cwd: string
+  mode: string
+  status: string
+  title: string
+  busy: boolean
+  bgTasks: number
+  model?: string
+  engine: string
+}
+
+/** Null until the renderer's first sync; back to null when a window closes */
+let rendererSessions: RendererSession[] | null = null
+
+type RemoteSummary = ReturnType<typeof listSummaries>[number]
+
+/** Renderer list as the source of membership, registry data as the source of truth for
+ *  every field it tracks (titles overlay, status, busy, telemetry). Registry entries with
+ *  a live pty are always included even when the renderer has not adopted them yet. */
+function listSummariesForRemote(): RemoteSummary[] {
+  const reg = listSummaries()
+  if (!rendererSessions) return reg
+  const byId = new Map(reg.map((s) => [s.id, s]))
+  const out: RemoteSummary[] = []
+  for (const r of rendererSessions) {
+    const s = byId.get(r.id)
+    if (s) {
+      out.push(s)
+    } else {
+      out.push({
+        id: r.id,
+        engine: isEngineId(r.engine) ? r.engine : 'claude',
+        title: r.title,
+        cwd: r.cwd,
+        claudeSessionId: r.claudeSessionId,
+        status: r.status,
+        permissionMode: r.mode,
+        startedAt: 0,
+        busy: r.busy,
+        bg: r.bgTasks,
+        model: r.model ?? '',
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
+        turns: 0
+      })
+    }
+  }
+  const seen = new Set(out.map((s) => s.id))
+  const live = liveSessionIds()
+  for (const s of reg) {
+    if (!seen.has(s.id) && live.has(s.id)) out.push(s)
+  }
+  return out
+}
+
+/** Renderer pushed its current workspace list (every renderer list change lands here) */
+export function setRendererSessions(list: unknown): void {
+  rendererSessions = Array.isArray(list) ? (list as RendererSession[]) : null
+  broadcastSessions()
 }
 
 /** Starts the listener; false = port busy (user-facing toast is pushed from here) */
@@ -477,7 +548,7 @@ function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
     return
   }
   if (type === 'list') {
-    sendTo(ctx, { type: 'sessions', sessions: listSummaries() })
+    sendTo(ctx, { type: 'sessions', sessions: listSummariesForRemote() })
     return
   }
   if (type === 'attach' || type === 'detach') {
@@ -542,7 +613,7 @@ function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
     const title = typeof msg.title === 'string' ? msg.title : ''
     if (!id || !title.trim()) return
     // renameSession keys on the engine-native id, not the desktop session id
-    const native = listSummaries().find((s) => s.id === id)?.claudeSessionId
+    const native = listSummariesForRemote().find((s) => s.id === id)?.claudeSessionId
     if (!native) {
       sendTo(ctx, { type: 'error', message: 'unknown session' })
       return
