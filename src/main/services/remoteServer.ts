@@ -653,8 +653,14 @@ async function handleCreate(ctx: ClientCtx, msg: Record<string, unknown>): Promi
   }
   try {
     const { id } = await createSession({ cwd, mode, engine, title, resumeId })
-    sendTo(ctx, { type: 'session_created', id })
+    // The summary lets the phone render the session immediately, before the next
+    // sessions broadcast arrives (createSession also notifies the renderer via
+    // pty:created, so the desktop workbench adopts and focuses it right after)
+    const summary = listSummariesForRemote().find((s) => s.id === id) ?? null
+    sendTo(ctx, { type: 'session_created', id, summary })
     broadcastSessions()
+    // Desktop follows the phone: jump to the session it just created/resumed
+    notifyWindows('pty:focus', { id })
   } catch (e) {
     sendTo(ctx, { type: 'error', message: e instanceof Error ? e.message : 'create failed' })
   }

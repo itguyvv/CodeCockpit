@@ -448,6 +448,18 @@ export async function createSession(opts: CreateOpts): Promise<{ id: string }> {
             : sniffNewSessionFile(record.cwd, knownIds, (sessionId) => assignSessionId(record, sessionId, live))
     }
   }
+  // The renderer adopts every creation through this event (a remote-created session
+  // must join the desktop workbench list); remote clients learn about it via the
+  // sessions broadcast that follows
+  broadcast('pty:created', {
+    id: record.id,
+    title: record.title,
+    cwd: record.cwd,
+    mode: record.permissionMode,
+    engine,
+    claudeSessionId: record.claudeSessionId,
+    startedAt: record.startedAt
+  })
   return { id: record.id }
 }
 
