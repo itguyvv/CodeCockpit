@@ -224,16 +224,22 @@ function AppInner(): JSX.Element {
     }
   }, [updateSession, t])
 
-  // Notification-triggered jump: select the session in the renderer (window raising happens in main)
+  // Notification / remote-attach jump: select the session in the renderer (window raising
+  // happens in main). Subscribed once and reading a latest-ref: pty:focus arrives right after
+  // pty:created, before the adoption state update has re-rendered and re-subscribed, so the
+  // closure must not capture a stale list — and ensureSlot mounts a terminal for sessions this
+  // window has never opened (created by a phone).
+  const sessionsRef = useRef(sessions)
+  sessionsRef.current = sessions
   useEffect(() => {
     return window.api.onFocus((id) => {
-      const s = sessions.find((x) => x.id === id)
+      const s = sessionsRef.current.find((x) => x.id === id)
       if (s && s.status !== 'exited') {
         setActiveId(id)
-        termRef.current?.attach(id)
+        termRef.current?.ensureSlot(id)
       }
     })
-  }, [sessions])
+  }, [])
 
   const guardBypass = useCallback(
     (mode: string, onOk: () => void) => {

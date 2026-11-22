@@ -30,6 +30,8 @@ export interface TerminalHandle {
   renameSlot: (oldId: string, newId: string) => void
   /** Switch the displayed session (the other session's terminal keeps its buffer) */
   attach: (id: string) => void
+  /** attach, but create the terminal slot first when the session has none (adopted remote sessions) */
+  ensureSlot: (id: string) => void
   /** Write text to a session terminal (exit notices etc.) */
   write: (id: string, text: string) => void
   /** Fully remove a session's terminal instance (when removed from this window) */
@@ -580,6 +582,32 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       register(newId, entry)
     }
 
+    // Adopt a session whose process exists but which was created outside this window (remote
+    // client): build the terminal slot, register the data subscription, then show it
+    const ensureSlot = (id: string): void => {
+      if (entries.current.get(id)) {
+        attach(id)
+        return
+      }
+      const prev = entries.current.get(attachedId.current ?? '')
+      prev?.term.element?.remove()
+      const { term, fit, search } = createTerm(scrollbackRef.current)
+      const entry: Entry = { term, fit, search, offs: [] }
+      entries.current.set(id, entry)
+      if (hostRef.current) {
+        term.open(hostRef.current)
+        try {
+          fit.fit()
+        } catch {
+          // Ignore
+        }
+      }
+      register(id, entry)
+      void window.api.resize(id, term.cols, term.rows)
+      attachedId.current = id
+      term.focus()
+    }
+
     const attach = (id: string): void => {
       if (attachedId.current === id) return
       if (attachedId.current) {
@@ -615,7 +643,7 @@ const TerminalHost = forwardRef<TerminalHandle, { scrollback: number; engineOf: 
       entries.current.delete(id)
     }
 
-    return { getDims, createSlot, renameSlot, attach, write, dispose }
+    return { getDims, createSlot, renameSlot, ensureSlot, attach, write, dispose }
   }, [])
 
   useEffect(() => {

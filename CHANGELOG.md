@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sessions created or attached from the phone never opened on the desktop.** The adoption put them in the sidebar, but the focus event raced the list update (stale closure) and only ever tried to attach an existing terminal — none existed for a session this window had never opened. The focus handler now reads a latest-ref and builds the terminal slot on demand, so the desktop really jumps to the session.
+
 ### Changed
 
 - CJK text in the session terminal now falls back to Microsoft YaHei UI instead of Chromium's per-locale default (SimSun on zh-CN Windows), so Chinese no longer renders in a serif-ish fallback; machines without the named fonts fall through to the system monospace as before.
