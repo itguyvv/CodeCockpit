@@ -334,6 +334,11 @@ function posixQuote(s: string): string {
   return `'${s.replace(/'/g, `'\\''`)}'`
 }
 
+/** Quote an argument for a cmd /c command line — only whitespace needs the quotes */
+function cmdQuote(s: string): string {
+  return /\s/.test(s) ? `"${s}"` : s
+}
+
 /** Login+interactive shell of the user's session; the fallback covers GUI launches where SHELL is unset */
 function userShell(): string {
   return process.env.SHELL || (IS_MAC ? '/bin/zsh' : '/bin/bash')
@@ -358,12 +363,21 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
   // semantics stay attached to the CLI process itself.
   const shell = IS_WIN ? '' : userShell()
   const haveShell = shell && fs.existsSync(shell)
-  const file = isCmd ? 'cmd.exe' : haveShell ? shell : bin
-  const spawnArgs = isCmd
-    ? ['/d', '/s', '/c', bin, ...args]
-    : haveShell
-      ? ['-l', '-i', '-c', `exec ${[bin, ...args].map(posixQuote).join(' ')}`]
-      : args
+  const file = IS_WIN || isCmd ? 'cmd.exe' : haveShell ? shell : bin
+  const spawnArgs =
+    IS_WIN
+      ? // ConPTY starts at the system OEM codepage (GBK on zh-CN Windows), and PowerShell
+        // re-encodes piped/redirected child output to that codepage — engines capture tool
+        // output as UTF-8 and render it as mojibake. Switch the console to UTF-8 before the
+        // CLI starts so its tool children speak UTF-8 on their pipes. A string `args` is
+        // passed to CreateProcess verbatim (no MSVCRT re-quoting), the only form that
+        // survives cmd's /s quote handling when the binary path contains spaces.
+        `/d /s /c chcp 65001 >nul & "${bin}"${args.length ? ' ' + args.map(cmdQuote).join(' ') : ''}`
+      : isCmd
+        ? ['/d', '/s', '/c', bin, ...args]
+        : haveShell
+          ? ['-l', '-i', '-c', `exec ${[bin, ...args].map(posixQuote).join(' ')}`]
+          : args
   const p = pty.spawn(file, spawnArgs, {
     name: 'xterm-256color',
     cols: record.cols,
