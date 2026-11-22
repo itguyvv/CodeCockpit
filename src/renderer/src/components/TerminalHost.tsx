@@ -38,9 +38,11 @@ export interface TerminalHandle {
 
 function createTerm(scrollback: number): { term: Terminal; fit: FitAddon; search: SearchAddon } {
   const term = new Terminal({
-    // mac fonts first; they simply don't resolve on Windows/Linux and the stack falls through
+    // mac fonts first; they simply don't resolve on Windows/Linux and the stack falls through.
+    // The CJK entry after the Latin monos keeps Chinese glyphs out of Chromium's SimSun fallback
+    // (YaHei UI is not strictly monospace, but CJK cells are double-width anyway).
     fontFamily:
-      'Menlo, "SF Mono", Monaco, "Cascadia Mono", Consolas, "Microsoft YaHei Mono", "Noto Sans Mono CJK SC", monospace',
+      'Menlo, "SF Mono", Monaco, "Cascadia Mono", Consolas, "Microsoft YaHei UI", "Noto Sans Mono CJK SC", monospace',
     fontSize: 14,
     scrollback,
     cursorBlink: true,

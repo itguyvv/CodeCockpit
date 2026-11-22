@@ -4,6 +4,12 @@ All notable changes to CodeCockpit are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- CJK text in the session terminal now falls back to Microsoft YaHei UI instead of Chromium's per-locale default (SimSun on zh-CN Windows), so Chinese no longer renders in a serif-ish fallback; machines without the named fonts fall through to the system monospace as before.
+
 ## [1.6.0] - 2026-11-22
 
 ### Fixed
