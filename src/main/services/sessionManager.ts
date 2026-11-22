@@ -70,6 +70,13 @@ interface LiveProc {
   record: SessionRecord
   stopSniffer?: () => void
   tailer?: StatusTailer
+  /** The CLI rendered its first frame — remote input is safe to write through */
+  gotData: boolean
+  /** Remote input buffered until the first output (a not-yet-started Ink TUI drops typed-ahead text) */
+  pending: string[]
+  pendingBytes: number
+  /** Safety flush timer while input sits queued */
+  flushTimer?: NodeJS.Timeout
 }
 
 const registry = new Map<string, SessionRecord>()
@@ -360,6 +367,16 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
     env: await buildSpawnEnv(record)
   })
   p.onData((data) => {
+    const live = procs.get(record.id)
+    if (live && !live.gotData) {
+      live.gotData = true
+      // First frame rendered: buffered remote input is deliverable after a beat, so the
+      // TUI has finished mounting its input handler before the queued text arrives
+      setTimeout(() => {
+        const l = procs.get(record.id)
+        if (l && l.gotData) flushPendingInput(l)
+      }, 250)
+    }
     // Inside the resize grace window the TUI is merely redrawing — stay idle
     if (Date.now() >= (resizeGraceUntil.get(record.id) ?? 0)) lastDataAt.set(record.id, Date.now())
     broadcast('pty:data', { id: record.id, data })
@@ -382,7 +399,7 @@ async function spawnFor(record: SessionRecord, bin: string): Promise<pty.IPty> {
     clearMessages(record.id)
     broadcast('pty:exit', { id: record.id, exitCode })
   })
-  procs.set(record.id, { pty: p, record })
+  procs.set(record.id, { pty: p, record, gotData: false, pending: [], pendingBytes: 0 })
   ensureTailer(procs.get(record.id)!)
   return p
 }
@@ -486,6 +503,20 @@ function logDupInput(id: string, data: string): void {
   }
 }
 
+const PENDING_CAP_BYTES = 8192
+const PENDING_SAFETY_FLUSH_MS = 8000
+
+function flushPendingInput(live: LiveProc): void {
+  if (live.flushTimer) {
+    clearTimeout(live.flushTimer)
+    live.flushTimer = undefined
+  }
+  const chunks = live.pending
+  live.pending = []
+  live.pendingBytes = 0
+  for (const chunk of chunks) live.pty.write(chunk)
+}
+
 export function writeInput(id: string, data: string): void {
   const live = procs.get(id)
   if (!live) return
@@ -494,7 +525,25 @@ export function writeInput(id: string, data: string): void {
   if (prev && prev.data === data && data.length > 8 && now - prev.at < 150) logDupInput(id, data)
   lastInputAt.set(id, { data, at: now })
   notifySuppressed.delete(id)
+  // The CLI has not rendered anything yet: queue instead of writing into the void —
+  // an Ink TUI that is still starting up discards typed-ahead text
+  if (!live.gotData) {
+    if (live.pendingBytes + data.length > PENDING_CAP_BYTES) {
+      throw new Error('input buffer full')
+    }
+    live.pending.push(data)
+    live.pendingBytes += data.length
+    if (!live.flushTimer) {
+      live.flushTimer = setTimeout(() => flushPendingInput(live), PENDING_SAFETY_FLUSH_MS)
+    }
+    return
+  }
   live.pty.write(data)
+}
+
+/** Whether a session currently has a live pty (exited sessions are removed from the map) */
+export function isLive(id: string): boolean {
+  return procs.has(id)
 }
 
 export function resizeSession(id: string, cols: number, rows: number): void {

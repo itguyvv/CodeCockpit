@@ -16,6 +16,7 @@ import {
   createSession,
   deleteHistorySession,
   getStatus,
+  isLive,
   killSession,
   listNativeSessions,
   listSummaries,
@@ -572,6 +573,12 @@ function handleMessage(ctx: ClientCtx, msg: Record<string, unknown>): void {
     const id = typeof msg.id === 'string' ? msg.id : ''
     const data = typeof msg.data === 'string' ? msg.data : ''
     if (!id || !data) return
+    // Failed loudly rather than silently: the phone shows the sent message as
+    // pending and needs the error to mark it failed
+    if (!isLive(id)) {
+      sendTo(ctx, { type: 'error', message: 'session not running' })
+      return
+    }
     try {
       // A TUI classifies one large chunk ending in \r as a pasted multi-line insert,
       // so the Enter never submits (observed on claude). Real keyboards emit Enter as

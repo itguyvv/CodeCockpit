@@ -71,7 +71,7 @@ working). Revoking a device closes its live connections immediately.
 | `list`   | —                     | full session list → `sessions` |
 | `attach` | `id` (session id)     | start streaming this session → immediate `conv_snapshot` (+ `status` if known) |
 | `detach` | `id`                  | stop streaming that session |
-| `input`  | `id`, `data`          | write `data` into the session's terminal (a submitted prompt) |
+| `input`  | `id`, `data`          | write `data` into the session's terminal (a submitted prompt). Data sent before the CLI has produced its first output is **queued** server-side and flushed right after the first output arrives (8 KB cap — beyond it the server replies with an `error` and drops the queue; a safety timer flushes after 8 s regardless). Sending input to a session that is not running answers with `error: "session not running"` |
 | `mode`   | `id`, `mode`          | switch permission mode: `default` \| `acceptEdits` \| `plan` \| `bypassPermissions` |
 | `create` | `cwd`, `mode`, `engine?`, `title?`, `resumeId?` | launch a new session (`resumeId` = engine-native id to resume from history) → `session_created` + `sessions` broadcast. A nonexistent `cwd` is **rejected** with an `error`, never silently replaced |
 | `kill`   | `id`                  | terminate the session process → `exit` event + `sessions` broadcast |
@@ -100,14 +100,14 @@ Message arrays follow the `RemoteMessage` shape below.
 
 | type            | fields                              | meaning |
 |-----------------|-------------------------------------|---------|
-| `sessions`      | `sessions: SessionSummary[]`        | answer to `list` |
+| `sessions`      | `sessions: SessionSummary[]`        | answer to `list` and the periodic broadcast. The list **mirrors the desktop's active-session sidebar** (plus any live process the renderer has not adopted yet), not every historical entry on disk — a session resumed or created remotely appears here as soon as the desktop knows about it |
 | `conv_snapshot` | `id`, `messages: RemoteMessage[]`   | full buffered conversation at attach time |
 | `conv_append`   | `id`, `messages: RemoteMessage[]`   | new/updated messages; **upsert by `id`** (a re-sent id replaces the earlier entry — streaming updates mutate rows in place) |
 | `busy`          | `id`, `busy: boolean`, `bg: number` | work-state changed; `bg` = running background shells. Also triggers a `sessions` broadcast so every client's sidebar stays in sync |
 | `status`        | `id`, `status: SessionStatus`       | telemetry snapshot (tokens, cost, model, …); `todos` carries the latest plan list when the agent published one |
 | `exit`          | `id`, `code: number`                | session process exited |
 | `session_id`    | `id`, `claudeSessionId: string`     | engine reported its native session id |
-| `session_created` | `id`                              | answer to `create`; the new session also arrives via the `sessions` broadcast |
+| `session_created` | `id`, `summary: SessionSummary?`    | answer to `create`; `summary` (when present) lets the client add the session to its sidebar immediately instead of waiting for the next `sessions` broadcast. The desktop's own UI also jumps to the new session |
 | `history`       | `engine`, `sessions: NativeSessionInfo[]` | engine-native history (resume candidates + deletable entries) |
 | `pong`          | —                                   | keepalive answer |
 | `error`         | `message: string`                   | malformed request / failed input, mode change or create |
